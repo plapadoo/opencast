@@ -1,7 +1,7 @@
 plapadoo Opencast fork
 ======================
 
-**This is a fork of https://github.com/opencast/opencast**
+**This is a not active fork of https://bitbucket.org/opencast-community/opencast**
 
 It is used by the company plapadoo to publish contributions to the project.
 
