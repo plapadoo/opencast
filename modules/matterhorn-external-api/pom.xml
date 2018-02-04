@@ -237,8 +237,8 @@
               org.json.simple.parser,
               org.osgi.framework,
               org.slf4j,
-	      javax.ws.rs;version=2.0.1,
-	      javax.ws.rs.core;version=2.0.1,
+              javax.ws.rs;version=2.0.1,
+              javax.ws.rs.core;version=2.0.1,
               *
             </Import-Package>
             <Private-Package>
