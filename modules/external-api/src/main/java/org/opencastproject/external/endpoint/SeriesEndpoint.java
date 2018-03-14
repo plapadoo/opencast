@@ -30,11 +30,13 @@ import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.commons.lang3.StringUtils.trimToNull;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
+import static org.opencastproject.external.common.ApiVersion.CURRENT_VERSION;
 import static org.opencastproject.external.common.ApiVersion.VERSION_1_0_0;
 import static org.opencastproject.index.service.util.RestUtils.okJson;
 import static org.opencastproject.util.DateTimeSupport.toUTC;
 import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
+import org.opencastproject.external.common.ApiMediaType;
 import org.opencastproject.external.common.ApiResponses;
 import org.opencastproject.external.common.ApiVersion;
 import org.opencastproject.external.impl.index.ExternalIndex;
@@ -82,6 +84,8 @@ import org.opencastproject.util.doc.rest.RestService;
 import com.entwinemedia.fn.Fn;
 import com.entwinemedia.fn.data.Opt;
 import com.entwinemedia.fn.data.json.Field;
+import com.entwinemedia.fn.data.json.JArray;
+import com.entwinemedia.fn.data.json.JObject;
 import com.entwinemedia.fn.data.json.JValue;
 import com.entwinemedia.fn.data.json.Jsons.Functions;
 
@@ -178,7 +182,7 @@ public class SeriesEndpoint {
 
   @GET
   @Path("")
-  @Produces({ "application/json", "application/v1.0.0+json" })
+  @Produces({ "application/json", "application/v1.0.0+json", "application/v1.1.0+json" })
   @RestQuery(name = "getseries", description = "Returns a list of series.", returnDescription = "", restParameters = {
           @RestParameter(name = "filter", isRequired = false, description = "A comma seperated list of filters to limit the results with. A filter is the filter's name followed by a colon \":\" and then the value to filter with so it is the form <Filter Name>:<Value to Filter With>.", type = STRING),
           @RestParameter(name = "sort", description = "Sort the results based upon a list of comma seperated sorting criteria. In the comma seperated list each type of sorting is specified as a pair such as: <Sort Name>:ASC or <Sort Name>:DESC. Adding the suffix ASC or DESC sets the order as ascending or descending order and is mandatory.", isRequired = false, type = STRING),
@@ -274,24 +278,61 @@ public class SeriesEndpoint {
 
       SearchResult<Series> result = externalIndex.getByQuery(query);
 
-      return ApiResponses.Json.ok(VERSION_1_0_0, arr($(result.getItems()).map(new Fn<SearchResultItem<Series>, JValue>() {
-        @Override
-        public JValue apply(SearchResultItem<Series> a) {
-          final Series s = a.getSource();
-          JValue subjects;
-          if (s.getSubject() == null) {
-            subjects = arr();
-          } else {
-            subjects = arr(splitSubjectIntoArray(s.getSubject()));
-          }
-          Date createdDate = s.getCreatedDateTime();
-          return obj(f("identifier", v(s.getIdentifier())), f("title", v(s.getTitle())), f("creator", v(s.getCreator(), BLANK)),
-                  f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)), f("subjects", subjects),
-                  f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
-                  f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
-                  f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))));
-        }
-      }).toList()));
+      JArray responseContent;
+      ApiVersion responseVersion;
+      switch(ApiMediaType.parse(acceptHeader).getVersion()) {
+        case VERSION_1_0_0:
+          responseVersion = VERSION_1_0_0;
+          responseContent = arr($(result.getItems()).map(new Fn<SearchResultItem<Series>, JValue>() {
+            @Override
+            public JValue apply(SearchResultItem<Series> a) {
+              final Series s = a.getSource();
+              JValue subjects;
+              if (s.getSubject() == null) {
+                subjects = arr();
+              } else {
+                subjects = arr(splitSubjectIntoArray(s.getSubject()));
+              }
+              Date createdDate = s.getCreatedDateTime();
+              return obj(f("identifier", v(s.getIdentifier())), f("title", v(s.getTitle())), f("creator", v(s.getCreator(), BLANK)),
+                      f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)), f("subjects", subjects),
+                      f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
+                      f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
+                      f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))));
+            }
+          }).toList());
+          break;
+        case VERSION_1_1_0:
+        case VERSION_UNDEFINED:
+        default:
+          responseVersion = CURRENT_VERSION;
+          responseContent = arr($(result.getItems()).map(new Fn<SearchResultItem<Series>, JValue>() {
+            @Override
+            public JValue apply(SearchResultItem<Series> a) {
+              final Series s = a.getSource();
+              JValue subjects;
+              if (s.getSubject() == null) {
+                subjects = arr();
+              } else {
+                subjects = arr(splitSubjectIntoArray(s.getSubject()));
+              }
+              Date createdDate = s.getCreatedDateTime();
+              return obj(f("identifier", v(s.getIdentifier(), BLANK)),
+                      f("title", v(s.getTitle(), BLANK)),
+                      f("creator", v(s.getCreator(), BLANK)),
+                      f("language", v(s.getLanguage(), BLANK)),
+                      f("license", v(s.getLicense(), BLANK)),
+                      f("rights_holder", v(s.getRightsHolder(), BLANK)),
+                      f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)),
+                      f("subjects", subjects),
+                      f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
+                      f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
+                      f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))));
+            }
+          }).toList());
+          break;
+      }
+      return ApiResponses.Json.ok(responseVersion, responseContent);
     } catch (Exception e) {
       logger.warn("Could not perform search query: {}", ExceptionUtils.getStackTrace(e));
       throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
@@ -300,7 +341,7 @@ public class SeriesEndpoint {
 
   @GET
   @Path("{seriesId}")
-  @Produces({ "application/json", "application/v1.0.0+json" })
+  @Produces({ "application/json", "application/v1.0.0+json", "application/v1.1.0+json" })
   @RestQuery(name = "getseries", description = "Returns a single series.", returnDescription = "", pathParameters = {
           @RestParameter(name = "seriesId", description = "The series id", isRequired = true, type = STRING) }, reponses = {
                   @RestResponse(description = "The series is returned.", responseCode = HttpServletResponse.SC_OK),
@@ -315,14 +356,30 @@ public class SeriesEndpoint {
         subjects = arr(splitSubjectIntoArray(s.getSubject()));
       }
       Date createdDate = s.getCreatedDateTime();
-      return ApiResponses.Json.ok(VERSION_1_0_0, obj(
+      JObject responseContent = obj(
           f("identifier", v(s.getIdentifier())), f("title", v(s.getTitle())),
           f("description", v(s.getDescription(), BLANK)), f("creator", v(s.getCreator(), BLANK)), f("subjects", subjects),
           f("organization", v(s.getOrganization())), f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)),
           f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
           f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
           f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))),
-          f("opt_out", v(s.isOptedOut()))));
+          f("opt_out", v(s.isOptedOut())));
+      ApiVersion responseVersion;
+      switch(ApiMediaType.parse(acceptHeader).getVersion()) {
+        case VERSION_1_0_0:
+          responseVersion = VERSION_1_0_0;
+          break;
+        case VERSION_1_1_0:
+        case VERSION_UNDEFINED:
+        default:
+          responseVersion = CURRENT_VERSION;
+          responseContent = responseContent.merge(
+                  f("language", v(s.getLanguage(), BLANK)),
+                  f("license", v(s.getLicense(), BLANK)),
+                  f("rights_holder", v(s.getRightsHolder(), BLANK)));
+          break;
+      }
+      return ApiResponses.Json.ok(responseVersion, responseContent);
     }
     return ApiResponses.notFound("Cannot find an series with id '%s'.", id);
   }
@@ -384,7 +441,7 @@ public class SeriesEndpoint {
       MetadataCollection collection = getSeriesMetadata(optSeries.get());
       ExternalMetadataUtils.changeSubjectToSubjects(collection);
       ExternalMetadataUtils.changeTypeOrderedTextToText(collection);
-      return ApiResponses.Json.ok(ApiVersion.VERSION_1_0_0, collection.toJSON());
+      return ApiResponses.Json.ok(VERSION_1_0_0, collection.toJSON());
     }
 
     // Try the other catalogs
@@ -395,7 +452,7 @@ public class SeriesEndpoint {
       if (typeMatchesSeriesCatalogUIAdapter(type, adapter)) {
         final Opt<MetadataCollection> optSeriesMetadata = adapter.getFields(id);
         if (optSeriesMetadata.isSome()) {
-          return ApiResponses.Json.ok(ApiVersion.VERSION_1_0_0, optSeriesMetadata.get().toJSON());
+          return ApiResponses.Json.ok(VERSION_1_0_0, optSeriesMetadata.get().toJSON());
         }
       }
     }
@@ -606,7 +663,7 @@ public class SeriesEndpoint {
 
     metadataList.add(adapter, collection);
     indexService.updateAllSeriesMetadata(id, metadataList, externalIndex);
-    return ApiResponses.Json.ok(ApiVersion.VERSION_1_0_0, "");
+    return ApiResponses.Json.ok(VERSION_1_0_0, "");
   }
 
   @DELETE
@@ -648,7 +705,7 @@ public class SeriesEndpoint {
     } catch (NotFoundException e) {
       return ApiResponses.notFound(e.getMessage());
     }
-    return ApiResponses.Json.noContent(ApiVersion.VERSION_1_0_0);
+    return ApiResponses.Json.noContent(VERSION_1_0_0);
   }
 
   @GET

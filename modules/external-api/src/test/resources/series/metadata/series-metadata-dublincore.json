@@ -26,7 +26,7 @@
   {
     "id": "language",
     "readOnly": false,
-    "value": "",
+    "value": "fra",
     "label": "EVENTS.SERIES.DETAILS.METADATA.LANGUAGE",
     "required": false,
     "type": "text"
@@ -34,7 +34,7 @@
   {
     "id": "rightsHolder",
     "readOnly": false,
-    "value": "",
+    "value": "everyone",
     "label": "EVENTS.SERIES.DETAILS.METADATA.RIGHTS",
     "required": false,
     "type": "text"
@@ -42,7 +42,7 @@
   {
     "id": "license",
     "readOnly": false,
-    "value": "",
+    "value": "CC0",
     "label": "EVENTS.SERIES.DETAILS.METADATA.LICENSE",
     "required": false,
     "type": "text"

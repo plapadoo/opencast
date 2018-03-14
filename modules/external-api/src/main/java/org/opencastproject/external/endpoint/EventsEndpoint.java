@@ -27,9 +27,11 @@ import static com.entwinemedia.fn.data.json.Jsons.f;
 import static com.entwinemedia.fn.data.json.Jsons.obj;
 import static com.entwinemedia.fn.data.json.Jsons.v;
 import static org.apache.commons.lang3.StringUtils.trimToNull;
+import static org.opencastproject.external.common.ApiVersion.CURRENT_VERSION;
 import static org.opencastproject.external.common.ApiVersion.VERSION_1_0_0;
 import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
+import org.opencastproject.external.common.ApiMediaType;
 import org.opencastproject.external.common.ApiResponses;
 import org.opencastproject.external.common.ApiVersion;
 import org.opencastproject.external.impl.index.ExternalIndex;
@@ -101,6 +103,7 @@ import com.entwinemedia.fn.Fn;
 import com.entwinemedia.fn.Fn2;
 import com.entwinemedia.fn.data.Opt;
 import com.entwinemedia.fn.data.json.Field;
+import com.entwinemedia.fn.data.json.JArray;
 import com.entwinemedia.fn.data.json.JObject;
 import com.entwinemedia.fn.data.json.JValue;
 import com.entwinemedia.fn.data.json.Jsons;
@@ -313,8 +316,21 @@ public class EventsEndpoint implements ManagedService {
           throws Exception {
     for (final Event event : indexService.getEvent(id, externalIndex)) {
       event.updatePreview(previewSubtype);
-      return ApiResponses.Json.ok(ApiVersion.VERSION_1_0_0,
-              eventToJSON(event, withAcl, withMetadata, withPublications, sign));
+      JValue responseContent;
+      ApiVersion responseVersion;
+      switch(ApiMediaType.parse(acceptHeader).getVersion()) {
+        case VERSION_1_0_0:
+          responseVersion = VERSION_1_0_0;
+          responseContent = eventToJSON(event, withAcl, withMetadata, withPublications, sign);
+          break;
+        case VERSION_1_1_0:
+        case VERSION_UNDEFINED:
+        default:
+          responseVersion = CURRENT_VERSION;
+          responseContent = eventToJSONV110(event, withAcl, withMetadata, withPublications, sign);
+          break;
+      }
+      return ApiResponses.Json.ok(responseVersion, responseContent);
     }
     return ApiResponses.notFound("Cannot find an event with id '%s'.", id);
   }
@@ -647,11 +663,30 @@ public class EventsEndpoint implements ManagedService {
   protected Response getJsonEvents(String acceptHeader, List<IndexObject> events, Boolean withAcl, Boolean withMetadata,
           Boolean withPublications, Boolean withSignedUrls)
           throws IndexServiceException, SearchIndexException, NotFoundException {
+    JArray responseContent;
+    ApiVersion responseVersion;
     List<JValue> eventsList = new ArrayList<>();
-    for (IndexObject item : events) {
-      eventsList.add(eventToJSON((Event) item, withAcl, withMetadata, withPublications, withSignedUrls));
+    switch(ApiMediaType.parse(acceptHeader).getVersion()) {
+      case VERSION_1_0_0:
+        responseVersion = VERSION_1_0_0;
+        eventsList = new ArrayList<>();
+        for (IndexObject item : events) {
+          eventsList.add(eventToJSON((Event) item, withAcl, withMetadata, withPublications, withSignedUrls));
+        }
+        responseContent = arr(eventsList);
+        break;
+      case VERSION_1_1_0:
+      case VERSION_UNDEFINED:
+      default:
+        responseVersion = CURRENT_VERSION;
+        eventsList = new ArrayList<>();
+        for (IndexObject item : events) {
+          eventsList.add(eventToJSON((Event) item, withAcl, withMetadata, withPublications, withSignedUrls));
+        }
+        responseContent = arr(eventsList);
+        break;
     }
-    return ApiResponses.Json.ok(ApiVersion.VERSION_1_0_0, arr(eventsList));
+    return ApiResponses.Json.ok(responseVersion, responseContent);
   }
 
   private void extendEventsStatusOverview(List<Field> fields, Series series) throws SearchIndexException {
@@ -728,6 +763,89 @@ public class EventsEndpoint implements ManagedService {
     if (event.getTechnicalEndTime() != null) {
       long duration = new DateTime(event.getTechnicalEndTime()).getMillis()
                     - new DateTime(event.getTechnicalStartTime()).getMillis();
+      fields.add(f("duration", v(duration)));
+    }
+    if (StringUtils.trimToNull(event.getSubject()) != null) {
+      fields.add(f("subjects", arr(splitSubjectIntoArray(event.getSubject()))));
+    } else {
+      fields.add(f("subjects", arr()));
+    }
+    fields.add(f("title", v(event.getTitle(), BLANK)));
+    if (withAcl != null && withAcl) {
+      AccessControlList acl = getAclFromEvent(event);
+      fields.add(f("acl", arr(AclUtils.serializeAclToJson(acl))));
+    }
+    if (withMetadata != null && withMetadata) {
+      try {
+        Opt<MetadataList> metadata = getEventMetadata(event);
+        if (metadata.isSome()) {
+          fields.add(f("metadata", metadata.get().toJSON()));
+        }
+      } catch (Exception e) {
+        logger.error("Unable to get metadata for event '{}' because: {}", event.getIdentifier(),
+                ExceptionUtils.getStackTrace(e));
+        throw new IndexServiceException("Unable to add metadata to event", e);
+      }
+    }
+    if (withPublications != null && withPublications) {
+      List<JValue> publications = getPublications(event, withSignedUrls);
+      fields.add(f("publications", arr(publications)));
+    }
+    return obj(fields);
+  }
+
+  /**
+   * Transform an {@link Event} to Json for API Version 1.1.0
+   *
+   * @param event
+   *          The event to transform into json
+   * @param withAcl
+   *          Whether to add the acl information for the event
+   * @param withMetadata
+   *          Whether to add all the metadata for the event
+   * @param withPublications
+   *          Whether to add the publications
+   * @param withSignedUrls
+   *          Whether to sign the urls if they are protected by stream security.
+   * @return The event in json format.
+   * @throws IndexServiceException
+   *           Thrown if unable to get the metadata for the event.
+   * @throws SearchIndexException
+   *           Thrown if unable to get event publications from search service
+   * @throws NotFoundException
+   *           Thrown if unable to find all of the metadata
+   */
+  protected JValue eventToJSONV110(Event event, Boolean withAcl, Boolean withMetadata, Boolean withPublications,
+          Boolean withSignedUrls) throws IndexServiceException, SearchIndexException, NotFoundException {
+    List<Field> fields = new ArrayList<>();
+    if (event.getArchiveVersion() != null)
+      fields.add(f("archive_version", v(event.getArchiveVersion())));
+    fields.add(f("created", v(event.getCreated(), Jsons.BLANK)));
+    fields.add(f("creator", v(event.getCreator(), Jsons.BLANK)));
+    fields.add(f("contributor", arr($(event.getContributors()).map(Functions.stringToJValue))));
+    fields.add(f("description", v(event.getDescription(), Jsons.BLANK)));
+    fields.add(f("has_previews", v(event.hasPreview())));
+    fields.add(f("identifier", v(event.getIdentifier(), BLANK)));
+    fields.add(f("language", v(event.getLanguage(), BLANK)));
+    fields.add(f("rights_holder", v(event.getRights(), BLANK)));
+    fields.add(f("license", v(event.getLicense(), BLANK)));
+    //fields.add(f("is_part_of", v(event.get(), BLANK)));
+    fields.add(f("duration", v(event.getDuration(), BLANK)));
+    fields.add(f("source", v(event.getSource(), BLANK)));
+    fields.add(f("location", v(event.getLocation(), BLANK)));
+    fields.add(f("presenter", arr($(event.getPresenters()).map(Functions.stringToJValue))));
+    List<JValue> publicationIds = new ArrayList<>();
+    if (event.getPublications() != null) {
+      for (Publication publication : event.getPublications()) {
+        publicationIds.add(v(publication.getChannel()));
+      }
+    }
+    fields.add(f("publication_status", arr(publicationIds)));
+    fields.add(f("processing_state", v(event.getWorkflowState(), BLANK)));
+    fields.add(f("start", v(event.getTechnicalStartTime(), BLANK)));
+    if (event.getTechnicalEndTime() != null) {
+      long duration = new DateTime(event.getTechnicalEndTime()).getMillis()
+              - new DateTime(event.getTechnicalStartTime()).getMillis();
       fields.add(f("duration", v(duration)));
     }
     if (StringUtils.trimToNull(event.getSubject()) != null) {

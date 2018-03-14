@@ -106,6 +106,9 @@ public class TestSeriesEndpoint extends SeriesEndpoint {
     series1.setDescription("A series created over the external API");
     series1.setSubject("Topic");
     series1.setCreator("Gracie Walsh");
+    series1.setLanguage("fra");
+    series1.setLicense("CC0");
+    series1.setRightsHolder("everyone");
     series1.setCreatedDateTime(new Date(1429175556000L));
     series1.setOptOut(true);
     series1.addContributor("Nu'man Farooq Morcos");

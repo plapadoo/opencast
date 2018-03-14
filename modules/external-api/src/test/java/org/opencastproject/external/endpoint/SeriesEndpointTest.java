@@ -51,6 +51,7 @@ public class SeriesEndpointTest {
 
   private static final String APP_V1_0_0_JSON = "application/v1.0.0+json";
   private static final String APP_V1_0_0_XML = "application/v1.0.0+xml";
+  private static final String APP_V1_1_0_JSON = "application/v1.1.0+json";
 
   /** The REST test environment */
   private static final RestServiceTestEnv env = testEnvForClasses(localhostRandomPort(), TestSeriesEndpoint.class);
@@ -71,7 +72,7 @@ public class SeriesEndpointTest {
   /** Unit test for {@link SeriesEndpoint#getSeriesList(String, String, String, String, int, int)} */
   @Test
   public void testGetSeriesListJson() throws Exception {
-    final String response = given().log().all().expect().statusCode(SC_OK).when().get(env.host("/")).asString();
+    final String response = given().accept(APP_V1_0_0_JSON).log().all().expect().statusCode(SC_OK).when().get(env.host("/")).asString();
 
     final JSONArray json = (JSONArray) parser.parse(response);
     assertEquals(1, json.size());
@@ -81,6 +82,28 @@ public class SeriesEndpointTest {
     assertEquals("Via API", series1.get("title"));
     assertEquals("2015-04-16T09:12:36Z", series1.get("created"));
     assertEquals("Gracie Walsh", series1.get("creator"));
+
+    final JSONArray subjects = (JSONArray) series1.get("subjects");
+    assertEquals(1, subjects.size());
+    assertEquals("Topic", subjects.get(0));
+  }
+
+  /** Unit test for {@link SeriesEndpoint#getSeriesList(String, String, String, String, int, int)} */
+  @Test
+  public void testGetSeriesListJsonV110() throws Exception {
+    final String response = given().accept(APP_V1_1_0_JSON).log().all().expect().statusCode(SC_OK).when().get(env.host("/")).asString();
+
+    final JSONArray json = (JSONArray) parser.parse(response);
+    assertEquals(1, json.size());
+
+    final JSONObject series1 = (JSONObject) json.get(0);
+    assertEquals("4fd0ef66-aea5-4b7a-a62a-a4ada0eafd6f", series1.get("identifier"));
+    assertEquals("Via API", series1.get("title"));
+    assertEquals("2015-04-16T09:12:36Z", series1.get("created"));
+    assertEquals("Gracie Walsh", series1.get("creator"));
+    assertEquals("fra", series1.get("language"));
+    assertEquals("CC0", series1.get("license"));
+    assertEquals("everyone", series1.get("rights_holder"));
 
     final JSONArray subjects = (JSONArray) series1.get("subjects");
     assertEquals(1, subjects.size());

@@ -205,6 +205,7 @@ public class BaseEndpoint {
   public Response getVersion() throws Exception {
     List<JValue> versions = new ArrayList<>();
     versions.add(v(ApiVersion.VERSION_1_0_0.toString()));
+    versions.add(v(ApiVersion.VERSION_1_1_0.toString()));
     JValue json = obj(f("versions", arr(versions)), f("default", v(ApiVersion.CURRENT_VERSION.toString())));
     return RestUtil.R.ok(MediaType.APPLICATION_JSON_TYPE, serializer.toJson(json));
   }

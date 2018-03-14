@@ -25,9 +25,10 @@ public enum ApiVersion {
 
   VERSION_UNDEFINED("v*.*.*"),
 
-  VERSION_1_0_0("v1.0.0");
+  VERSION_1_0_0("v1.0.0"),
+  VERSION_1_1_0("v1.1.0");
 
-  public static final ApiVersion CURRENT_VERSION = VERSION_1_0_0;
+  public static final ApiVersion CURRENT_VERSION = VERSION_1_1_0;
 
   private String versionString;
 
@@ -39,6 +40,8 @@ public enum ApiVersion {
     switch (version) {
       case "v1.0.0":
         return VERSION_1_0_0;
+      case "v1.1.0":
+        return VERSION_1_1_0;
       default:
         throw new IllegalArgumentException("'" + version + "' is not a valid version");
     }
