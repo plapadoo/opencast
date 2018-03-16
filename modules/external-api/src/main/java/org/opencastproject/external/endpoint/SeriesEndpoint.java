@@ -285,8 +285,12 @@ public class SeriesEndpoint {
             subjects = arr(splitSubjectIntoArray(s.getSubject()));
           }
           Date createdDate = s.getCreatedDateTime();
-          return obj(f("identifier", v(s.getIdentifier())), f("title", v(s.getTitle())), f("creator", v(s.getCreator(), BLANK)),
-                  f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)), f("subjects", subjects),
+          return obj(
+                  f("identifier", v(s.getIdentifier())),
+                  f("title", v(s.getTitle())),
+                  f("creator", v(s.getCreator(), BLANK)),
+                  f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)),
+                  f("subjects", subjects),
                   f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
                   f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
                   f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))));
@@ -316,9 +320,13 @@ public class SeriesEndpoint {
       }
       Date createdDate = s.getCreatedDateTime();
       return ApiResponses.Json.ok(VERSION_1_0_0, obj(
-          f("identifier", v(s.getIdentifier())), f("title", v(s.getTitle())),
-          f("description", v(s.getDescription(), BLANK)), f("creator", v(s.getCreator(), BLANK)), f("subjects", subjects),
-          f("organization", v(s.getOrganization())), f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)),
+          f("identifier", v(s.getIdentifier())),
+          f("title", v(s.getTitle())),
+          f("description", v(s.getDescription(), BLANK)),
+          f("creator", v(s.getCreator(), BLANK)),
+          f("subjects", subjects),
+          f("organization", v(s.getOrganization())),
+          f("created", v(createdDate != null ? toUTC(createdDate.getTime()) : null, BLANK)),
           f("contributors", arr($(s.getContributors()).map(Functions.stringToJValue))),
           f("organizers", arr($(s.getOrganizers()).map(Functions.stringToJValue))),
           f("publishers", arr($(s.getPublishers()).map(Functions.stringToJValue))),
