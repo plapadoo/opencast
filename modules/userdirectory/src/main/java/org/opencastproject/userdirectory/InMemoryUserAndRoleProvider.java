@@ -45,6 +45,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -71,6 +72,18 @@ public class InMemoryUserAndRoleProvider implements UserProvider, RoleProvider {
 
   /** Configuration key for the digest password */
   public static final String DIGEST_PASSWORD_KEY = "org.opencastproject.security.digest.pass";
+
+  /** The capture agent user */
+  public static final String CA_USER_NAME = "Capture Agent";
+
+  /** Configuration key for the capture agent user */
+  public static final String CA_USER_KEY = "org.opencastproject.security.ca.user";
+
+  /** Configuration key for the digest password */
+  public static final String CA_PASSWORD_KEY = "org.opencastproject.security.ca.pass";
+
+  /** Configuration key for the capture agent user */
+  public static final String CA_EXTRA_ROLES_KEY = "org.opencastproject.security.ca.roles";
 
   /** The list of in-memory users */
   private final List<User> inMemoryUsers = new ArrayList<User>();
@@ -114,10 +127,16 @@ public class InMemoryUserAndRoleProvider implements UserProvider, RoleProvider {
     for (Organization organization : orgDirectoryService.getOrganizations()) {
       JaxbOrganization jaxbOrganization = JaxbOrganization.fromOrganization(organization);
 
-      // Create the digest auth user with a clear text password
+      // Create digest auth users with a clear text password
       Set<JaxbRole> roleList = new HashSet<JaxbRole>();
       for (String roleName : SecurityConstants.GLOBAL_SYSTEM_ROLES) {
         roleList.add(new JaxbRole(roleName, jaxbOrganization));
+      }
+
+      // Role set for the capture agent user
+      Set<JaxbRole> caRoleList = new HashSet<>();
+      for (String roleName : SecurityConstants.GLOBAL_CA_ROLES) {
+        caRoleList.add(new JaxbRole(roleName, jaxbOrganization));
       }
 
       // Create the digest user
@@ -126,6 +145,35 @@ public class InMemoryUserAndRoleProvider implements UserProvider, RoleProvider {
         User digestUser = new JaxbUser(digestUsername, digestUserPass, DIGEST_USER_NAME, null, getName(), true,
                 jaxbOrganization, roleList);
         inMemoryUsers.add(digestUser);
+      }
+
+      // Create the digest user
+      if (digestUsername != null && digestUserPass != null) {
+        logger.info("Creating the system digest user");
+        User digestUser = new JaxbUser(digestUsername, digestUserPass, DIGEST_USER_NAME, null, getName(), true,
+                jaxbOrganization, roleList);
+        inMemoryUsers.add(digestUser);
+      }
+
+      final String caExtraRoles = StringUtils.trimToNull(organization.getProperties().get(CA_EXTRA_ROLES_KEY));
+      final String caUsername = StringUtils.trimToNull(organization.getProperties().get(CA_USER_KEY));
+
+      caRoleList.add(new JaxbRole(organization.getAnonymousRole(), jaxbOrganization));
+
+      if (caExtraRoles != null && caUsername != null) {
+        final List<String> items = Arrays.asList(caExtraRoles.split("\\s*,\\s*"));
+        for (final String item : items) {
+          logger.debug("Adding custom role '{}' to CA user {}", item, caUsername);
+          caRoleList.add(new JaxbRole(item, jaxbOrganization));
+        }
+      }
+
+      final String caUserPass = StringUtils.trimToNull(organization.getProperties().get(CA_PASSWORD_KEY));
+      if (caUsername != null && caUserPass != null) {
+        logger.info("Creating the capture agent digest user '{}'", caUsername);
+        final User caUser = new JaxbUser(caUsername, caUserPass, CA_USER_NAME, null, getName(), true,
+                jaxbOrganization, caRoleList);
+        inMemoryUsers.add(caUser);
       }
     }
   }

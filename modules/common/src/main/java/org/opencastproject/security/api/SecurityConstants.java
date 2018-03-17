@@ -56,4 +56,7 @@ public interface SecurityConstants {
   /** The roles associated with the Opencast system account */
   String[] GLOBAL_SYSTEM_ROLES = new String[] { GLOBAL_ADMIN_ROLE, GLOBAL_SUDO_ROLE };
 
+  /** The roles associated with the Opencast capture agent account */
+  String[] GLOBAL_CA_ROLES = new String[] { GLOBAL_ADMIN_ROLE, GLOBAL_SUDO_ROLE };
+
 }
