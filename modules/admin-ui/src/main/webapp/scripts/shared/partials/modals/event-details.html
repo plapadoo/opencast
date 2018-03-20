@@ -397,14 +397,14 @@
                                             <td>{{ item.status }}</td>
                                             <td>{{ item.submitted | localizeDate : 'dateTime' : 'medium' }}</td>
                                             <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_WORKFLOWS_EDIT')" >
+                                                <a ng-show="item.status == 'RUNNING' || item.status == 'PAUSED'" ng-click="workflowAction(item.id, 'STOP')" class="stop fa-fw"><!-- STOP -->
+                                                </a>
+                                                <a ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_WORKFLOWS_PAUSE')"
+                                                  ng-show="item.status == 'RUNNING'" ng-click="workflowAction(item.id, 'PAUSE')" class="pause fa-fw"><!-- pause -->
+                                                </a>
                                                 <a ng-show="item.status == 'PAUSED'" ng-click="workflowAction(item.id, 'NONE')" class="fa fa-hand-stop-o fa-fw" style="color:red"><!-- Abort -->
                                                 </a>
                                                 <a ng-show="item.status == 'PAUSED'" ng-click="workflowAction(item.id, 'RETRY')" class="fa fa-refresh fa-fw"><!-- Retry -->
-                                                </a>
-                                                <a ng-show="item.status == 'RUNNING' || item.status == 'PAUSED'" ng-click="workflowAction(item.id, 'STOP')" class="fa fa-stop-circle-o fa-fw"><!-- STOP -->
-                                                </a>
-                                                <a ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_WORKFLOWS_PAUSE')"
-                                                  ng-show="item.status == 'RUNNING'" ng-click="workflowAction(item.id, 'PAUSE')" class="fa fa-pause-circle-o fa-fw"><!-- pause -->
                                                 </a>
                                                 <a ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_WORKFLOWS_DELETE')"
                                                    ng-show="(item.status == 'SUCCEEDED' || item.status == 'FAILED' || item.status == 'STOPPED') && !isCurrentWorkflow(item.id)"
