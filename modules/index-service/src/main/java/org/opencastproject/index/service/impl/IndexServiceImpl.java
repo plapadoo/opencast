@@ -28,7 +28,10 @@ import static org.opencastproject.metadata.dublincore.DublinCore.PROPERTY_IDENTI
 
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.AssetManagerException;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.PropertyId;
 import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.ARecord;
 import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.assetmanager.api.query.Predicate;
 import org.opencastproject.assetmanager.util.Workflows;
@@ -168,6 +171,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
@@ -919,6 +924,7 @@ public class IndexServiceImpl implements IndexService {
     Map<String, String> configuration = new HashMap<>();
     if (eventHttpServletRequest.getProcessing().get().get("configuration") != null) {
       configuration = new HashMap<>((JSONObject) eventHttpServletRequest.getProcessing().get().get("configuration"));
+
     }
     for (Entry<String, String> entry : configuration.entrySet()) {
       caProperties.put(WORKFLOW_CONFIG_PREFIX.concat(entry.getKey()), entry.getValue());
@@ -932,6 +938,14 @@ public class IndexServiceImpl implements IndexService {
     switch (type) {
       case UPLOAD:
       case UPLOAD_LATER:
+        assetManager.takeSnapshot(DEFAULT_OWNER,eventHttpServletRequest.getMediaPackage().get());
+        // Store workflow properties
+        String mpId = eventHttpServletRequest.getMediaPackage().get().getIdentifier().compact();
+        String workflowNamespace = "org.opencastproject.workflow.configuration";
+        for (Entry<String, String> entry : configuration.entrySet()) {
+          assetManager.setProperty(Property.mk(PropertyId.mk(mpId, workflowNamespace, entry.getKey()),
+                  org.opencastproject.assetmanager.api.Value.mk(entry.getValue())));
+        }
         eventHttpServletRequest
                 .setMediaPackage(updateDublincCoreCatalog(eventHttpServletRequest.getMediaPackage().get(), dc));
         configuration.put("workflowDefinitionId", workflowTemplate);
@@ -1452,6 +1466,23 @@ public class IndexServiceImpl implements IndexService {
   public boolean hasSnapshots(String eventId) {
     AQueryBuilder q = assetManager.createQuery();
     return !enrich(q.select(q.snapshot()).where(q.mediaPackageId(eventId).and(q.version().isLatest())).run()).getSnapshots().isEmpty();
+  }
+
+  @Override
+  public Map<String, Map<String, String>> getEventWorkflowProperties(List<String> eventIds) {
+    AQueryBuilder q = assetManager.createQuery();
+    AResult r = q.select(q.snapshot(), q.propertiesOf("org.opencastproject.workflow.configuration"))
+            .where(q.mediaPackageIds(eventIds.toArray(new String[eventIds.size()])).and(q.version().isLatest())).run();
+    final Collector<Property, ?, Map<String, String>> propertyMapCollector = Collectors
+            .toMap(p -> p.getId().getName(), p -> p.getValue().get(org.opencastproject.assetmanager.api.Value.STRING),
+                    (rec0, rec1) -> {
+                      logger.warn("duplicate workflow property '{}'", rec0);
+                      return rec0;
+                    }, HashMap::new);
+    final Collector<ARecord, ?, Map<String, Map<String, String>>> aRecordMapCollector = Collectors
+            .toMap(ARecord::getMediaPackageId,
+                    rec -> rec.getProperties().toList().stream().collect(propertyMapCollector));
+    return r.getRecords().toList().stream().collect(aRecordMapCollector);
   }
 
   @Override

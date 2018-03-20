@@ -165,6 +165,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -289,6 +290,40 @@ public abstract class AbstractEventEndpoint {
   }
 
   @GET
+  @Path("workflowProperties")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getEventWorkflowProperties(String eventIdsContent) throws UnauthorizedException {
+    if (StringUtils.isBlank(eventIdsContent)) {
+      return Response.status(Response.Status.BAD_REQUEST).build();
+    }
+
+    JSONParser parser = new JSONParser();
+    JSONArray eventIdsJsonArray;
+    try {
+      eventIdsJsonArray = (JSONArray) parser.parse(eventIdsContent);
+    } catch (org.json.simple.parser.ParseException e) {
+      logger.error("Unable to parse '{}' because: {}", eventIdsContent, ExceptionUtils.getStackTrace(e));
+      return Response.status(Response.Status.BAD_REQUEST).build();
+    } catch (ClassCastException e) {
+      logger.error("Unable to cast '{}' because: {}", eventIdsContent, ExceptionUtils.getStackTrace(e));
+      return Response.status(Response.Status.BAD_REQUEST).build();
+    }
+
+    //noinspection unchecked
+    final Map<String, Map<String, String>> eventWithProperties = getIndexService().getEventWorkflowProperties(eventIdsJsonArray);
+    final Collection<Field> jsonEvents = new ArrayList<>();
+    for (Entry<String, Map<String, String>> e : eventWithProperties.entrySet()) {
+      final Collection<Field> jsonProperties = new ArrayList<>();
+      for (Entry<String, String> p : e.getValue().entrySet()) {
+        jsonProperties.add(f(p.getKey(),p.getValue()));
+      }
+      jsonEvents.add(f(e.getKey(), obj(jsonProperties)));
+    }
+    return okJson(obj(jsonEvents));
+  }
+
+
+  @GET
   @Path("catalogAdapters")
   @Produces(MediaType.APPLICATION_JSON)
   @RestQuery(name = "getcataloguiadapters", description = "Returns the available catalog UI adapters as JSON", returnDescription = "The catalog UI adapters as JSON", reponses = {
@@ -344,6 +379,7 @@ public abstract class AbstractEventEndpoint {
 
     return Response.ok().build();
   }
+
 
   @POST
   @Path("deleteEvents")
