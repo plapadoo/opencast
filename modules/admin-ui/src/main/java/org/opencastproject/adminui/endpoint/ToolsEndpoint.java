@@ -33,12 +33,17 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
+import static org.opencastproject.systems.OpencastConstants.WORKFLOW_PROPERTIES_NAMESPACE;
 import static org.opencastproject.util.data.Tuple.tuple;
 
 import org.opencastproject.adminui.impl.AdminUIConfiguration;
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.AssetManagerException;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.Value;
+import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.ARecord;
 import org.opencastproject.assetmanager.util.Workflows;
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.api.IndexService.Source;
@@ -111,9 +116,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -428,9 +435,18 @@ public class ToolsEndpoint implements ManagedService {
       if (editingInfo.getPostProcessingWorkflow().isSome()) {
         final String workflowId = editingInfo.getPostProcessingWorkflow().get();
         try {
+          final AQueryBuilder q = assetManager.createQuery();
+          final List<ARecord> r = q.select(q.snapshot(), q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+            .where(q.mediaPackageId(mediaPackage.getIdentifier().toString()).and(q.version().isLatest())).run()
+            .getRecords().toList();
+          final Map<String, String> workflowParameters = new HashMap<>(0);
+          if (!r.isEmpty())
+            for (final Property p : r.get(0).getProperties())
+              workflowParameters.put(p.getId().getName(), p.getValue().get(Value.STRING));
           final Workflows workflows = new Workflows(assetManager, workspace, workflowService);
           workflows.applyWorkflowToLatestVersion($(mediaPackage.getIdentifier().toString()),
-                  ConfiguredWorkflow.workflow(workflowService.getWorkflowDefinitionById(workflowId))).run();
+            ConfiguredWorkflow.workflow(workflowService.getWorkflowDefinitionById(workflowId), workflowParameters))
+            .run();
         } catch (AssetManagerException e) {
           logger.warn("Unable to start workflow '{}' on archived media package '{}': {}",
                   workflowId, mediaPackage, getStackTrace(e));
