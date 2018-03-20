@@ -25,10 +25,15 @@ import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 import static org.opencastproject.assetmanager.api.AssetManager.DEFAULT_OWNER;
 import static org.opencastproject.assetmanager.api.fn.Enrichments.enrich;
 import static org.opencastproject.metadata.dublincore.DublinCore.PROPERTY_IDENTIFIER;
+import static org.opencastproject.systems.OpencastConstants.WORKFLOW_PROPERTIES_NAMESPACE;
 
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.AssetManagerException;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.PropertyId;
+import org.opencastproject.assetmanager.api.Value;
 import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.ARecord;
 import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.assetmanager.api.query.Predicate;
 import org.opencastproject.assetmanager.util.Workflows;
@@ -914,6 +919,7 @@ public class IndexServiceImpl implements IndexService {
     Map<String, String> configuration = new HashMap<>();
     if (eventHttpServletRequest.getProcessing().get().get("configuration") != null) {
       configuration = new HashMap<>((JSONObject) eventHttpServletRequest.getProcessing().get().get("configuration"));
+
     }
     for (Entry<String, String> entry : configuration.entrySet()) {
       caProperties.put(WORKFLOW_CONFIG_PREFIX.concat(entry.getKey()), entry.getValue());
@@ -927,6 +933,13 @@ public class IndexServiceImpl implements IndexService {
     switch (type) {
       case UPLOAD:
       case UPLOAD_LATER:
+        assetManager.takeSnapshot(DEFAULT_OWNER,eventHttpServletRequest.getMediaPackage().get());
+        // Store workflow properties
+        String mpId = eventHttpServletRequest.getMediaPackage().get().getIdentifier().compact();
+        for (Entry<String, String> entry : configuration.entrySet()) {
+          assetManager.setProperty(Property.mk(PropertyId.mk(mpId, WORKFLOW_PROPERTIES_NAMESPACE, entry.getKey()),
+                  org.opencastproject.assetmanager.api.Value.mk(entry.getValue())));
+        }
         eventHttpServletRequest
                 .setMediaPackage(updateDublincCoreCatalog(eventHttpServletRequest.getMediaPackage().get(), dc));
         configuration.put("workflowDefinitionId", workflowTemplate);
@@ -1356,6 +1369,25 @@ public class IndexServiceImpl implements IndexService {
   public boolean hasSnapshots(String eventId) {
     AQueryBuilder q = assetManager.createQuery();
     return !enrich(q.select(q.snapshot()).where(q.mediaPackageId(eventId).and(q.version().isLatest())).run()).getSnapshots().isEmpty();
+  }
+
+  @Override
+  public Map<String, Map<String, String>> getEventWorkflowProperties(final List<String> eventIds) {
+    final AQueryBuilder query = assetManager.createQuery();
+    final AResult result = query.select(query.snapshot(), query.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+            .where(query.mediaPackageIds(eventIds.toArray(new String[0])).and(query.version().isLatest()))
+            .run();
+    final Map<String, Map<String, String>> workflowProperties = new HashMap<>(eventIds.size());
+    for (final ARecord record : result.getRecords().toList()) {
+      final List<Property> recordProps = record.getProperties().toList();
+      final Map<String, String> eventMap = new HashMap<>(recordProps.size());
+      for (final Property property : recordProps) {
+        eventMap.put(property.getId().getName(), property.getValue().get(Value.STRING));
+      }
+      final String eventId = record.getMediaPackageId();
+      workflowProperties.put(eventId, eventMap);
+    }
+    return workflowProperties;
   }
 
   @Override
