@@ -109,8 +109,6 @@
      "EVENTS_PROCESSING_ACTION_NOT_NONE": "Processing could not be aborted.",
      "EVENTS_PROCESSING_ACTION_STOP": "Processing stopped.",
      "EVENTS_PROCESSING_ACTION_NOT_STOP": "Processing could not be stopped.",
-     "EVENTS_PROCESSING_ACTION_PAUSE": "Processing paused.",
-     "EVENTS_PROCESSING_ACTION_NOT_PAUSE": "Processing could not be paused.",
      "EVENTS_PROCESSING_DELETE_WORKFLOW": "Deleted Workflow.",
      "EVENTS_PROCESSING_DELETE_WORKFLOW_FAILED": "Workflow could not be deleted.",
      "SERIES_UPDATED_NB":   "{{ number }} series have been successfully updated",

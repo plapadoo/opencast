@@ -23,9 +23,6 @@
 <!-- Stop Icon -->
 [icon_stop]:data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4gMUCwU6uK1oJwAAALNJREFUOMut07sNwkAQBNBnUwkNuAQnkEBkGqEgmkAigC4IHFuiB8eWjmRBfGzAwEgb3O3M3v4u048VFpjG+YQDtt5gjhYJHY5hXdy1wenFOkgNyh5/Gb4U3KeXE3beYxfcu0zaiA7ZC/HF14Tm2rD0kHYasNtyEirYRJOMCCA0mzxGVRuPGtPcj8hjSYovtAVOeWzYZGD2QyhDs//LGGH2xSLN/rrKt5mM+kxD9VZYfvKdz+bRR1rEELI+AAAAAElFTkSuQmCC "Stop icon"
 
-<!-- Pause Icon -->
-[icon_pause]:data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAA3XAAAN1wFCKJt4AAAAB3RJTUUH4gMUCwkI3M92qwAAAMFJREFUOMutkz0OgkAQhT8WK2/BBTgCDTZS4UUsvZYJhfYcwIKahDtQWGGW5mFQd0WQl0wxOzM7f28C3DgAeyCS3gBX4MwEdkALWKADbpJOb618nDjKqQYShz2Rzcr3I7MFCqZRyPelkla/AwRfggdbrZjnwOxb2VZykgz6uB0L5BtN+wGUjoxbTyWlYjKjVVXMRwVEhj9hRJJ4QWwMNEYMCz27v0tcnAiByyprBEgXECldlcrjSmYdk6/fHMh+OeceoRFDLcEK52EAAAAASUVORK5CYII= "Pause icon"
-
 # Overview
 
 An Event in Opencast refers to a single lecture, training, or meeting that is automatically recorded or uploaded. Events can either stand alone or they can belong to [a Series](series.md) can be scheduled or created ad-hoc if an institution allows it. You can access the Events page from the **Main Menu > Recordings > Events**.
@@ -91,9 +88,9 @@ Use the delete icon ( ![icon_delete][] ) in the actions column of each row to de
 
 If processing is **Paused**, use the warning icon ( ![icon_warning][] ) to open the Event's details workflow tab, where you can *Retry* ( ![icon_refresh][] ) or *Resume (without retrying)* ( ![icon_hand_stop][] ) processing.
 
-## How to stop/pause Event processing
+## How to stop Event processing
 
-If processing is **Running**, you can use the pause ( ![icon_pause][] ) or stop button ( ![icon_stop][] ) in the event details' *Workflows* tab to pause or stop the processing. You only see these buttons if you have the necessary access roles to do so.
+If processing is **Running**, you can use the stop button ( ![icon_stop][] ) in the event details' *Workflows* tab to stop the processing.
 
 ## How to delete old workflows
 You can delete old workflows in the event detail's *Workflows* tab by pressing the delete button ( ![icon_delete][] ) of the corresponding table entry. The latest workflow cannot be deleted. Also, you can only delete workflows if you have the necessary access role to do so.

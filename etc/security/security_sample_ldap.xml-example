@@ -107,7 +107,6 @@
     <sec:intercept-url pattern="/admin-ng/event/*/workflows/*/action/stop" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_WORKFLOWS_EDIT" />
     <sec:intercept-url pattern="/admin-ng/event/*/workflows/*/action/retry" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_WORKFLOWS_EDIT" />
     <sec:intercept-url pattern="/admin-ng/event/*/workflows/*/action/none" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_WORKFLOWS_EDIT" />
-    <sec:intercept-url pattern="/admin-ng/event/*/workflows/*/action/pause" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_WORKFLOWS_PAUSE" />
     <sec:intercept-url pattern="/admin-ng/event/*/comment/*/*" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_COMMENTS_EDIT" />
     <sec:intercept-url pattern="/admin-ng/event/*/comment/*" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_DETAILS_COMMENTS_EDIT"/>
     <sec:intercept-url pattern="/admin-ng/event/*/optout/*" method="PUT" access="ROLE_ADMIN, ROLE_UI_EVENTS_STATUS_EDIT" />

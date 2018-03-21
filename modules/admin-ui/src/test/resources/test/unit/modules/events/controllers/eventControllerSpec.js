@@ -314,13 +314,6 @@ describe('Event controller', function () {
 
                 expect(Notifications.add).toHaveBeenCalledWith('success', jasmine.any(String), 'events-access');
             });
-
-            it('pauses workflow, shows notification', function () {
-                $scope.workflowAction(1234, 'PAUSE'); // wfId
-                $httpBackend.flush();
-
-                expect(Notifications.add).toHaveBeenCalledWith('success', jasmine.any(String), 'events-access');
-            });
         });
 
         describe('on error', function () {
@@ -337,13 +330,6 @@ describe('Event controller', function () {
 
             it('shows notification', function () {
                 $scope.workflowAction(1234, 'NONE'); // wfId
-                $httpBackend.flush();
-
-                expect(Notifications.add).toHaveBeenCalledWith('error', jasmine.any(String), 'events-access');
-            });
-
-            it('shows notification', function () {
-                $scope.workflowAction(1234, 'PAUSE'); // wfId
                 $httpBackend.flush();
 
                 expect(Notifications.add).toHaveBeenCalledWith('error', jasmine.any(String), 'events-access');

@@ -219,7 +219,6 @@ public abstract class AbstractEventEndpoint {
   private static final String SCHEDULING_OPT_OUT_KEY = "optOut";
 
   private static final String WORKFLOW_ACTION_STOP = "STOP";
-  private static final String WORKFLOW_ACTION_PAUSE = "PAUSE";
 
   /** The logging facility */
   static final Logger logger = LoggerFactory.getLogger(AbstractEventEndpoint.class);
@@ -2360,11 +2359,6 @@ public abstract class AbstractEventEndpoint {
 
       if (WORKFLOW_ACTION_STOP.equalsIgnoreCase(action)) {
         getWorkflowService().stop(wfId);
-        return ok();
-      }
-
-      if (WORKFLOW_ACTION_PAUSE.equalsIgnoreCase(action)) {
-        getWorkflowService().suspend(wfId);
         return ok();
       }
 

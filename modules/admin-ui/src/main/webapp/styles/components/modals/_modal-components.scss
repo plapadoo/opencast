@@ -731,9 +731,4 @@
           opacity: 0.5;
         }
     }
-
-    // Workflow panel
-    .pause {
-        @include build-icon(auto, auto, pause-icon, 17px, 17px);
-    }
 }

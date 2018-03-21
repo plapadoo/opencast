@@ -898,9 +898,6 @@ angular.module('adminNg.controllers')
                         case 'RETRY':
                             wf.status = 'RUNNING';
                             break;
-                        case 'PAUSE':
-                            wf.status = 'PAUSED';
-                            break;
                         case 'STOP':
                             wf.status = 'STOPPED';
                             break;
