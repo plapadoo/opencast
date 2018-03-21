@@ -289,7 +289,7 @@ public abstract class AbstractEventEndpoint {
 
   }
 
-  @GET
+  @POST
   @Path("workflowProperties")
   @Produces(MediaType.APPLICATION_JSON)
   public Response getEventWorkflowProperties(String eventIdsContent) throws UnauthorizedException {

@@ -22,14 +22,15 @@
 
 // Controller for all single series screens.
 angular.module('adminNg.controllers')
-.controller('ScheduleTaskCtrl', ['$scope', 'Table', 'NewEventProcessing', 'TaskResource',
+.controller('ScheduleTaskCtrl', ['$scope', 'Table', 'NewEventProcessing', 'EventWorkflowPropertiesResource', 'TaskResource',
     'Notifications', 'decorateWithTableRowSelection',
-function ($scope, Table, NewEventProcessing, TaskResource, Notifications, decorateWithTableRowSelection) {
+function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, TaskResource, Notifications, decorateWithTableRowSelection) {
     $scope.rows = Table.copySelected();
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
     $scope.currentForm = 'generalForm';
     $scope.processing = NewEventProcessing.get('tasks');
+    $scope.workflowProperties = EventWorkflowPropertiesResource.get($scope.rows.map(function callback(x) { return x.id; }));
 
     $scope.valid = function () {
         return $scope.getSelectedIds().length > 0;
