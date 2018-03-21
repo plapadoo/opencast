@@ -21,11 +21,12 @@
 'use strict';
 
 angular.module('adminNg.services')
-.factory('NewEventProcessing', ['$sce', 'NewEventProcessingResource', function ($sce, NewEventProcessingResource) {
+.factory('NewEventProcessing', ['$sce', '$timeout', 'NewEventProcessingResource', function ($sce, $timeout, NewEventProcessingResource) {
     var Processing = function (use) {
         // Update the content of the configuration panel with the given HTML
         var me = this, queryParams,
             updateConfigurationPanel = function (html) {
+                console.log('update workflow configuration panel');
                 if (angular.isUndefined(html)) {
                     html = '';
                 }
@@ -85,7 +86,7 @@ angular.module('adminNg.services')
         });
 
         // Listener for the workflow selection
-        this.changeWorkflow = function () {
+        this.changeWorkflow = function (workflowProperties) {
             me.changingWorkflow = true;
             workflowConfigEl = angular.element(idConfigElement);
             if (angular.isDefined(me.ud.workflow)) {
@@ -93,6 +94,47 @@ angular.module('adminNg.services')
             } else {
                 updateConfigurationPanel();
             }
+            // Timeout because manipulating the just set HTML doesn't work otherwise
+            $timeout(function() {
+              // set workflow checkboxes (for first event)
+              console.log('changing workflow');
+              for (var eventMediapackageId in workflowProperties) {
+                  if (!eventMediapackageId.startsWith("$") && workflowProperties.hasOwnProperty(eventMediapackageId)) {
+                    var workflowConfig = workflowProperties[eventMediapackageId];
+                    console.log('outer '+eventMediapackageId+", wc: "+JSON.stringify(workflowConfig));
+                    var element, isRendered = workflowConfigEl.find('.configField').length > 0;
+
+                    if (!isRendered) {
+                      element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
+                    } else {
+                      element = workflowConfigEl.find('.configField');
+                    }
+
+                    element.each(function (idx, el) {
+                      console.log('inner 1: '+JSON.stringify(el));
+                      var e = angular.element(el);
+
+                      var idAttr = e.attr('id');
+                      if (angular.isDefined(idAttr)) {
+                        console.log('inner 2: '+JSON.stringify(idAttr));
+                        if(workflowConfig.hasOwnProperty(idAttr)) {
+                          console.log('inner 3');
+                          var attr = workflowConfig[idAttr];
+                          if (e.is('[type=checkbox]') || e.is('[type=radio]')) {
+                              console.log('inner 4: '+attr);
+                              if (angular.isDefined(attr))
+                                e.attr('checked', attr === 'true');
+                          } else {
+                              console.log('inner 5: '+attr);
+                            if (angular.isDefined(attr))
+                              e.val(attr);
+                          }
+                        }
+                      }
+                    });
+                  }
+                }
+              });
             me.save();
             me.changingWorkflow = false;
         };
