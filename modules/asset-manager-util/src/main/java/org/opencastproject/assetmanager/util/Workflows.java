@@ -24,6 +24,8 @@ import static com.entwinemedia.fn.Stream.$;
 import static org.opencastproject.assetmanager.api.fn.Enrichments.enrich;
 
 import org.opencastproject.assetmanager.api.AssetManager;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.PropertyId;
 import org.opencastproject.assetmanager.api.Snapshot;
 import org.opencastproject.assetmanager.api.query.AQueryBuilder;
 import org.opencastproject.assetmanager.api.query.ASelectQuery;
@@ -41,6 +43,8 @@ import com.entwinemedia.fn.data.Opt;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
 
 /**
  * Utility class to apply workflows to episodes. Removed 'final class' so that we can mock it for
@@ -84,6 +88,13 @@ public class Workflows {
     return new Fn<MediaPackage, Opt<WorkflowInstance>>() {
       @Override public Opt<WorkflowInstance> apply(MediaPackage mp) {
         try {
+          // Store workflow properties
+          String mpId = mp.getIdentifier().compact();
+          String workflowNamespace = "org.opencastproject.workflow.configuration";
+          for (Map.Entry<String, String> entry : wf.getParameters().entrySet()) {
+            am.setProperty(Property.mk(PropertyId.mk(mpId, workflowNamespace, entry.getKey()),
+                    org.opencastproject.assetmanager.api.Value.mk(entry.getValue())));
+          }
           return Opt.some(wfs.start(wf.getWorkflowDefinition(), mp, wf.getParameters()));
         } catch (WorkflowDatabaseException | WorkflowParsingException e) {
           logger.error("Cannot start workflow on media package " + mp.getIdentifier().toString(), e);
