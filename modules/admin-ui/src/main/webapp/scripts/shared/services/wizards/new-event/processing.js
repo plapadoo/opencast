@@ -103,6 +103,15 @@ angular.module('adminNg.services')
                 element = workflowConfigEl.find('.configField');
               }
 
+              // Gather Array of Workflowproperties, we don't need the MP-IDs
+              var eventProperties = [];
+              for (var i in workflowProperties) {
+                if (!i.startsWith("$") && workflowProperties.hasOwnProperty(i)) {
+                  eventProperties.push(workflowProperties[i]);
+                }
+              }
+
+              var processedRadioNames = [];
               element.each(function (idx, el) {
                 var e = angular.element(el);
                 var idAttr = e.attr('id');
@@ -112,15 +121,66 @@ angular.module('adminNg.services')
                   return;
                 }
 
-                var globalWorkflowAttr = null;
-                var globalWorkflowAmbiguous = false;
-                for (var eventMediapackageId in workflowProperties) {
-                  if (!eventMediapackageId.startsWith("$") && workflowProperties.hasOwnProperty(eventMediapackageId)) {
-                    var workflowConfig = workflowProperties[eventMediapackageId];
+                if (e.is('[type=radio]')) {
+                  var radioName = e.attr('name');
+                  // We already processed this radio element?
+                  if (processedRadioNames.indexOf(radioName) !== -1) {
+                    console.log("element is a radio button "+radioName+", and we've already processed it: "+JSON.stringify(processedRadioNames));
+                    return;
+                  }
+                  console.log("element is a radio button with name "+radioName+", didn't process that");
 
+                  var radios = workflowConfigEl.find('input[name='+radioName+']');
+
+                  var globalWorkflowAttr = null;
+                  var globalWorkflowAmbiguous = false;
+                  radios.each(function (ridx, radio) {
+                    var rid = angular.element(radio).attr('id');
+                    for (var i = 0; i < eventProperties.length; i++) {
+                      var p = eventProperties[i];
+                      if(!p.hasOwnProperty(rid) || p[rid] !== 'true')
+                        continue;
+                      // First workflow, just assign
+                      if (globalWorkflowAttr === null) {
+                        console.log('Setting initial value to '+rid);
+                        globalWorkflowAttr = rid;
+                      }
+                      // Not the first workflow, and different attribute
+                      else if (globalWorkflowAttr !== rid) {
+                        console.log('Value is ambiguous');
+                        globalWorkflowAmbiguous = true;
+                        break;
+                      }
+                    }
+                  });
+
+                  // For ambiguous radio buttons, set them all to false.
+                  if (globalWorkflowAmbiguous) {
+                    console.log('value is ambiguous, unchecking all');
+                    radios.each(function (ridx, radio) {
+                      angular.element(radio).attr('checked', false);
+                    });
+                  } else if (globalWorkflowAttr !== null) {
+                    console.log('value is '+globalWorkflowAttr+', checking just that');
+                    // If we've positively detected some setting, set that
+                    radios.each(function (ridx, radio) {
+                      var r = angular.element(radio);
+                      r.attr('checked', r.attr('id') === globalWorkflowAttr);
+                    });
+                  } else {
+                    console.log('value is unknown, leaving it be');
+                  }
+                  // Otherwise, we use the default setting from the XML
+
+                  processedRadioNames.push(radioName);
+                } else if (e.is('[type=checkbox]')) {
+                  var globalWorkflowAttr = null;
+                  var globalWorkflowAmbiguous = false;
+                  for (var i = 0; i < eventProperties.length; i++) {
+                    var workflowConfig = eventProperties[i];
                     if(workflowConfig.hasOwnProperty(idAttr)) {
                       var workflowAttr = workflowConfig[idAttr];
-                      console.log('Workflow '+eventMediapackageId+' has this attribute: '+workflowAttr);
+                      console.log('Workflow has this attribute: '+workflowAttr);
                       if (angular.isDefined(workflowAttr)) {
                         // First workflow, just assign
                         if (globalWorkflowAttr === null) {
@@ -137,9 +197,6 @@ angular.module('adminNg.services')
                       }
                     }
                   }
-                }
-
-                if (e.is('[type=checkbox]')) {
                   if (globalWorkflowAmbiguous) {
                     e.prop("indeterminate", true);
                   } else {

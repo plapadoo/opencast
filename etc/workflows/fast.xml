@@ -26,6 +26,10 @@
           </ul>
         </fieldset>
         <fieldset>
+          <input id="someNumber" name="someNumber" type="text" class="configField" value="1337" />
+          <label for="someNumber">Some number plz</label>
+        </fieldset>
+        <fieldset>
           <legend>Immediately distribute the recording to:</legend>
           <ul>
             <li>
