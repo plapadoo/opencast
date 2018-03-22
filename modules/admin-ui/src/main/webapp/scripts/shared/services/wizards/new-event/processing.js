@@ -96,45 +96,63 @@ angular.module('adminNg.services')
             }
             // Timeout because manipulating the just set HTML doesn't work otherwise
             $timeout(function() {
-              // set workflow checkboxes (for first event)
-              console.log('changing workflow');
-              for (var eventMediapackageId in workflowProperties) {
+              var element, isRendered = workflowConfigEl.find('.configField').length > 0;
+              if (!isRendered) {
+                element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
+              } else {
+                element = workflowConfigEl.find('.configField');
+              }
+
+              element.each(function (idx, el) {
+                var e = angular.element(el);
+                var idAttr = e.attr('id');
+                console.log('Checking input field "'+JSON.stringify(idAttr)+'"');
+                // Ignore input fields that don't have an ID
+                if (!angular.isDefined(idAttr)) {
+                  return;
+                }
+
+                var globalWorkflowAttr = null;
+                var globalWorkflowAmbiguous = false;
+                for (var eventMediapackageId in workflowProperties) {
                   if (!eventMediapackageId.startsWith("$") && workflowProperties.hasOwnProperty(eventMediapackageId)) {
                     var workflowConfig = workflowProperties[eventMediapackageId];
-                    console.log('outer '+eventMediapackageId+", wc: "+JSON.stringify(workflowConfig));
-                    var element, isRendered = workflowConfigEl.find('.configField').length > 0;
 
-                    if (!isRendered) {
-                      element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
-                    } else {
-                      element = workflowConfigEl.find('.configField');
-                    }
-
-                    element.each(function (idx, el) {
-                      console.log('inner 1: '+JSON.stringify(el));
-                      var e = angular.element(el);
-
-                      var idAttr = e.attr('id');
-                      if (angular.isDefined(idAttr)) {
-                        console.log('inner 2: '+JSON.stringify(idAttr));
-                        if(workflowConfig.hasOwnProperty(idAttr)) {
-                          console.log('inner 3');
-                          var attr = workflowConfig[idAttr];
-                          if (e.is('[type=checkbox]') || e.is('[type=radio]')) {
-                              console.log('inner 4: '+attr);
-                              if (angular.isDefined(attr))
-                                e.attr('checked', attr === 'true');
-                          } else {
-                              console.log('inner 5: '+attr);
-                            if (angular.isDefined(attr))
-                              e.val(attr);
-                          }
+                    if(workflowConfig.hasOwnProperty(idAttr)) {
+                      var workflowAttr = workflowConfig[idAttr];
+                      console.log('Workflow '+eventMediapackageId+' has this attribute: '+workflowAttr);
+                      if (angular.isDefined(workflowAttr)) {
+                        // First workflow, just assign
+                        if (globalWorkflowAttr === null) {
+                          console.log('Setting initial value');
+                          globalWorkflowAttr = workflowAttr;
                         }
+                        // Not the first workflow, and different attribute
+                        else if (globalWorkflowAttr !== workflowAttr) {
+                          console.log('Value is ambiguous');
+                          globalWorkflowAmbiguous = true;
+                          break;
+                        }
+                        // Otherwise, next workflow has the same value as previous
                       }
-                    });
+                    }
+                  }
+                }
+
+                if (e.is('[type=checkbox]')) {
+                  if (globalWorkflowAmbiguous) {
+                    e.prop("indeterminate", true);
+                  } else {
+                    // Only set it if we have a real value. If none of the workflows knows the property,
+                    // we keep the checkbox at the default state
+                    if (globalWorkflowAttr !== null) {
+                      e.attr('checked', globalWorkflowAttr === 'true');
+                    }
                   }
                 }
               });
+            });
+
             me.save();
             me.changingWorkflow = false;
         };
