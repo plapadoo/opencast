@@ -121,7 +121,40 @@ angular.module('adminNg.services')
                   return;
                 }
 
-                if (e.is('[type=radio]')) {
+                if (e.is('[type=text]')) {
+                  var globalWorkflowAttr = null;
+                  var globalWorkflowAmbiguous = false;
+                  for (var i = 0; i < eventProperties.length; i++) {
+                    var p = eventProperties[i];
+
+                    if(!p.hasOwnProperty(idAttr))
+                      continue;
+
+                    var workflowAttr = p[idAttr];
+
+                    // First workflow, just assign
+                    if (globalWorkflowAttr === null) {
+                      console.log('Setting initial (text) value to '+workflowAttr);
+                      globalWorkflowAttr = workflowAttr;
+                    }
+                    // Not the first workflow, and different attribute
+                    else if (globalWorkflowAttr !== workflowAttr) {
+                      console.log('Text value is ambiguous');
+                      globalWorkflowAmbiguous = true;
+                      break;
+                    }
+                  }
+
+                  if (globalWorkflowAmbiguous) {
+                    console.log('text value is ambiguous, emptying');
+                    e.val('');
+                  } else if (globalWorkflowAttr !== null) {
+                    console.log('value is '+globalWorkflowAttr+', setting');
+                    e.val(globalWorkflowAttr);
+                  } else {
+                    console.log('value is unknown, leaving it be');
+                  }
+                } else if (e.is('[type=radio]')) {
                   var radioName = e.attr('name');
                   // We already processed this radio element?
                   if (processedRadioNames.indexOf(radioName) !== -1) {
