@@ -260,11 +260,38 @@ angular.module('adminNg.services')
             element.each(function (idx, el) {
                 var element = angular.element(el);
 
-                if (angular.isDefined(element.attr('id'))) {
-                    if (element.is('[type=checkbox]') || element.is('[type=radio]')) {
-                        workflowConfig[element.attr('id')] = element.is(':checked') ? 'true' : 'false';
+                var id = element.attr('id');
+                if (angular.isDefined(id)) {
+                    if (element.is('[type=checkbox]')) {
+                      if (element.prop('intermediate')) {
+                        workflowConfig[id] = '*';element.is(':checked') ? 'true' : 'false';
+                      } else {
+                        workflowConfig[id] = element.is(':checked') ? 'true' : 'false';
+                      }
+                    } else if (element.is('[type=radio]')) {
+                      var radioName = element.attr('name');
+                      var radios = workflowConfigEl.find('input[name='+radioName+']');
+                      console.log('=> radioName: '+radioName);
+                      var ambiguous = true;
+                      radios.each(function (ridx, radio) {
+                        var r = angular.element(radio);
+                        if (r.is(':checked')) {
+                          console.log('=> is checked: '+r.attr('checked'));
+                          ambiguous = false;
+                        }
+                      });
+                      console.log('=> done');
+                      if (ambiguous) {
+                        workflowConfig[id] = '*';
+                      } else {
+                        workflowConfig[id] = element.is(':checked') ? 'true' : 'false';
+                      }
                     } else {
-                        workflowConfig[element.attr('id')] = element.val();
+                      // TODO: Properly check ambiguity
+                      if (element.val() === '')
+                        workflowConfig[id] = '*';
+                      else
+                        workflowConfig[id] = element.val();
                     }
                 }
             });
