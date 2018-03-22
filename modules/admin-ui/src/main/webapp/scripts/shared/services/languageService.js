@@ -224,6 +224,10 @@ angular.module('adminNg.services.language')
                 }
             }
 
+            console.log("string: " + string);
+            console.log("dateformat: " + me.currentLanguage.dateFormats[format][style]);
+            console.log("filter gives: " + $filter('date')(string, me.currentLanguage.dateFormats[format][style]));
+
             return $filter('date')(string, me.currentLanguage.dateFormats[format][style]);
         };
 

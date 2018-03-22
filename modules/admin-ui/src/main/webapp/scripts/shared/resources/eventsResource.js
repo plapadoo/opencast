@@ -41,6 +41,8 @@ angular.module('adminNg.resources')
     return $resource('/admin-ng/event/:id', { id: '@id' }, {
         query: {method: 'GET', params: { id: 'events.json' }, isArray: false, transformResponse: function (data) {
             return ResourceHelper.parseResponse(data, function (r) {
+                console.log("eventsresource r");
+                console.log(r);
                 var row = {};
                 row.id = r.id;
                 row.title = r.title;
@@ -61,13 +63,14 @@ angular.module('adminNg.resources')
                     row.scheduling_status = translation;
                 });
                 row.workflow_state = r.workflow_state;
-                row.date = Language.formatDate('short', r.start_date);
-                row.technical_date = Language.formatDate('short', r.technical_start);
+                row.start_date = Language.formatDate('shortDate', r.start_date);
+                console.log("row start_date: " + row.start_date);
+                row.end_date = Language.formatDate('shortDate', r.end_date);
                 row.publications = r.publications;
-                row.start_date = Language.formatTime('short', r.start_date);
-                row.technical_start = Language.formatTime('short', r.technical_start);
-                row.end_date = Language.formatTime('short', r.end_date);
-                row.technical_end = Language.formatTime('short', r.technical_end);
+                row.start_time = Language.formatTime('shortTime', r.start_date);
+                row.end_time = Language.formatTime('shortTime', r.end_date);
+                row.technical_start = r.technical_start;
+                row.technical_end = r.technical_end;
                 row.has_comments = r.has_comments;
                 row.has_open_comments = r.has_open_comments;
                 row.needs_cutting = r.needs_cutting;

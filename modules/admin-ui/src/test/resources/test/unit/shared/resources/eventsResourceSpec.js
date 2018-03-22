@@ -1,24 +1,19 @@
 describe('Events API Resource', function () {
-    var EventsResource, $httpBackend, $translate;
+    var EventsResource, $httpBackend, $translate, Language;
 
 
     beforeEach(module('adminNg.resources'));
     beforeEach(module('adminNg.services'));
     beforeEach(module('ngResource'));
     beforeEach(module('pascalprecht.translate'));
+    beforeEach(module('adminNg.services.language'));
+    beforeEach(module('LocalStorageModule'));
 
-    beforeEach(module(function ($provide) {
-        var service = {
-            formatDate: function (val, date) { return date; },
-            formatTime: function (val, date) { return date; }
-        };
-        $provide.value('Language', service);
-    }));
-
-    beforeEach(inject(function (_$httpBackend_, _EventsResource_, _$translate_) {
+    beforeEach(inject(function (_$httpBackend_, _EventsResource_, _$translate_, _Language_) {
         $httpBackend  = _$httpBackend_;
         EventsResource = _EventsResource_;
         $translate = _$translate_;
+        Language = _Language_;
     }));
 
     describe('#query', function () {
@@ -92,12 +87,18 @@ describe('Events API Resource', function () {
                 .respond(JSON.stringify(sampleJSON));
             var data = EventsResource.query();
             $httpBackend.flush();
+            console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+            console.log(data.rows);
+            console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
             expect(data.rows.length).toBe(2);
             expect(data.rows[0].title).toBe(sampleJSON.results[0].title);
             expect(data.rows[0].presenter).toEqual(sampleJSON.results[0].presenters.join(', '));
-            expect(data.rows[0].date).toBe(sampleJSON.results[0].start_date);
-            expect(data.rows[0].start_date).toBe('2012-12-02T10:00:00Z');
-            expect(data.rows[0].end_date).toBe('2012-12-02T11:15:00Z');
+            expect(data.rows[0].start_date).toBe('2012-12-02');
+            expect(data.rows[0].end_date).toBe('2012-12-02');
+            expect(data.rows[0].start_time).toBe('10:00:00');
+            expect(data.rows[0].end_time).toBe('11:15:00');
+            expect(data.rows[0].technical_start).toBe('2012-12-02T10:00:00Z');
+            expect(data.rows[0].technical_end).toBe('2012-12-02T11:15:00Z');
         });
 
         it('handles empty payload', function () {

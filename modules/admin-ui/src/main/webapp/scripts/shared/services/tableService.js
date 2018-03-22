@@ -328,6 +328,7 @@ angular.module('adminNg.services')
                     });
                 }
                 me.rows = data.rows;
+                console.log(me.rows);
                 me.loading = false;
                 me.pagination.totalItems = data.total;
 

@@ -86,13 +86,14 @@ angular.module('adminNg.controllers')
                 name:  'series_name',
                 label: 'EVENTS.EVENTS.TABLE.SERIES'
             }, {
-                name:  'technical_date',
+                template: 'modules/events/partials/eventsDateCell.html',
+                name:  'start_date',
                 label: 'EVENTS.EVENTS.TABLE.DATE'
             }, {
-                name:  'technical_start',
+                name:  'start_time',
                 label: 'EVENTS.EVENTS.TABLE.START'
             }, {
-                name:  'technical_end',
+                name:  'end_time',
                 label: 'EVENTS.EVENTS.TABLE.STOP'
             }, {
                 template: 'modules/events/partials/eventsLocationCell.html',
