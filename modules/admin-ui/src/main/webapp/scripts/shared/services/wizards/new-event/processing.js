@@ -85,6 +85,102 @@ angular.module('adminNg.services')
 
         });
 
+        // Gather returned workflow properties into an array for easier usage later
+         // (ignoring mediapackage IDs)
+        function gatherEventProperties(workflowProperties) {
+          var eventProperties = [];
+          for (var i in workflowProperties) {
+            if (!i.startsWith("$") && workflowProperties.hasOwnProperty(i)) {
+              eventProperties.push(workflowProperties[i]);
+            }
+          }
+          return eventProperties;
+        }
+
+        function valueOrAmbiguousCheckbox(eventProperties, idAttr) {
+          var globalWorkflowAttr = null;
+          var globalWorkflowAmbiguous = false;
+          for (var i = 0; i < eventProperties.length; i++) {
+            var workflowConfig = eventProperties[i];
+            if(workflowConfig.hasOwnProperty(idAttr)) {
+              var workflowAttr = workflowConfig[idAttr];
+              console.log('Workflow has this attribute: '+workflowAttr);
+              if (angular.isDefined(workflowAttr)) {
+                // First workflow, just assign
+                if (globalWorkflowAttr === null) {
+                  console.log('Setting initial value');
+                  globalWorkflowAttr = workflowAttr;
+                }
+                // Not the first workflow, and different attribute
+                else if (globalWorkflowAttr !== workflowAttr) {
+                  console.log('Value is ambiguous');
+                  return { attr: null, defined: false };
+                }
+                // Otherwise, next workflow has the same value as previous
+              }
+            }
+          }
+          // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
+          // events has this property.
+          return { attr: globalWorkflowAttr, defined: true };
+        }
+
+        function valueOrAmbiguousText(eventProperties, idAttr) {
+          var globalWorkflowAttr = null;
+          var globalWorkflowAmbiguous = false;
+          for (var i = 0; i < eventProperties.length; i++) {
+            var p = eventProperties[i];
+
+            if(!p.hasOwnProperty(idAttr))
+              continue;
+
+            var workflowAttr = p[idAttr];
+
+            // First workflow, just assign
+            if (globalWorkflowAttr === null) {
+              console.log('Setting initial (text) value to '+workflowAttr);
+              globalWorkflowAttr = workflowAttr;
+            }
+            // Not the first workflow, and different attribute
+            else if (globalWorkflowAttr !== workflowAttr) {
+              console.log('Text value is ambiguous');
+              return { attr: null, defined: false };
+            }
+          }
+
+          // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
+          // events has this property.
+          return { attr: globalWorkflowAttr, defined: true };
+        }
+
+        function valueOrAmbiguousRadio(eventProperties, radios) {
+          var globalWorkflowAttr = null;
+          var globalWorkflowAmbiguous = false;
+          for (var ridx = 0; ridx < radios.length; ridx++) {
+            var radio = radios[ridx];
+            var rid = angular.element(radio).attr('id');
+            for (var i = 0; i < eventProperties.length; i++) {
+              var p = eventProperties[i];
+              if(!p.hasOwnProperty(rid) || p[rid] !== 'true')
+                continue;
+              // First workflow, just assign
+              if (globalWorkflowAttr === null) {
+                console.log('Setting initial value to '+rid);
+                globalWorkflowAttr = rid;
+              }
+              // Not the first workflow, and different attribute
+              else if (globalWorkflowAttr !== rid) {
+                console.log('Value is ambiguous');
+                return { attr: null, defined: false };
+              }
+            }
+          }
+
+          // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
+          // events has this property.
+          return { attr: globalWorkflowAttr, defined: true };
+        }
+
         // Listener for the workflow selection
         this.changeWorkflow = function (workflowProperties) {
             me.changingWorkflow = true;
@@ -104,12 +200,7 @@ angular.module('adminNg.services')
               }
 
               // Gather Array of Workflowproperties, we don't need the MP-IDs
-              var eventProperties = [];
-              for (var i in workflowProperties) {
-                if (!i.startsWith("$") && workflowProperties.hasOwnProperty(i)) {
-                  eventProperties.push(workflowProperties[i]);
-                }
-              }
+              var eventProperties = gatherEventProperties(workflowProperties);
 
               var processedRadioNames = [];
               element.each(function (idx, el) {
@@ -122,37 +213,17 @@ angular.module('adminNg.services')
                 }
 
                 if (e.is('[type=text]')) {
-                  var globalWorkflowAttr = null;
-                  var globalWorkflowAmbiguous = false;
-                  for (var i = 0; i < eventProperties.length; i++) {
-                    var p = eventProperties[i];
+                  var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
 
-                    if(!p.hasOwnProperty(idAttr))
-                      continue;
-
-                    var workflowAttr = p[idAttr];
-
-                    // First workflow, just assign
-                    if (globalWorkflowAttr === null) {
-                      console.log('Setting initial (text) value to '+workflowAttr);
-                      globalWorkflowAttr = workflowAttr;
-                    }
-                    // Not the first workflow, and different attribute
-                    else if (globalWorkflowAttr !== workflowAttr) {
-                      console.log('Text value is ambiguous');
-                      globalWorkflowAmbiguous = true;
-                      break;
-                    }
-                  }
-
-                  if (globalWorkflowAmbiguous) {
+                  if (!globalWorkflowAttr.defined) {
                     console.log('text value is ambiguous, emptying');
                     e.val('');
-                  } else if (globalWorkflowAttr !== null) {
-                    console.log('value is '+globalWorkflowAttr+', setting');
-                    e.val(globalWorkflowAttr);
                   } else {
-                    console.log('value is unknown, leaving it be');
+                    // Only set it if we have a real value. If none of the workflows knows the property,
+                    // we keep the checkbox at the default state
+                    if (globalWorkflowAttr.attr !== null) {
+                      e.val(globalWorkflowAttr.attr);
+                    }
                   }
                 } else if (e.is('[type=radio]')) {
                   var radioName = e.attr('name');
@@ -164,41 +235,20 @@ angular.module('adminNg.services')
                   console.log("element is a radio button with name "+radioName+", didn't process that");
 
                   var radios = workflowConfigEl.find('input[name='+radioName+']');
-
-                  var globalWorkflowAttr = null;
-                  var globalWorkflowAmbiguous = false;
-                  radios.each(function (ridx, radio) {
-                    var rid = angular.element(radio).attr('id');
-                    for (var i = 0; i < eventProperties.length; i++) {
-                      var p = eventProperties[i];
-                      if(!p.hasOwnProperty(rid) || p[rid] !== 'true')
-                        continue;
-                      // First workflow, just assign
-                      if (globalWorkflowAttr === null) {
-                        console.log('Setting initial value to '+rid);
-                        globalWorkflowAttr = rid;
-                      }
-                      // Not the first workflow, and different attribute
-                      else if (globalWorkflowAttr !== rid) {
-                        console.log('Value is ambiguous');
-                        globalWorkflowAmbiguous = true;
-                        break;
-                      }
-                    }
-                  });
+                  var globalWorkflowAttr = valueOrAmbiguousRadio(eventProperties, radios);
 
                   // For ambiguous radio buttons, set them all to false.
-                  if (globalWorkflowAmbiguous) {
+                  if (!globalWorkflowAttr.defined) {
                     console.log('value is ambiguous, unchecking all');
                     radios.each(function (ridx, radio) {
                       angular.element(radio).attr('checked', false);
                     });
-                  } else if (globalWorkflowAttr !== null) {
-                    console.log('value is '+globalWorkflowAttr+', checking just that');
+                  } else if (globalWorkflowAttr.attr !== null) {
+                    console.log('value is '+globalWorkflowAttr.attr+', checking just that');
                     // If we've positively detected some setting, set that
                     radios.each(function (ridx, radio) {
                       var r = angular.element(radio);
-                      r.attr('checked', r.attr('id') === globalWorkflowAttr);
+                      r.attr('checked', r.attr('id') === globalWorkflowAttr.attr);
                     });
                   } else {
                     console.log('value is unknown, leaving it be');
@@ -207,36 +257,14 @@ angular.module('adminNg.services')
 
                   processedRadioNames.push(radioName);
                 } else if (e.is('[type=checkbox]')) {
-                  var globalWorkflowAttr = null;
-                  var globalWorkflowAmbiguous = false;
-                  for (var i = 0; i < eventProperties.length; i++) {
-                    var workflowConfig = eventProperties[i];
-                    if(workflowConfig.hasOwnProperty(idAttr)) {
-                      var workflowAttr = workflowConfig[idAttr];
-                      console.log('Workflow has this attribute: '+workflowAttr);
-                      if (angular.isDefined(workflowAttr)) {
-                        // First workflow, just assign
-                        if (globalWorkflowAttr === null) {
-                          console.log('Setting initial value');
-                          globalWorkflowAttr = workflowAttr;
-                        }
-                        // Not the first workflow, and different attribute
-                        else if (globalWorkflowAttr !== workflowAttr) {
-                          console.log('Value is ambiguous');
-                          globalWorkflowAmbiguous = true;
-                          break;
-                        }
-                        // Otherwise, next workflow has the same value as previous
-                      }
-                    }
-                  }
-                  if (globalWorkflowAmbiguous) {
+                  var globalWorkflowAttr = valueOrAmbiguousCheckbox(eventProperties, idAttr);
+                  if (!globalWorkflowAttr.defined) {
                     e.prop("indeterminate", true);
                   } else {
                     // Only set it if we have a real value. If none of the workflows knows the property,
                     // we keep the checkbox at the default state
-                    if (globalWorkflowAttr !== null) {
-                      e.attr('checked', globalWorkflowAttr === 'true');
+                    if (globalWorkflowAttr.attr !== null) {
+                      e.attr('checked', globalWorkflowAttr.attr === 'true');
                     }
                   }
                 }
