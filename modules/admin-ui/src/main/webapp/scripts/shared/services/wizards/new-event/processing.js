@@ -36,7 +36,8 @@ angular.module('adminNg.services')
                 return angular.isDefined(me.ud.workflow) && angular.isDefined(me.ud.workflow.id);
             },
             idConfigElement = '#new-event-workflow-configuration',
-            workflowConfigEl = angular.element(idConfigElement);
+            workflowConfigEl = angular.element(idConfigElement),
+            originalValues = {};
 
         this.isProcessingState = true;
         this.ud = {};
@@ -206,6 +207,7 @@ angular.module('adminNg.services')
               element.each(function (idx, el) {
                 var e = angular.element(el);
                 var idAttr = e.attr('id');
+
                 console.log('Checking input field "'+JSON.stringify(idAttr)+'"');
                 // Ignore input fields that don't have an ID
                 if (!angular.isDefined(idAttr)) {
@@ -213,6 +215,8 @@ angular.module('adminNg.services')
                 }
 
                 if (e.is('[type=text]')) {
+                  originalValues[idAttr] = e.val();
+
                   var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
 
                   if (!globalWorkflowAttr.defined) {
@@ -257,6 +261,8 @@ angular.module('adminNg.services')
 
                   processedRadioNames.push(radioName);
                 } else if (e.is('[type=checkbox]')) {
+                  originalValues[idAttr] = e.is(':checked') ? 'true' : 'false';
+
                   var globalWorkflowAttr = valueOrAmbiguousCheckbox(eventProperties, idAttr);
                   if (!globalWorkflowAttr.defined) {
                     e.prop("indeterminate", true);
@@ -284,22 +290,88 @@ angular.module('adminNg.services')
                 element = workflowConfigEl.find('.configField');
             }
 
-            element.each(function (idx, el) {
-                var element = angular.element(el);
+            var eventProperties = gatherEventProperties(workflowProperties);
+            var resultConfigs = {};
+            // Iterate over each event, configuring it separately
+            for (var i in workflowProperties) {
+              if (i.startsWith("$") || !workflowProperties.hasOwnProperty(i)) {
+                continue;
+              }
 
-                var eventProperties = [];
-                for (var i in workflowProperties) {
-                  if (i.startsWith("$") || !workflowProperties.hasOwnProperty(i)) {
-                    continue;
-                  }
+              console.log("Constructing properties of "+i);
 
-                  workflowConfigs[i] = workflowProperties[i];
+              var workflowConfig = workflowProperties[i];
+              var resultConfig = {};
+
+              // Iterate over each input field
+              element.each(function (idx, el) {
+                var e = angular.element(el);
+
+                var idAttr = e.attr('id');
+                // Ignore input fields that don't have an ID
+                if (!angular.isDefined(idAttr)) {
+                  return;
                 }
-            });
 
-            console.log('workflow configs: '+JSON.stringify(workflowConfigs))
+                console.log('Checking input field "'+JSON.stringify(idAttr)+'"');
 
-            return workflowConfigs;
+                if (e.is('[type=text]')) {
+                  var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
+
+                  if (!globalWorkflowAttr.defined) {
+                    console.log('Field is ambiguous, checking workflow props');
+                    var workflowValue = workflowConfig[idAttr];
+                    if (angular.isDefined(workflowValue)) {
+                      console.log('Workflow value is '+workflowValue+' using that');
+                      resultConfig[idAttr] = workflowValue;
+                    } else {
+                      originalValue = originalValues[idAttr];
+                      console.log('Workflow value is undefined, using standard value: '+originalValue);
+                      resultConfig[idAttr] = originalValue;
+                    }
+                  } else {
+                    if (globalWorkflowAttr.attr === null) {
+                      var originalValue = originalValues[idAttr];
+                      console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
+                      resultConfig[idAttr] = originalValue;
+                    } else {
+                      console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
+                      resultConfig[idAttr] = globalWorkflowAttr.attr;
+                    }
+                  }
+                } else if (e.is('[type=checkbox]')) {
+                  var globalWorkflowAttr = valueOrAmbiguousCheckbox(eventProperties, idAttr);
+
+                  if (!globalWorkflowAttr.defined) {
+                    console.log('Field is ambiguous, checking workflow props');
+                    var workflowValue = workflowConfig[idAttr];
+                    if (angular.isDefined(workflowValue)) {
+                      console.log('Workflow value is '+workflowValue+' using that');
+                      resultConfig[idAttr] = workflowValue;
+                    } else {
+                      var originalValue = originalValues[idAttr];
+                      console.log('Workflow value is undefined, using standard value: '+originalValue);
+                      resultConfig[idAttr] = originalValue;
+                    }
+                  } else {
+                    if (globalWorkflowAttr.attr === null) {
+                      var originalValue = originalValues[idAttr];
+                      console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
+                      resultConfig[idAttr] = originalValue;
+                    } else {
+                      console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
+                      resultConfig[idAttr] = globalWorkflowAttr.attr;
+                    }
+                  }
+                }
+              });
+
+              resultConfigs[i] = resultConfig;
+            }
+
+            console.log('workflow configs: '+JSON.stringify(resultConfigs))
+
+            return resultConfigs;
         }
 
         // Get the workflow configuration
@@ -319,23 +391,23 @@ angular.module('adminNg.services')
                 if (angular.isDefined(id)) {
                     if (element.is('[type=checkbox]')) {
                       if (element.prop('intermediate')) {
-                        workflowConfig[id] = '*';element.is(':checked') ? 'true' : 'false';
+                        workflowConfig[id] = '*';
                       } else {
                         workflowConfig[id] = element.is(':checked') ? 'true' : 'false';
                       }
                     } else if (element.is('[type=radio]')) {
                       var radioName = element.attr('name');
                       var radios = workflowConfigEl.find('input[name='+radioName+']');
-                      console.log('=> radioName: '+radioName);
+/*                      console.log('=> radioName: '+radioName);*/
                       var ambiguous = true;
                       radios.each(function (ridx, radio) {
                         var r = angular.element(radio);
                         if (r.is(':checked')) {
-                          console.log('=> is checked: '+r.attr('checked'));
+/*                          console.log('=> is checked: '+r.attr('checked'));*/
                           ambiguous = false;
                         }
                       });
-                      console.log('=> done');
+/*                      console.log('=> done');*/
                       if (ambiguous) {
                         workflowConfig[id] = '*';
                       } else {
