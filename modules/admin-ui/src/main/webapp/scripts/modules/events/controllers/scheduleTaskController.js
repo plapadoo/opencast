@@ -53,13 +53,12 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
     $scope.submit = function () {
         $scope.submitButton = true;
         if ($scope.valid()) {
-            var eventIds = $scope.getSelectedIds(), payload;
-            payload = {
+            var payload = {
                 workflow: $scope.processing.ud.workflow.id,
-                configuration: $scope.processing.getWorkflowConfig(),
-                eventIds: eventIds
+                configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties)
             };
-            TaskResource.save(payload, onSuccess, onFailure);
+            console.log('would submit now');
+            //TaskResource.save(payload, onSuccess, onFailure);
         }
     };
     decorateWithTableRowSelection($scope);

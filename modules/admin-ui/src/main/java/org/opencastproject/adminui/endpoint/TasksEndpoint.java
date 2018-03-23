@@ -42,6 +42,7 @@ import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
 import org.opencastproject.util.doc.rest.RestService;
+import org.opencastproject.workflow.api.ConfiguredWorkflow;
 import org.opencastproject.workflow.api.WorkflowDatabaseException;
 import org.opencastproject.workflow.api.WorkflowDefinition;
 import org.opencastproject.workflow.api.WorkflowInstance;
@@ -50,6 +51,7 @@ import org.opencastproject.workspace.api.Workspace;
 
 import com.entwinemedia.fn.Fn;
 import com.entwinemedia.fn.Fn2;
+import com.entwinemedia.fn.Stream;
 import com.entwinemedia.fn.data.json.JValue;
 import com.google.gson.Gson;
 
@@ -60,11 +62,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.FormParam;
@@ -166,21 +170,9 @@ public class TasksEndpoint {
     if (StringUtils.isBlank(workflowId))
       return RestUtil.R.badRequest("No workflow set");
 
-    List eventIds = (List) metadataJson.get("eventIds");
-    if (eventIds == null)
-        return RestUtil.R.badRequest("No eventIds set");
-
-    Map<String, String> configuration = (Map<String, String>) metadataJson.get("configuration");
+    Map<String, Map<String, String>> configuration = (Map<String, Map<String, String>>) metadataJson.get("configuration");
     if (configuration == null) {
-      configuration = new HashMap<>();
-    } else {
-      Iterator<String> confKeyIter = configuration.keySet().iterator();
-      while (confKeyIter.hasNext()) {
-        String confKey = confKeyIter.next();
-        if (StringUtils.equalsIgnoreCase("eventIds", confKey)) {
-          confKeyIter.remove();
-        }
-      }
+      return RestUtil.R.badRequest("No events set");
     }
 
     WorkflowDefinition wfd;
@@ -192,12 +184,18 @@ public class TasksEndpoint {
     }
 
     final Workflows workflows = new Workflows(assetManager, workspace, workflowService);
-    final List<WorkflowInstance> instances = workflows.applyWorkflowToLatestVersion(eventIds,
-            workflow(wfd, configuration)).toList();
+    final List<WorkflowInstance> instances = new ArrayList<>();
+    for (final Entry<String, Map<String, String>> e : configuration.entrySet()) {
+      final ConfiguredWorkflow wf = workflow(wfd, e.getValue());
+      final Set<String> mpIds = Collections.singleton(e.getKey());
+      final List<WorkflowInstance> partialResult = workflows.applyWorkflowToLatestVersion(mpIds, wf).toList();
 
-    if (eventIds.size() != instances.size()) {
-      logger.debug("Can't start one or more tasks.");
-      return Response.status(Status.BAD_REQUEST).build();
+      if (partialResult.size() != 1) {
+        logger.warn("Couldn't start workflow for media package {}", e.getKey());
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+
+      instances.addAll(partialResult);
     }
     return Response.status(Status.CREATED).entity(gson.toJson($(instances).map(getWorkflowIds).toList())).build();
   }

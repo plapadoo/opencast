@@ -247,6 +247,33 @@ angular.module('adminNg.services')
             me.changingWorkflow = false;
         };
 
+        this.getWorkflowConfigs = function (workflowProperties) {
+            var workflowConfigs = {}, element, isRendered = workflowConfigEl.find('.configField').length > 0;
+
+            if (!isRendered) {
+                element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
+            } else {
+                element = workflowConfigEl.find('.configField');
+            }
+
+            element.each(function (idx, el) {
+                var element = angular.element(el);
+
+                var eventProperties = [];
+                for (var i in workflowProperties) {
+                  if (i.startsWith("$") || !workflowProperties.hasOwnProperty(i)) {
+                    continue;
+                  }
+
+                  workflowConfigs[i] = workflowProperties[i];
+                }
+            });
+
+            console.log('workflow configs: '+JSON.stringify(workflowConfigs))
+
+            return workflowConfigs;
+        }
+
         // Get the workflow configuration
         this.getWorkflowConfig = function () {
             var workflowConfig = {}, element, isRendered = workflowConfigEl.find('.configField').length > 0;
