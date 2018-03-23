@@ -50,8 +50,6 @@ import org.opencastproject.workflow.api.WorkflowService;
 import org.opencastproject.workspace.api.Workspace;
 
 import com.entwinemedia.fn.Fn;
-import com.entwinemedia.fn.Fn2;
-import com.entwinemedia.fn.Stream;
 import com.entwinemedia.fn.data.json.JValue;
 import com.google.gson.Gson;
 
@@ -63,8 +61,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -158,7 +154,7 @@ public class TasksEndpoint {
       return RestUtil.R.badRequest("No metadata set");
     }
     Gson gson = new Gson();
-    Map metadataJson = null;
+    Map metadataJson;
     try {
       metadataJson = gson.fromJson(metadata, Map.class);
     } catch (Exception e) {
@@ -170,6 +166,7 @@ public class TasksEndpoint {
     if (StringUtils.isBlank(workflowId))
       return RestUtil.R.badRequest("No workflow set");
 
+    //noinspection unchecked
     Map<String, Map<String, String>> configuration = (Map<String, Map<String, String>>) metadataJson.get("configuration");
     if (configuration == null) {
       return RestUtil.R.badRequest("No events set");
@@ -198,16 +195,6 @@ public class TasksEndpoint {
       instances.addAll(partialResult);
     }
     return Response.status(Status.CREATED).entity(gson.toJson($(instances).map(getWorkflowIds).toList())).build();
-  }
-
-  private static <A, B> Fn2<Map<A, B>, Entry<A, B>, Map<A, B>> mapFold() {
-    return new Fn2<Map<A, B>, Entry<A, B>, Map<A, B>>() {
-      @Override
-      public Map<A, B> apply(Map<A, B> sum, Entry<A, B> a) {
-        sum.put(a.getKey(), a.getValue());
-        return sum;
-      }
-    };
   }
 
   private static final Fn<WorkflowInstance, Long> getWorkflowIds = new Fn<WorkflowInstance, Long>() {
