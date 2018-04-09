@@ -30,6 +30,18 @@
           <label for="someNumber">Some number plz</label>
         </fieldset>
         <fieldset>
+              <ul id="searchConfigurationPanel" class="workflow-configuration-subpanel">
+                <li>
+                  <input id="pmifoo" name="philipp" type="radio" checked="checked" class="configField" value="true" />
+                  <label for="pmifoo">pmifoo</label>
+                </li>
+                <li>
+                  <input id="pmibar" name="philipp" type="radio" class="configField" value="true" />
+                  <label for="pmibar">pmibar</label>
+                 </li>
+              </ul>
+        </fieldset>
+        <fieldset>
           <legend>Immediately distribute the recording to:</legend>
           <ul>
             <li>

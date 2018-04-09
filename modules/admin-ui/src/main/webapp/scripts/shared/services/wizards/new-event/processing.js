@@ -88,11 +88,13 @@ angular.module('adminNg.services')
 
         // Gather returned workflow properties into an array for easier usage later
          // (ignoring mediapackage IDs)
-        function gatherEventProperties(workflowProperties) {
+        function gatherEventProperties(workflowProperties, selectedIds) {
           var eventProperties = [];
           for (var i in workflowProperties) {
             if (!i.startsWith("$") && workflowProperties.hasOwnProperty(i)) {
-              eventProperties.push(workflowProperties[i]);
+              if (selectedIds.indexOf(i) >= 0) {
+                eventProperties.push(workflowProperties[i]);
+              }
             }
           }
           return eventProperties;
@@ -126,6 +128,9 @@ angular.module('adminNg.services')
           return { attr: globalWorkflowAttr, defined: true };
         }
 
+        // Check all selected events for the specified property. If all events have the same value for the property,
+        // return that value (which could be null, in the case that all events miss the property). Otherwise, return
+        // a value indicating ambiguity.
         function valueOrAmbiguousText(eventProperties, idAttr) {
           var globalWorkflowAttr = null;
           var globalWorkflowAmbiguous = false;
@@ -183,7 +188,8 @@ angular.module('adminNg.services')
         }
 
         // Listener for the workflow selection
-        this.changeWorkflow = function (workflowProperties) {
+        this.changeWorkflow = function (workflowProperties, selectedIds) {
+            console.log('changing workflow, selected ids: '+JSON.stringify(selectedIds));
             me.changingWorkflow = true;
             workflowConfigEl = angular.element(idConfigElement);
             if (angular.isDefined(me.ud.workflow)) {
@@ -201,9 +207,10 @@ angular.module('adminNg.services')
               }
 
               // Gather Array of Workflowproperties, we don't need the MP-IDs
-              var eventProperties = gatherEventProperties(workflowProperties);
+              var eventProperties = gatherEventProperties(workflowProperties, selectedIds);
 
               var processedRadioNames = [];
+              // Iterate over every input field, setting the previous values, if present.
               element.each(function (idx, el) {
                 var e = angular.element(el);
                 var idAttr = e.attr('id');
@@ -224,12 +231,17 @@ angular.module('adminNg.services')
                     e.val('');
                   } else {
                     // Only set it if we have a real value. If none of the workflows knows the property,
-                    // we keep the checkbox at the default state
+                    // we keep the input field at the default state.
                     if (globalWorkflowAttr.attr !== null) {
                       e.val(globalWorkflowAttr.attr);
                     }
                   }
                 } else if (e.is('[type=radio]')) {
+                  originalValues[idAttr] = e.attr('checked');
+
+                  // Radio input fields all have different IDs, but the same name. Since we iterate over IDs but want to
+                  // treat radio fields as a group, we have to keep track of which radio input elements we already
+                  // processed.
                   var radioName = e.attr('name');
                   // We already processed this radio element?
                   if (processedRadioNames.indexOf(radioName) !== -1) {
@@ -281,7 +293,8 @@ angular.module('adminNg.services')
             me.changingWorkflow = false;
         };
 
-        this.getWorkflowConfigs = function (workflowProperties) {
+        // This is used for the new task post request
+        this.getWorkflowConfigs = function (workflowProperties, selectedIds) {
             var workflowConfigs = {}, element, isRendered = workflowConfigEl.find('.configField').length > 0;
 
             if (!isRendered) {
@@ -290,7 +303,7 @@ angular.module('adminNg.services')
                 element = workflowConfigEl.find('.configField');
             }
 
-            var eventProperties = gatherEventProperties(workflowProperties);
+            var eventProperties = gatherEventProperties(workflowProperties, selectedIds);
             var resultConfigs = {};
             // Iterate over each event, configuring it separately
             for (var i in workflowProperties) {
@@ -298,7 +311,7 @@ angular.module('adminNg.services')
                 continue;
               }
 
-              console.log("Constructing properties of "+i);
+              console.log("Constructing properties of "+i+" (selected ids "+JSON.stringify(selectedIds)+")");
 
               var workflowConfig = workflowProperties[i];
               var resultConfig = {};
@@ -315,52 +328,159 @@ angular.module('adminNg.services')
 
                 console.log('Checking input field "'+JSON.stringify(idAttr)+'"');
 
-                if (e.is('[type=text]')) {
-                  var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
 
-                  if (!globalWorkflowAttr.defined) {
-                    console.log('Field is ambiguous, checking workflow props');
-                    var workflowValue = workflowConfig[idAttr];
-                    if (angular.isDefined(workflowValue)) {
-                      console.log('Workflow value is '+workflowValue+' using that');
-                      resultConfig[idAttr] = workflowValue;
-                    } else {
-                      originalValue = originalValues[idAttr];
-                      console.log('Workflow value is undefined, using standard value: '+originalValue);
-                      resultConfig[idAttr] = originalValue;
-                    }
+                if (e.is('[type=text]')) {
+                  if (e.val() !== '') {
+                    resultConfig[idAttr] = e.val();
                   } else {
-                    if (globalWorkflowAttr.attr === null) {
-                      var originalValue = originalValues[idAttr];
-                      console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
-                      resultConfig[idAttr] = originalValue;
+                    var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
+
+                    if (!globalWorkflowAttr.defined) {
+                      console.log('Field is ambiguous, checking workflow props');
+                      var workflowValue = workflowConfig[idAttr];
+                      if (angular.isDefined(workflowValue)) {
+                        console.log('Workflow value is '+workflowValue+' using that');
+                        resultConfig[idAttr] = workflowValue;
+                      } else {
+                        originalValue = originalValues[idAttr];
+                        console.log('Workflow value is undefined, using standard value: '+originalValue);
+                        resultConfig[idAttr] = originalValue;
+                      }
                     } else {
-                      console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
-                      resultConfig[idAttr] = globalWorkflowAttr.attr;
+                      if (globalWorkflowAttr.attr === null) {
+                        var originalValue = originalValues[idAttr];
+                        console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
+                        resultConfig[idAttr] = originalValue;
+                      } else {
+                        console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
+                        resultConfig[idAttr] = globalWorkflowAttr.attr;
+                      }
                     }
                   }
                 } else if (e.is('[type=checkbox]')) {
-                  var globalWorkflowAttr = valueOrAmbiguousCheckbox(eventProperties, idAttr);
+                  if (!e.prop('intermediate')) {
+                    if (e.is(':checked'))
+                      resultConfig[idAttr] = 'true';
+                    else
+                      resultConfig[idAttr] = 'false';
+                  } else {
+                    var globalWorkflowAttr = valueOrAmbiguousCheckbox(eventProperties, idAttr);
+
+                    if (!globalWorkflowAttr.defined) {
+                      console.log('Field is ambiguous, checking workflow props');
+                      var workflowValue = workflowConfig[idAttr];
+                      if (angular.isDefined(workflowValue)) {
+                        console.log('Workflow value is '+workflowValue+' using that');
+                        resultConfig[idAttr] = workflowValue;
+                      } else {
+                        var originalValue = originalValues[idAttr];
+                        console.log('Workflow value is undefined, using standard value: '+originalValue);
+                        resultConfig[idAttr] = originalValue;
+                      }
+                    } else {
+                      if (globalWorkflowAttr.attr === null) {
+                        var originalValue = originalValues[idAttr];
+                        console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
+                        resultConfig[idAttr] = originalValue;
+                      } else {
+                        console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
+                        resultConfig[idAttr] = globalWorkflowAttr.attr;
+                      }
+                    }
+                  }
+                } else if (e.is('[type=radio]')) {
+                  var radioName = e.attr('name');
+                  var radios = workflowConfigEl.find('input[name='+radioName+']');
+                  var globalWorkflowAttr = valueOrAmbiguousRadio(eventProperties, radios);
+
+                  var radioIds = [];
+                  var setByUser = false;
+                  for (var ridx = 0; ridx < radios.length; ridx++) {
+                    var radio = angular.element(radios[ridx]);
+                    radioIds.push(radio.attr('id'));
+                    if (radio.is(':checked')) {
+                      resultConfig[radio.attr('id')] = "true";
+                      setByUser = true;
+                    } else {
+                      resultConfig[radio.attr('id')] = "false";
+                    }
+                  }
+
+                  if (setByUser) {
+                    return;
+                  }
 
                   if (!globalWorkflowAttr.defined) {
                     console.log('Field is ambiguous, checking workflow props');
-                    var workflowValue = workflowConfig[idAttr];
-                    if (angular.isDefined(workflowValue)) {
-                      console.log('Workflow value is '+workflowValue+' using that');
-                      resultConfig[idAttr] = workflowValue;
-                    } else {
-                      var originalValue = originalValues[idAttr];
-                      console.log('Workflow value is undefined, using standard value: '+originalValue);
-                      resultConfig[idAttr] = originalValue;
+
+                    var finalValue = { attribute: null, defined: false };
+                    for (var ridx = 0; ridx < radioIds.length; ridx++) {
+                      var rid = radioIds[ridx];
+
+                      var workflowValue = workflowConfig[rid];
+                      // This is our guy, a radio value that's true.
+                      if (angular.isDefined(workflowValue) && workflowValue === "true") {
+                        // But we might have two radio values that are true. Damn!
+                        if (finalValue.defined === true) {
+                          // Set defined to false, treat this as "value wasn't specified at all"
+                          finalValue.defined = false;
+                          finalValue.attribute = null;
+                          break;
+                        } else {
+                          finalValue.defined = true;
+                          finalValue.attribute = rid;
+                        }
+                      }
+                    }
+
+                    // No value found? Then use the default value
+                    if (!finalValue.defined) {
+                      for (var ridx = 0; ridx < radioIds.length; ridx++) {
+                        var rid = radioIds[ridx];
+
+                        if (originalValues[rid] === "true") {
+                          finalValue.defined = "true";
+                          finalValue.attribute = rid;
+                          break;
+                        }
+                      }
+
+                      if (finalValue.defined !== "true") {
+                        console.log("shit, no default value?");
+                      }
+                    }
+
+                    for (var ridx = 0; ridx < radioIds.length; ridx++) {
+                      var rid = radioIds[ridx];
+
+                      if (finalValue.defined && finalValue.attribute === rid)
+                        resultConfig[rid] = "true";
+                      else
+                        resultConfig[rid] = "false";
                     }
                   } else {
                     if (globalWorkflowAttr.attr === null) {
-                      var originalValue = originalValues[idAttr];
                       console.log('Field is non-ambiguous, but unset, using standard value: '+originalValue);
-                      resultConfig[idAttr] = originalValue;
+                      for (var ridx = 0; ridx < radioIds.length; ridx++) {
+                        var rid = radioIds[ridx];
+
+                        if (angular.isDefined(originalValues[rid]) && originalValues[rid] === "true") {
+                          resultConfig[rid] = "true";
+                        } else {
+                          resultConfig[rid] = "false";
+                        }
+                      }
                     } else {
                       console.log('Field is non-ambiguous, setting '+globalWorkflowAttr.attr);
-                      resultConfig[idAttr] = globalWorkflowAttr.attr;
+                      for (var ridx = 0; ridx < radioIds.length; ridx++) {
+                        var rid = radioIds[ridx];
+
+                        if (rid == globalWorkflowAttr.attr) {
+                          resultConfig[rid] = "true";
+                        } else {
+                          resultConfig[rid] = "false";
+                        }
+                      }
                     }
                   }
                 }

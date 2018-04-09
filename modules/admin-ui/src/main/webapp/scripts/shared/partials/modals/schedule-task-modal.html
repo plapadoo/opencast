@@ -78,7 +78,7 @@
                             <div class="obj-container">
                                 <select chosen
                                         data-width="'100%'"
-                                        ng-change="processing.changeWorkflow(workflowProperties)"
+                                        ng-change="processing.changeWorkflow(workflowProperties, getSelectedIds())"
                                         data-disable-search-threshold="8"
                                         not-empty-selection
                                         ng-model="processing.ud.workflow"
@@ -138,7 +138,7 @@
                                     </li>
                                     <li>
                                         <span translate="BULK_ACTIONS.SCHEDULE_TASK.SUMMARY.CONFIGURATION"></span>
-                                        <p ng-repeat="(key, value) in processing.getWorkflowConfig()">{{key}}: {{value}}</p>
+                                        <p ng-repeat="(key, value) in processing.getWorkflowConfig(getSelectedIds())">{{key}}: {{value}}</p>
                                     </li>
                                 </ul>
                             </div><!-- obj-container -->

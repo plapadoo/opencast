@@ -55,7 +55,7 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
         if ($scope.valid()) {
             var payload = {
                 workflow: $scope.processing.ud.workflow.id,
-                configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties)
+                configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties, $scope.getSelectedIds())
             };
             console.log('would submit now');
             //TaskResource.save(payload, onSuccess, onFailure);
