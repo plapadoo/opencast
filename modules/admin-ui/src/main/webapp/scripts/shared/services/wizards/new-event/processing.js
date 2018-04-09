@@ -190,6 +190,7 @@ angular.module('adminNg.services')
         // Listener for the workflow selection
         this.changeWorkflow = function (workflowProperties, selectedIds) {
             console.log('changing workflow, selected ids: '+JSON.stringify(selectedIds));
+            originalValues = {};
             me.changingWorkflow = true;
             workflowConfigEl = angular.element(idConfigElement);
             if (angular.isDefined(me.ud.workflow)) {
@@ -358,7 +359,7 @@ angular.module('adminNg.services')
                     }
                   }
                 } else if (e.is('[type=checkbox]')) {
-                  if (!e.prop('intermediate')) {
+                  if (!e.prop('indeterminate')) {
                     if (e.is(':checked'))
                       resultConfig[idAttr] = 'true';
                     else
@@ -494,7 +495,7 @@ angular.module('adminNg.services')
             return resultConfigs;
         }
 
-        // Get the workflow configuration
+        // Get the workflow configuration (used for the final value table in the wizard)
         this.getWorkflowConfig = function () {
             var workflowConfig = {}, element, isRendered = workflowConfigEl.find('.configField').length > 0;
 
@@ -510,7 +511,7 @@ angular.module('adminNg.services')
                 var id = element.attr('id');
                 if (angular.isDefined(id)) {
                     if (element.is('[type=checkbox]')) {
-                      if (element.prop('intermediate')) {
+                      if (element.prop('indeterminate')) {
                         workflowConfig[id] = '*';
                       } else {
                         workflowConfig[id] = element.is(':checked') ? 'true' : 'false';
