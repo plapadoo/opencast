@@ -91,7 +91,7 @@ angular.module('adminNg.services')
         function gatherEventProperties(workflowProperties, selectedIds) {
           var eventProperties = [];
           for (var i in workflowProperties) {
-            if (!i.startsWith("$") && workflowProperties.hasOwnProperty(i)) {
+            if (i.indexOf("$") !== 0 && workflowProperties.hasOwnProperty(i)) {
               if (selectedIds.indexOf(i) >= 0) {
                 eventProperties.push(workflowProperties[i]);
               }
@@ -186,6 +186,11 @@ angular.module('adminNg.services')
           // events has this property.
           return { attr: globalWorkflowAttr, defined: true };
         }
+
+        this.clearWorkflowConfig = function () {
+	    me.ud.workflow = {};
+	    delete me.workflowConfiguration;
+	};
 
         // Listener for the workflow selection
         this.changeWorkflow = function (workflowProperties, selectedIds) {
@@ -308,7 +313,7 @@ angular.module('adminNg.services')
             var resultConfigs = {};
             // Iterate over each event, configuring it separately
             for (var i in workflowProperties) {
-              if (i.startsWith("$") || !workflowProperties.hasOwnProperty(i)) {
+              if (i.indexOf("$") !== 0 || !workflowProperties.hasOwnProperty(i)) {
                 continue;
               }
 
