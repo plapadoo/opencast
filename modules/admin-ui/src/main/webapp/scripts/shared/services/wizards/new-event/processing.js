@@ -72,46 +72,178 @@ angular.module('adminNg.services')
 
         });
 
-        // Gather returned workflow properties into an array for easier usage later
-         // (ignoring mediapackage IDs)
-        function gatherEventProperties(workflowProperties, selectedIds) {
-          var eventProperties = [];
+	function forEachHtmlFormElement(htmlElement, f) {
+	    var result = {};
+	    htmlElement.each(function (idx, el) {
+		var e = angular.element(el);
+		var idAttr = e.attr('id');
+
+		// Ignore input fields that don't have an ID
+		if (angular.isDefined(idAttr)) {
+		    f(idAttr, e);
+		}
+	    });
+	};
+
+        function gatherRadios(htmlElement) {
+            var result = {};
+	    forEachHtmlFormElement(htmlElement, function(id, e) {
+                if (e.is('[type=radio]')) {
+		    var radioName = e.attr('name');
+                    var radios = angular.element(document).find('input[name='+radioName+']');
+                    result[id] = [];
+                    radios.each(function(ridx, radio) {
+                        result[id].push(angular.element(radio).attr('id'));
+                   });
+                }
+            });
+            return result;
+        }
+
+        function determineIndeterminateRadios(htmlFields, radios) {
+            for(var radioId in radios) {
+                if (htmlFields[radioId] === null) {
+                    continue;
+                }
+                var radioValues = [];
+                for (var i = 0; i < radios[radioId].length; i++) {
+                    radioValues.push(htmlFields[radios[radioId][i]]);
+                }
+                if (allTheSame(radioValues)) {
+                    for (var i = 0; i < radios[radioId].length; i++) {
+                        htmlFields[radios[radioId][i]] = null;
+                    }
+                }
+            }
+        }
+
+	function gatherHtmlFormElements(htmlElement) {
+	    var result = {};
+	    forEachHtmlFormElement(htmlElement, function(id, e) {
+		if (e.is('[type=text]')) {
+                    if (e.val() === '') {
+                        result[id] = null;
+                    } else {
+		        result[id] = e.val();
+                    }
+		} else if (e.is('[type=checkbox]') || e.is('[type=radio]')) {
+                    if (e.prop('indeterminate')) {
+                        result[id] = null;
+                    } else {
+		        if (e.is(':checked')) {
+			    result[id] = "true";
+                        }
+		        else {
+			    result[id] = "false";
+                        }
+                    }
+                }
+	    });
+            return result;
+	}
+
+        function eventValuesForField(events, searchProp) {
+	    var result = [];
+	    for(var eid in events) {
+		for (var evProp in events[eid]) {
+		    if (evProp == searchProp) {
+			result.push(events[eid][evProp]);
+		    }
+		}
+	    }
+	    return result;
+	}
+
+	// Filter original workflow properties and make proper
+	// dictionaries out of them so they can be iterated over easily.
+        function filterEventProperties(workflowProperties, selectedIds) {
+          var result = {};
           for (var i in workflowProperties) {
             if (i.indexOf("$") !== 0 && workflowProperties.hasOwnProperty(i)) {
               if (selectedIds.indexOf(i) >= 0) {
-                eventProperties.push(workflowProperties[i]);
+		  result[i] = workflowProperties[i];
               }
             }
           }
-          return eventProperties;
+          return result;
         }
 
+        function allTheSame(a) {
+	    if (a.length === 0) {
+		return true;
+	    }
+	    var first = a[0];
+	    for(var i = 0; i < a.length; i++) {
+		if (a[i] !== first) {
+		    return false;
+		}
+	    }
+	    return true;
+        }
+
+        function setHtmlFormValue(e, v) {
+	    if (e.is("[type=text]")) {
+		e.val(v);
+	    } else if (e.is("[type=checkbox]") || e.is("[type=radio]")) {
+		if (v === "true") {
+		    e.attr("checked", true);
+		} else {
+		    e.attr("checked", false);
+		}
+	    }
+	}
+
+        function setIndeterminateHtmlFormValue(e) {
+	    if (e.is("[type=text]")) {
+		e.val("");
+	    } else if (e.is("[type=checkbox]")) {
+		e.prop("indeterminate", true);
+	    } else if (e.is("[type=radio]")) {
+		e.attr("checked", false);
+	    }
+	}
+
         function valueOrAmbiguousCheckbox(eventProperties, idAttr) {
-          var globalWorkflowAttr = null;
+          var globalWorkflowAttr = {value: null, isUndefined: false};
           var globalWorkflowAmbiguous = false;
           for (var i = 0; i < eventProperties.length; i++) {
             var workflowConfig = eventProperties[i];
             if(workflowConfig.hasOwnProperty(idAttr)) {
-              var workflowAttr = workflowConfig[idAttr];
+             var workflowAttr = workflowConfig[idAttr];
               console.log('Workflow has this attribute: '+workflowAttr);
               if (angular.isDefined(workflowAttr)) {
                 // First workflow, just assign
-                if (globalWorkflowAttr === null) {
+                if (globalWorkflowAttr.value === null) {
                   console.log('Setting initial value');
-                  globalWorkflowAttr = workflowAttr;
+                  globalWorkflowAttr.value = workflowAttr;
                 }
                 // Not the first workflow, and different attribute
-                else if (globalWorkflowAttr !== workflowAttr) {
+                else if (globalWorkflowAttr.value !== workflowAttr) {
                   console.log('Value is ambiguous');
                   return { attr: null, defined: false };
                 }
                 // Otherwise, next workflow has the same value as previous
               }
-            }
+            } else {
+		// Previously set to undefined, then ok
+		if (globalWorkflowAttr.isUndefined) {
+		    continue;
+		}
+
+		// Not set yet, not even to undefined, then just set
+		if (globalWorkflowAttr.value === null) {
+		    globalWorkflowAttr.isUndefined = true;
+		    continue;
+		}
+
+		// Has been set before, and with a defined value. Then it's ambiguous
+		console.log('Text value is ambiguous');
+		return { attr: null, defined: false };
+	    }
           }
           // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
           // events has this property.
-          return { attr: globalWorkflowAttr, defined: true };
+          return { attr: globalWorkflowAttr.value, defined: !globalWorkflowAttr.isUndefined };
         }
 
         // Check all selected events for the specified property. If all events have the same value for the property,
@@ -125,12 +257,14 @@ angular.module('adminNg.services')
 
 		if(!p.hasOwnProperty(idAttr)) {
 		    // Previously set to undefined, then ok
-		    if (globalWorkflowAttr.isUndefined) {
+		    if (globalWorkflowAttr.isUndefined === true) {
+			console.log("Value is already undefined");
 			continue;
 		    }
 
 		    // Not set yet, not even to undefined, then just set
 		    if (globalWorkflowAttr.value === null) {
+			console.log("Value is undefined in first event");
 			globalWorkflowAttr.isUndefined = true;
 			continue;
 		    }
@@ -145,7 +279,7 @@ angular.module('adminNg.services')
 		// First workflow, just assign
 		if (globalWorkflowAttr.value === null) {
 		    console.log('Setting initial (text) value to '+workflowAttr);
-		    globalWorkflowAttr = workflowAttr;
+		    globalWorkflowAttr.value = workflowAttr;
 		}
 		// Not the first workflow, and different attribute
 		else if (globalWorkflowAttr.value !== workflowAttr) {
@@ -156,11 +290,11 @@ angular.module('adminNg.services')
 
             // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
             // events has this property.
-            return { attr: globalWorkflowAttr, defined: true };
+            return { attr: globalWorkflowAttr.value, defined: !globalWorkflowAttr.isUndefined };
         }
 
         function valueOrAmbiguousRadio(eventProperties, radios) {
-          var globalWorkflowAttr = null;
+          var globalWorkflowAttr = {value: null, isUndefined: false};
           var globalWorkflowAmbiguous = false;
           for (var ridx = 0; ridx < radios.length; ridx++) {
             var radio = radios[ridx];
@@ -197,8 +331,41 @@ angular.module('adminNg.services')
 		    element = workflowConfigEl.find('.configField');
 		}
 
-		// Gather Array of Workflowproperties, we don't need the MP-IDs
-		var eventProperties = gatherEventProperties(workflowProperties, selectedIds);
+		var htmlFields = gatherHtmlFormElements(element);
+		me.currentEvents = filterEventProperties(workflowProperties, selectedIds);
+
+		console.log("Current events: "+JSON.stringify(me.currentEvents));
+		console.log("HTML fields: "+JSON.stringify(htmlFields));
+		console.log("Augmenting events with missing props, begin...");
+		for(var eventId in me.currentEvents) {
+		    var eventProps = me.currentEvents[eventId];
+                    console.log('eventProps: '+JSON.stringify(eventProps));
+		    for(var htmlField in htmlFields) {
+			if (!(htmlField in eventProps)) {
+			    console.log(eventId+" doesn't have "+htmlField+", value "+htmlFields[htmlField]);
+			    eventProps[htmlField] = htmlFields[htmlField];
+			} else {
+			    console.log(eventId+" has "+htmlField+", value "+eventProps[htmlField]);
+			}
+		    }
+		}
+		console.log("Augmenting events with missing props, end.");
+
+		console.log("Manipulating HTML form begin...");
+		forEachHtmlFormElement(element, function(id, e) {
+		    var valuesForId = eventValuesForField(me.currentEvents, id);
+
+                    console.log("values for id "+id+": "+JSON.stringify(valuesForId));
+		    if(allTheSame(valuesForId)) {
+			console.log(id+" has unique value "+valuesForId[0]);
+			setHtmlFormValue(e, valuesForId[0]);
+		    } else {
+			console.log(id+" has non-unique value");
+			setIndeterminateHtmlFormValue(e);
+		    }
+		});
+		console.log("Manipulating HTML form end...");
+		return;
 
 		var processedRadioNames = [];
 		// Iterate over every input field, setting the previous values, if present.
@@ -213,7 +380,6 @@ angular.module('adminNg.services')
 		    }
 
 		    if (e.is('[type=text]')) {
-			console.log('is text');
 			originalValues[idAttr] = e.val();
 
 			var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
@@ -330,6 +496,24 @@ angular.module('adminNg.services')
                 element = workflowConfigEl.find('.configField');
             }
 
+            var radios = gatherRadios(element);
+            console.log('radios: '+JSON.stringify(radios));
+	    var htmlFields = gatherHtmlFormElements(element);
+            determineIndeterminateRadios(htmlFields, radios);
+
+	    for(var eventId in me.currentEvents) {
+		var eventProps = me.currentEvents[eventId];
+		for(var htmlField in htmlFields) {
+		    var htmlValue = htmlFields[htmlField];
+		    if (htmlValue !== null) {
+			eventProps[htmlField] = htmlValue;
+		    }
+		}
+		workflowConfigs[eventId] = eventProps;
+	    }
+
+            console.log('workflow configs: '+JSON.stringify(workflowConfigs))
+	    return workflowConfigs;
             var eventProperties = gatherEventProperties(workflowProperties, selectedIds);
             var resultConfigs = {};
 
@@ -434,6 +618,7 @@ angular.module('adminNg.services')
                     }
                   }
 
+		    workflowConfigs[eventId] = eventProps;
                   if (setByUser) {
                     return;
                   }
@@ -532,6 +717,18 @@ angular.module('adminNg.services')
                 element = workflowConfigEl.find('.configField');
             }
 
+            var radios = gatherRadios(element);
+	    var htmlFields = gatherHtmlFormElements(element);
+            determineIndeterminateRadios(htmlFields, radios);
+	    for (var fieldId in htmlFields) {
+		var htmlField = htmlFields[fieldId];
+		if (htmlField === null) {
+		    workflowConfig[fieldId] = "*";
+		} else {
+		    workflowConfig[fieldId] = htmlField;
+		}
+	    }
+	    return workflowConfig;
             element.each(function (idx, el) {
                 var element = angular.element(el);
 
