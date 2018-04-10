@@ -77,6 +77,8 @@
                             ng-click="openArea('segments')" translate>VIDEO_TOOL.AREAS.SEGMENTS</a>
                         <a ng-class="{active: area === 'metadata'}"
                             ng-click="openArea('metadata')" translate>VIDEO_TOOL.AREAS.METADATA</a>
+                        <a ng-class="{active: area === 'thumbnail'}" ng-if="tab === 'editor'"
+                            ng-click="openArea('thumbnail')" translate>VIDEO_TOOL.AREAS.THUMBNAIL</a>
                         <a ng-class="{active: area === 'comments'}"
                             ng-click="openArea('comments')" translate>VIDEO_TOOL.AREAS.COMMENTS</a>
                     </nav>
@@ -104,6 +106,61 @@
                       </div>
                   </div>
                 </div>
+
+                <div ng-if="area === 'thumbnail'" class="editor-thumbnail">
+                  <div class="area-body">
+                    <div class="full-col">
+                      <div class="obj content-wrapper">
+                        <form>
+                          <div class="thumbnail-canvas" style="background-image:url({{video.thumbnail.url}})"
+                               ng-mouseenter="thumbnailHover(true)" ng-mouseleave="thumbnailHover(false)">
+                            <div ng-show="video.thumbnail.loading"><i class='fa fa-spinner fa-spin spinner'></i></div>
+                            <div ng-show="!video.thumbnail.loading && video.thumbnail.hovering">
+                              <i title="{{'VIDEO_TOOL.THUMBNAIL.USE_DEFAULT' | translate}}"
+                                 ng-if="video.thumbnail.url && video.thumbnail.type !== 'DEFAULT'"
+                                 class="fa fa-times remove"
+                                 ng-click="changeThumbnail(undefined, 'DEFAULT', 'DEFAULT')"></i>
+                              <i title="{{'VIDEO_TOOL.THUMBNAIL.UPLOAD' | translate}}"
+                                 class="fa fa-upload upload"
+                                 onclick="angular.element('#thumbnail-upload').click()"></i>
+                            </div>
+                            <div ng-show="video.thumbnail && !video.thumbnail.url && !video.thumbnail.hovering && !video.thumbnail.loading" translate="VIDEO_TOOL.THUMBNAIL.NOT_AVAILABLE"><!-- No preview available --></div>
+                            <div ng-show="!video || !video.thumbnail"><i class="fa fa-exclamation-circle error"></i></div>
+                          </div>
+                          <input
+                            id="thumbnail-upload"
+                            class="hidden"
+                            type="file"
+                            accept="image/*"
+                            onchange="angular.element(this).scope().changeThumbnail(this.files[0], undefined, undefined)"
+                            ng-disabled="video.thumbnail.loading"/>
+                        </form>
+                        <div class="description">
+                          <p translate="VIDEO_TOOL.THUMBNAIL.DESCRIPTION_1"><!-- General --></p>
+                          <ul>
+                            <li translate="VIDEO_TOOL.THUMBNAIL.DESCRIPTION_2"><!-- Upload --></li>
+                            <li translate="VIDEO_TOOL.THUMBNAIL.DESCRIPTION_3"><!-- Extract at current position --></li>
+                            <li translate="VIDEO_TOOL.THUMBNAIL.DESCRIPTION_4"><!-- Restore default --></li>
+                          </ul>
+                          <div class="snapshots">
+                            <p translate="VIDEO_TOOL.THUMBNAIL.CURRENT_POSITION"><!-- Current position: --></p>
+                            <p class="position">{{formatMilliseconds(player.adapter.getCurrentTime() * 1000)}}</p>
+                            <i title="{{'VIDEO_TOOL.THUMBNAIL.TAKE_SNAPSHOT' | translate}}"
+                               ng-disabled="!video.thumbnail || video.thumbnail.loading"
+                               class="fa fa-camera snapshot"
+                               ng-click="changeThumbnail(undefined, video.source_tracks[0].flavor.type, player.adapter.getCurrentTime())"></i>
+                            <i title="{{'VIDEO_TOOL.THUMBNAIL.TAKE_SNAPSHOT' | translate}}"
+                               ng-disabled="!video.thumbnail || video.thumbnail.loading"
+                               ng-if="video.source_tracks.length > 1"
+                               class="fa fa-camera snapshot"
+                               ng-click="changeThumbnail(undefined, video.source_tracks[1].flavor.type, player.adapter.getCurrentTime())"></i>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div ng-if="area === 'comments'">
                   <div class="area-body">
                       <div data-admin-ng-notifications="" context="events-access"></div>

@@ -28,6 +28,34 @@ angular.module('adminNg.services')
     function () {
 
     var VideoService = function () {
+        /**
+        * Formats time stamps to HH:MM:SS.sss
+        *
+        * @param {Number} ms is the time in milliseconds,
+        * @param {Boolean} showMilliseconds should the milliseconds be displayed
+        * @return {String} Formatted time string
+           */
+        this.formatMilliseconds = function (ms, showMilliseconds) {
+
+           if (isNaN(ms)) {
+               return '';
+           }
+
+           var date = new Date(ms),
+               pad = function (number, padding) {
+               return (new Array(padding + 1).join('0') + number)
+                   .slice(-padding);
+               };
+
+           if (typeof showMilliseconds === 'undefined') {
+               showMilliseconds = true;
+           }
+
+           return pad(date.getUTCHours(), 2) + ':' +
+               pad(date.getUTCMinutes(), 2) + ':' +
+               pad(date.getUTCSeconds(), 2) +
+               (showMilliseconds ? '.' + pad(date.getUTCMilliseconds(), 3) : '');
+        };
         this.getCurrentSegment = function (player, video) {
             var matchingSegment,
                 position = player.adapter.getCurrentTime() * 1000;

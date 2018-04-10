@@ -22,8 +22,8 @@
 
 // Controller for all event screens.
 angular.module('adminNg.controllers')
-.controller('ToolsCtrl', ['$scope', '$route', '$location', '$window', 'ToolsResource', 'Notifications', 'EventHelperService',
-    function ($scope, $route, $location, $window, ToolsResource, Notifications, EventHelperService) {
+.controller('ToolsCtrl', ['$scope', '$route', '$location', '$window', 'ToolsResource', 'Notifications', 'EventHelperService', 'VideoService',
+    function ($scope, $route, $location, $window, ToolsResource, Notifications, EventHelperService, VideoService) {
 
         $scope.navigateTo = function (path) {
             $location.path(path).replace();
@@ -41,10 +41,30 @@ angular.module('adminNg.controllers')
 
         $scope.event.eventId = $scope.id;
 
+        $scope.formatMilliseconds = VideoService.formatMilliseconds;
+
         $scope.unsavedChanges = false;
 
         $scope.setChanges = function(changed) {
             $scope.unsavedChanges = changed;
+        };
+
+        $scope.changeThumbnail = function (file, track, position) {
+            $scope.video.thumbnail.loading = true;
+            ToolsResource.thumbnail(
+              { id: $scope.id, tool: 'thumbnail' },
+              { file: file, track: track, position: position },
+              function(response) {
+                $scope.video.thumbnail = response.thumbnail;
+                $scope.video.thumbnail.loading = false;
+              }, function() {
+                Notifications.add('error', 'THUMBNAIL_CHANGE_FAILED', 'video-tools');
+                $scope.video.thumbnail.loading = false;
+              });
+        };
+
+        $scope.thumbnailHover = function (hovering) {
+          $scope.video.thumbnail.hovering = hovering;
         };
 
         $scope.openTab = function (tab) {

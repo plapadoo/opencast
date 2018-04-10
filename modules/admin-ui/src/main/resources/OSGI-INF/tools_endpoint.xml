@@ -2,13 +2,13 @@
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0"
                name="org.opencastproject.adminui.endpoint.ToolsEndpoint"
                immediate="true">
-	
+
   <implementation class="org.opencastproject.adminui.endpoint.ToolsEndpoint" />
-  
+
   <property name="service.description" value="Admin UI - Tools Facade Endpoint" />
   <property name="opencast.service.type" value="org.opencastproject.adminui.endpoint.tools" />
   <property name="opencast.service.path" value="/admin-ng/tools" />
-  
+
   <service>
     <!-- expose interface for MH REST publisher! -->
     <provide interface="org.opencastproject.adminui.endpoint.ToolsEndpoint" />
@@ -25,11 +25,21 @@
              interface="org.opencastproject.adminui.impl.index.AdminUISearchIndex"
              name="AdminUISearchIndex"
              policy="static" />
+  <reference bind="setComposerService"
+             cardinality="1..1"
+             interface="org.opencastproject.composer.api.ComposerService"
+             name="composerService"
+             policy="static" />
   <reference bind="setIndexService"
              cardinality="1..1"
              interface="org.opencastproject.index.service.api.IndexService"
              name="IndexService"
              policy="static" />
+  <reference bind="setServiceRegistry"
+             cardinality="1..1"
+             name="serviceRegistry"
+             interface="org.opencastproject.serviceregistry.api.ServiceRegistry"
+             policy="static"/>
   <reference bind="setSmilService"
              cardinality="1..1"
              interface="org.opencastproject.smil.api.SmilService"
@@ -59,5 +69,15 @@
              cardinality="1..1"
              interface="org.opencastproject.workflow.api.WorkflowService"
              name="WorkflowService"
+             policy="static" />
+  <reference bind="setOaiPmhPublicationService"
+             cardinality="1..1"
+             interface="org.opencastproject.publication.api.OaiPmhPublicationService"
+             name="oaiPmhPublicationService"
+             policy="static" />
+  <reference bind="setConfigurablePublicationService"
+             cardinality="1..1"
+             interface="org.opencastproject.publication.api.ConfigurablePublicationService"
+             name="configurablePublicationService"
              policy="static" />
 </scr:component>

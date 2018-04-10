@@ -177,6 +177,7 @@
      "VIDEO_CUT_NOT_SAVED": "The editing information could not be saved",
      "VIDEO_CUT_SAVED": "The editing information has been saved",
      "VIDEO_CUT_PROCESSING": "The video is being processed…",
+     "THUMBNAIL_CHANGE_FAILED": "Failed to change thumbnail.",
      "SERVER_UNRESPONSIVE": "Oops! The server seems to be unresponsive. Please try again later.",
      "SERVICE_UNAVAILABLE": "Oops! The server seems to be unresponsive. Please try again later.",
      "ACTIVE_TRANSACTION": "This event can not be edited while there is an active workflow or transaction."
@@ -1612,6 +1613,7 @@
      },
      "AREAS": {
        "METADATA":    "Metadata",
+       "THUMBNAIL":   "Thumbnail",
        "COMMENTS":    "Comments",
        "SEGMENTS":    "Segments"
      },
@@ -1629,6 +1631,17 @@
      "SEGMENTS": {
        "REMOVE_SEGMENT":  "Remove Segment",
        "USE_SEGMENT":     "Use this Segment"
+     },
+     "THUMBNAIL": {
+       "CURRENT_POSITION": "Current position:",
+       "DESCRIPTION_1" : "A thumbnail used to represent the event is generated automatically. In case you want a different thumbnail, you can upload an image, or extract a thumbnail at the current playback position.",
+       "DESCRIPTION_2" : "For uploading a thumbnail, move your mouse over the thumbnail preview on the left, click the upload button, and select an image to use.",
+       "DESCRIPTION_3" : "To extract a thumbnail at the current playback position, press the camera button below. In case you have a dual-stream video, two camera buttons are shown, one for each stream.",
+       "DESCRIPTION_4" : "If you want to restore the default thumbnail again, move your mouse over the thumbnail preview on the left and press the remove (x) button in the top left corner of the preview.",
+       "NOT_AVAILABLE": "No preview available",
+       "TAKE_SNAPSHOT": "Take a snapshot at the current position and use it as the thumbnail",
+       "USE_DEFAULT": "Remove current thumbnail and use default",
+       "UPLOAD": "Upload a new thumbnail"
      },
      "PLAYER":{
        "PLAY":              "Play",

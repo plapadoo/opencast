@@ -760,3 +760,64 @@ $segment-deleted-selected: darken($segment-deleted, 18%);
     border-radius: 4px;
     border: $thin-border-stroke $main-border-color;
 }
+
+// Thumbnail styles
+// ----------------------------------------
+.editor-thumbnail {
+
+  .content-wrapper  {
+    display: flex;
+  }
+
+  .description {
+    position: relative;
+    padding-left: 20px;
+    margin: 20px 0 20px 0;
+    border-left: $thin-border-stroke $color-darkgray;
+  }
+
+  .thumbnail-canvas {
+    margin: 20px;
+    width: 200px;
+    height: 200px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+    border: $thin-border-stroke;
+    text-align: center;
+  }
+
+  .thumbnail-canvas>div {
+    background-color: rgba( $black, .4 );
+    line-height: 200px;
+    color: $off-white;
+  }
+
+  .remove {
+    float: right;
+    margin-top: -3px;
+    margin-left: -100px;
+    padding: 5px;
+    font-size: 1.2em;
+    cursor: pointer;
+  }
+
+  .upload, .snapshot {
+    cursor: pointer;
+    font-size: 3em;
+  }
+
+  .spinner, .position, .error {
+    font-size: 3em;
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  ul {
+    margin: 10px 10px 30px 10px;
+    list-style: initial;
+    padding-left: 20px;
+  }
+}

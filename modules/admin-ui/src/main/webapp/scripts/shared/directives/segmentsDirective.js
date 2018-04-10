@@ -33,35 +33,6 @@ function (PlayerAdapter, $document, VideoService, $timeout) {
         link: function (scope, element) {
 
             /**
-            * Formats time stamps to HH:MM:SS.sss
-            *
-            * @param {Number} ms is the time in milliseconds,
-            * @param {Boolean} showMilliseconds should the milliseconds be displayed
-            * @return {String} Formatted time string
-           */
-            scope.formatMilliseconds = function (ms, showMilliseconds) {
-
-               if (isNaN(ms)) {
-                   return '';
-               }
-
-               var date = new Date(ms),
-                   pad = function (number, padding) {
-                       return (new Array(padding + 1).join('0') + number)
-                           .slice(-padding);
-                   };
-
-               if (typeof showMilliseconds === 'undefined') {
-                   showMilliseconds = true;
-               }
-
-               return pad(date.getUTCHours(), 2) + ':' +
-                   pad(date.getUTCMinutes(), 2) + ':' +
-                   pad(date.getUTCSeconds(), 2) +
-                   (showMilliseconds ? '.' + pad(date.getUTCMilliseconds(), 3) : '');
-            };
-
-            /**
              * Converts a string with a human readable time to ms
              *
              * @param {type} time in the format HH:MM:SS.sss
@@ -171,8 +142,8 @@ function (PlayerAdapter, $document, VideoService, $timeout) {
              */
             scope.setHumanReadableTimes = function () {
               angular.forEach(scope.video.segments, function(segment, key) {
-                segment.startTime = scope.formatMilliseconds(segment.start);
-                segment.endTime = scope.formatMilliseconds(segment.end);
+                segment.startTime = VideoService.formatMilliseconds(segment.start);
+                segment.endTime = VideoService.formatMilliseconds(segment.end);
               });
             };
 
@@ -215,7 +186,7 @@ function (PlayerAdapter, $document, VideoService, $timeout) {
               var newTime = scope.parseTime(segment.startTime);
               if (newTime && newTime !== segment.start) {
                 if (newTime > segment.end || ! scope.timeValid(newTime)) {
-                  segment.startTime = scope.formatMilliseconds(segment.start);
+                  segment.startTime = VideoService.formatMilliseconds(segment.start);
                 } else {
                   var previousSegment = scope.getPreviousSegment(segment);
                   var allow = scope.isRemovalAllowed(previousSegment);
@@ -251,7 +222,7 @@ function (PlayerAdapter, $document, VideoService, $timeout) {
               var newTime = scope.parseTime(segment.endTime);
               if (newTime && newTime !== segment.end) {
                 if (newTime < segment.start || ! scope.timeValid(newTime)) {
-                  segment.endTime = scope.formatMilliseconds(segment.end);
+                  segment.endTime = VideoService.formatMilliseconds(segment.end);
                 } else {
                   var nextSegment = scope.getNextSegment(segment);
                   var allow = scope.isRemovalAllowed(nextSegment);

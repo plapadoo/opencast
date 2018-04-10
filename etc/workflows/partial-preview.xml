@@ -80,6 +80,42 @@
     </operation>
 
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- Default thumbnail.                                                -->
+    <!--                                                                   -->
+    <!-- Create Default thumbnail at fixed position for fixed stream       -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+
+    <operation
+      id="image"
+      if="NOT (${presenter_work_video} AND ${presentation_work_video})"
+      exception-handler-workflow="partial-error"
+      description="Creating default thumbnail for single-stream video">
+      <configurations>
+        <configuration key="source-flavor">*/work</configuration>
+        <configuration key="target-flavor">thumbnail/preview</configuration>
+        <configuration key="target-tags">preview</configuration>
+        <configuration key="source-tags"></configuration>
+        <configuration key="encoding-profile">search-cover.http</configuration>
+        <configuration key="time">1</configuration>
+      </configurations>
+    </operation>
+
+    <operation
+        id="image"
+        if="${presenter_work_video} AND ${presentation_work_video}"
+        exception-handler-workflow="partial-error"
+        description="Creating default thumbnail for dual-stream video">
+      <configurations>
+        <configuration key="source-flavor">presenter/work</configuration>
+        <configuration key="target-flavor">thumbnail/preview</configuration>
+        <configuration key="target-tags">preview</configuration>
+        <configuration key="source-tags"></configuration>
+        <configuration key="encoding-profile">search-cover.http</configuration>
+        <configuration key="time">1</configuration>
+      </configurations>
+    </operation>
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <!-- Silence detection                                                 -->
     <!--                                                                   -->
     <!-- Run silence detection to provide hints to the video editor.       -->
