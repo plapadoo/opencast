@@ -68,34 +68,6 @@ angular.module('adminNg.services')
             me.workflows = data.workflows;
             me.default_workflow_id = data.default_workflow_id;
 
-            // set default workflow as selected
-            // if(angular.isDefined(me.default_workflow_id)){
-
-            //     for(var i = 0; i < me.workflows.length; i += 1){
-            //         var workflow = me.workflows[i];
-
-            //         if (workflow.id === me.default_workflow_id){
-            //           me.ud.workflow = workflow;
-            //           updateConfigurationPanel(me.ud.workflow.configuration_panel);
-            //           me.save();
-            //           break;
-            //         }
-            //     }
-            // }
-            // // set default workflow as selected
-            // if(angular.isDefined(me.default_workflow_id)){
-
-            //     for(var i = 0; i < me.workflows.length; i += 1){
-            //         var workflow = me.workflows[i];
-
-            //         if (workflow.id === me.default_workflow_id){
-            //           me.ud.workflow = workflow;
-            //           updateConfigurationPanel(me.ud.workflow.configuration_panel);
-            //           me.save();
-            //           break;
-            //         }
-            //     }
-            // }
             me.changingWorkflow = false;
 
         });
@@ -146,31 +118,45 @@ angular.module('adminNg.services')
         // return that value (which could be null, in the case that all events miss the property). Otherwise, return
         // a value indicating ambiguity.
         function valueOrAmbiguousText(eventProperties, idAttr) {
-          var globalWorkflowAttr = null;
-          var globalWorkflowAmbiguous = false;
-          for (var i = 0; i < eventProperties.length; i++) {
-            var p = eventProperties[i];
+            var globalWorkflowAttr = {value: null, isUndefined: false};
+            var globalWorkflowAmbiguous = false;
+            for (var i = 0; i < eventProperties.length; i++) {
+		var p = eventProperties[i];
 
-            if(!p.hasOwnProperty(idAttr))
-              continue;
+		if(!p.hasOwnProperty(idAttr)) {
+		    // Previously set to undefined, then ok
+		    if (globalWorkflowAttr.isUndefined) {
+			continue;
+		    }
 
-            var workflowAttr = p[idAttr];
+		    // Not set yet, not even to undefined, then just set
+		    if (globalWorkflowAttr.value === null) {
+			globalWorkflowAttr.isUndefined = true;
+			continue;
+		    }
 
-            // First workflow, just assign
-            if (globalWorkflowAttr === null) {
-              console.log('Setting initial (text) value to '+workflowAttr);
-              globalWorkflowAttr = workflowAttr;
+		    // Has been set before, and with a defined value. Then it's ambiguous
+		    console.log('Text value is ambiguous');
+		    return { attr: null, defined: false };
+		}
+
+		var workflowAttr = p[idAttr];
+
+		// First workflow, just assign
+		if (globalWorkflowAttr.value === null) {
+		    console.log('Setting initial (text) value to '+workflowAttr);
+		    globalWorkflowAttr = workflowAttr;
+		}
+		// Not the first workflow, and different attribute
+		else if (globalWorkflowAttr.value !== workflowAttr) {
+		    console.log('Text value is ambiguous');
+		    return { attr: null, defined: false };
+		}
             }
-            // Not the first workflow, and different attribute
-            else if (globalWorkflowAttr !== workflowAttr) {
-              console.log('Text value is ambiguous');
-              return { attr: null, defined: false };
-            }
-          }
 
-          // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
-          // events has this property.
-          return { attr: globalWorkflowAttr, defined: true };
+            // We have to return an object here, since "null" could otherwise mean ambiguous _or_ none of the
+            // events has this property.
+            return { attr: globalWorkflowAttr, defined: true };
         }
 
         function valueOrAmbiguousRadio(eventProperties, radios) {
@@ -227,6 +213,7 @@ angular.module('adminNg.services')
 		    }
 
 		    if (e.is('[type=text]')) {
+			console.log('is text');
 			originalValues[idAttr] = e.val();
 
 			var globalWorkflowAttr = valueOrAmbiguousText(eventProperties, idAttr);
@@ -317,7 +304,7 @@ angular.module('adminNg.services')
 	};
 
         // Listener for the workflow selection
-        this.changeWorkflow = function (workflowProperties) {
+        this.changeWorkflow = function (workflowProperties, selectedIds) {
             console.log('changing workflow');
             originalValues = {};
             me.changingWorkflow = true;
@@ -327,6 +314,7 @@ angular.module('adminNg.services')
             } else {
                 updateConfigurationPanel();
             }
+            this.applyWorkflowProperties(workflowProperties, selectedIds);
 
             me.save();
             me.changingWorkflow = false;
@@ -344,6 +332,7 @@ angular.module('adminNg.services')
 
             var eventProperties = gatherEventProperties(workflowProperties, selectedIds);
             var resultConfigs = {};
+
             // Iterate over each event, configuring it separately
             for (var i in workflowProperties) {
               if (i.indexOf("$") !== 0 || !workflowProperties.hasOwnProperty(i)) {

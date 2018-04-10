@@ -311,13 +311,13 @@ public abstract class AbstractEventEndpoint {
 
     //noinspection unchecked
     final Map<String, Map<String, String>> eventWithProperties = getIndexService().getEventWorkflowProperties(eventIdsJsonArray);
-    final Collection<Field> jsonEvents = new ArrayList<>();
+    final Map<String, Field> jsonEvents = new HashMap<>();
     for (Entry<String, Map<String, String>> e : eventWithProperties.entrySet()) {
       final Collection<Field> jsonProperties = new ArrayList<>();
       for (Entry<String, String> p : e.getValue().entrySet()) {
         jsonProperties.add(f(p.getKey(),p.getValue()));
       }
-      jsonEvents.add(f(e.getKey(), obj(jsonProperties)));
+      jsonEvents.put(e.getKey(), f(e.getKey(), obj(jsonProperties)));
     }
     return okJson(obj(jsonEvents));
   }
