@@ -66,8 +66,8 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
                 workflow: $scope.processing.ud.workflow.id,
                 configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties, $scope.getSelectedIds())
             };
-            console.log('would submit now');
-            //TaskResource.save(payload, onSuccess, onFailure);
+            //console.log('would submit now');
+            TaskResource.save(payload, onSuccess, onFailure);
         }
 	console.log('==== SUBMIT END');
     };

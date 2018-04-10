@@ -157,7 +157,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1484,13 +1483,7 @@ public class IndexServiceImpl implements IndexService {
             .toMap(ARecord::getMediaPackageId,
                     rec -> rec.getProperties().toList().stream().collect(propertyMapCollector));
     // There could be events without properties. Emit empty maps for those.
-    final Map<String, Map<String, String>> records = r.getRecords().toList().stream().collect(aRecordMapCollector);
-    for (final String eventId: eventIds) {
-      if (!records.containsKey(eventId)) {
-        records.put(eventId, Collections.emptyMap());
-      }
-    }
-    return records;
+    return r.getRecords().toList().stream().collect(aRecordMapCollector);
   }
 
   @Override
