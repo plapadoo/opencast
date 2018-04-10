@@ -47,6 +47,20 @@ angular.module('adminNg.controllers')
             $scope.unsavedChanges = changed;
         };
 
+        $scope.changeThumbnail = function (file, track, position) {
+            $scope.video.thumbnail.loading = true;
+            ToolsResource.thumbnail(
+              { id: $scope.id, tool: 'thumbnail' },
+              { file: file, track: track, position: position },
+              function(response) {
+                $scope.video.thumbnail = response.thumbnail;
+                $scope.video.thumbnail.loading = false;
+              }, function() {
+                Notifications.add('error', 'THUMBNAIL_CHANGE_FAILED', 'video-tools');
+                $scope.video.thumbnail.loading = false;
+              });
+        };
+
         $scope.openTab = function (tab) {
             $scope.tab = tab;
             if ($scope.tab === "editor") {

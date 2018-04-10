@@ -80,6 +80,17 @@ angular.module('adminNg.resources')
                 return data;
             }
         },
+        thumbnail: {
+            method: 'POST',
+            headers: { 'Content-Type': undefined},
+            transformRequest: function (data) {
+                var fd = new FormData();
+                if (data.file) fd.append('File', data.file);
+                if (data.track) fd.append('Track', data.track);
+                if (data.position) fd.append('Position', data.position);
+                return fd;
+            }
+        },
         save: {
             method: 'POST',
             transformRequest: function (data) {
