@@ -38,7 +38,7 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
 
     $scope.clearWorkflowFormAndContinue = function() {
         console.log("continue!");
-	$scope.processing.clearWorkflowConfig();
+	$scope.processing.initWorkflowConfig($scope.workflowProperties, $scope.getSelectedIds());
         WizardHandler.wizard("scheduleTaskWz").next();
     };
 
