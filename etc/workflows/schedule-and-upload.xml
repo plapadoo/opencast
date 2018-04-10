@@ -165,6 +165,7 @@
         <configuration key="publishToAws">false</configuration>
         <configuration key="uploadedSearchPreview">false</configuration>
         <configuration key="publishLive">false</configuration>
+        <configuration key="thumbnailType">0</configuration>
       </configurations>
     </operation>
 

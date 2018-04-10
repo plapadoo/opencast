@@ -237,7 +237,7 @@ public class DownloadDistributionServiceImpl extends AbstractDistributionService
     notNull(elementIds, "elementIds");
     notNull(channelId, "channelId");
 
-    final Set<MediaPackageElement> elements = getElements(mediapackage, elementIds);
+    final Set<MediaPackageElement> elements = getElements(channelId, mediapackage, elementIds);
     List<MediaPackageElement> distributedElements = new ArrayList<MediaPackageElement>();
 
     for (MediaPackageElement element : elements) {
@@ -408,7 +408,7 @@ public class DownloadDistributionServiceImpl extends AbstractDistributionService
     notNull(elementIds, "elementIds");
     notNull(channelId, "channelId");
 
-    Set<MediaPackageElement> elements = getElements(mediapackage, elementIds);
+    Set<MediaPackageElement> elements = getElements(channelId, mediapackage, elementIds);
     List<MediaPackageElement> retractedElements = new ArrayList<MediaPackageElement>();
 
     for (MediaPackageElement element : elements) {
@@ -518,7 +518,7 @@ public class DownloadDistributionServiceImpl extends AbstractDistributionService
     }
   }
 
-  private Set<MediaPackageElement> getElements(MediaPackage mediapackage, Set<String> elementIds)
+  private Set<MediaPackageElement> getElements(String channelId, MediaPackage mediapackage, Set<String> elementIds)
           throws IllegalStateException {
     final Set<MediaPackageElement> elements = new HashSet<MediaPackageElement>();
     for (String elementId : elementIds) {
@@ -526,8 +526,15 @@ public class DownloadDistributionServiceImpl extends AbstractDistributionService
        if (element != null) {
          elements.add(element);
        } else {
-         throw new IllegalStateException(format("No element %s found in mediapackage %s", elementId,
-               mediapackage.getIdentifier()));
+         element = Arrays.stream(mediapackage.getPublications())
+               .filter(p -> p.getChannel().equals(channelId))
+               .flatMap(p -> Arrays.stream(p.getAttachments())
+               .filter(a -> a.getIdentifier().equals(elementId)))
+               .findAny()
+               .orElseThrow(() ->
+                       new IllegalStateException(format("No element %s found in mediapackage %s", elementId,
+                           mediapackage.getIdentifier())));
+         elements.add(element);
        }
     }
     return elements;
