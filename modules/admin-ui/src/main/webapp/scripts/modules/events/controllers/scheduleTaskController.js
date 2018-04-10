@@ -33,7 +33,7 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
     $scope.workflowProperties = EventWorkflowPropertiesResource.get($scope.rows.map(function callback(x) { return x.id; }));
 
     $scope.valid = function () {
-        return $scope.getSelectedIds().length > -l;
+        return $scope.getSelectedIds().length > 0;
     };
 
     $scope.clearWorkflowFormAndContinue = function() {
@@ -43,6 +43,7 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
     };
 
     var onSuccess = function () {
+	console.log("==== ON SUCCESS");
         $scope.submitButton = false;
         $scope.close();
         Notifications.add('success', 'TASK_CREATED');
@@ -50,13 +51,15 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
     };
 
     var onFailure = function () {
+	console.log("==== ON FAILURE");
         $scope.submitButton = false;
         $scope.close();
-        Notifications.add('error', 'TASK_NO_CREATED', 'global', -1);
+        Notifications.add('error', 'TASK_NOT_CREATED', 'global', -1);
     };
 
     $scope.submitButton = false;
     $scope.submit = function () {
+	console.log('==== SUBMIT START');
         $scope.submitButton = true;
         if ($scope.valid()) {
             var payload = {
@@ -66,6 +69,7 @@ function ($scope, Table, NewEventProcessing, EventWorkflowPropertiesResource, Ta
             //console.log('would submit now');
             TaskResource.save(payload, onSuccess, onFailure);
         }
+	console.log('==== SUBMIT END');
     };
     decorateWithTableRowSelection($scope);
 }]);

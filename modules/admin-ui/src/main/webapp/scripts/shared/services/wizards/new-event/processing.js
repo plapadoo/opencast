@@ -317,8 +317,8 @@ angular.module('adminNg.services')
 	};
 
         // Listener for the workflow selection
-        this.changeWorkflow = function (workflowProperties, selectedIds) {
-            console.log('changing workflow, selected ids: '+JSON.stringify(selectedIds));
+        this.changeWorkflow = function (workflowProperties) {
+            console.log('changing workflow');
             originalValues = {};
             me.changingWorkflow = true;
             workflowConfigEl = angular.element(idConfigElement);
