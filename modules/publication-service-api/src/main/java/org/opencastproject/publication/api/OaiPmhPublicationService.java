@@ -22,6 +22,8 @@ package org.opencastproject.publication.api;
 
 import org.opencastproject.job.api.Job;
 import org.opencastproject.mediapackage.MediaPackage;
+import org.opencastproject.mediapackage.MediaPackageElement;
+import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.MediaPackageException;
 import org.opencastproject.util.NotFoundException;
 
@@ -65,6 +67,35 @@ public interface OaiPmhPublicationService {
   Job publish(MediaPackage mediaPackage, String repository, Set<String> downloadElementIds,
       Set<String> streamingElementIds, boolean checkAvailability) throws PublicationException,
       MediaPackageException;
+
+  /**
+   * Updates the given media package in the Oai-Pmh storage incrementally, i.e. without retracting the whole media
+   * package.
+   *
+   * @param mediaPackage
+   *          The media package to publish the element for
+   * @param repository
+   *          The OAI-PMH repository
+   * @param downloadElements
+   *          the download elements to publish
+   * @param streamingElements
+   *          the streaming elements to publish
+   * @param retractDownloadFlavors
+   *          flavors to use to search for download elements to retract.
+   * @param retractStreamingFlavors
+   *          flavors to use to search for streaming elements to retract.
+   * @param checkAvailability
+   *          whether to check the distributed download artifacts are available at their URLs
+   *
+   * @return The job which performs the operation (The job payload will hold the publication with the updated media
+   *         package).
+   *
+   * @throws PublicationException
+   *           if the job could not be created.
+   */
+  Job replace(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
+      Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException;
 
   /**
    * Retract a media package from the publication channel.
