@@ -1471,7 +1471,7 @@ public class IndexServiceImpl implements IndexService {
   @Override
   public Map<String, Map<String, String>> getEventWorkflowProperties(List<String> eventIds) {
     AQueryBuilder q = assetManager.createQuery();
-    AResult r = q.select(q.snapshot(), q.propertiesOf("org.opencastproject.workflow.configuration"))
+    AResult r = q.select(q.snapshot(), q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
             .where(q.mediaPackageIds(eventIds.toArray(new String[eventIds.size()])).and(q.version().isLatest())).run();
     final Collector<Property, ?, Map<String, String>> propertyMapCollector = Collectors
             .toMap(p -> p.getId().getName(), p -> p.getValue().get(org.opencastproject.assetmanager.api.Value.STRING),
