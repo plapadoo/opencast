@@ -56,6 +56,8 @@ public class Workflows {
 
   private static final String ASSETS_COLLECTION_ID = "assets";
 
+  public static final String WORKFLOW_PROPERTIES_NAMESPACE = "org.opencastproject.workflow.configuration";
+
   private final AssetManager am;
   private final Workspace ws;
   private final WorkflowService wfs;
@@ -90,9 +92,8 @@ public class Workflows {
         try {
           // Store workflow properties
           String mpId = mp.getIdentifier().compact();
-          String workflowNamespace = "org.opencastproject.workflow.configuration";
           for (Map.Entry<String, String> entry : wf.getParameters().entrySet()) {
-            am.setProperty(Property.mk(PropertyId.mk(mpId, workflowNamespace, entry.getKey()),
+            am.setProperty(Property.mk(PropertyId.mk(mpId, WORKFLOW_PROPERTIES_NAMESPACE, entry.getKey()),
                     org.opencastproject.assetmanager.api.Value.mk(entry.getValue())));
           }
           return Opt.some(wfs.start(wf.getWorkflowDefinition(), mp, wf.getParameters()));

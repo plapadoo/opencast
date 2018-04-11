@@ -24,6 +24,7 @@ package org.opencastproject.index.service.impl;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
 import static org.opencastproject.assetmanager.api.AssetManager.DEFAULT_OWNER;
 import static org.opencastproject.assetmanager.api.fn.Enrichments.enrich;
+import static org.opencastproject.assetmanager.util.Workflows.WORKFLOW_PROPERTIES_NAMESPACE;
 import static org.opencastproject.metadata.dublincore.DublinCore.PROPERTY_IDENTIFIER;
 
 import org.opencastproject.assetmanager.api.AssetManager;
@@ -941,9 +942,8 @@ public class IndexServiceImpl implements IndexService {
         assetManager.takeSnapshot(DEFAULT_OWNER,eventHttpServletRequest.getMediaPackage().get());
         // Store workflow properties
         String mpId = eventHttpServletRequest.getMediaPackage().get().getIdentifier().compact();
-        String workflowNamespace = "org.opencastproject.workflow.configuration";
         for (Entry<String, String> entry : configuration.entrySet()) {
-          assetManager.setProperty(Property.mk(PropertyId.mk(mpId, workflowNamespace, entry.getKey()),
+          assetManager.setProperty(Property.mk(PropertyId.mk(mpId, WORKFLOW_PROPERTIES_NAMESPACE, entry.getKey()),
                   org.opencastproject.assetmanager.api.Value.mk(entry.getValue())));
         }
         eventHttpServletRequest
