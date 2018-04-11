@@ -234,19 +234,23 @@ angular.module('adminNg.services')
 		console.log("Augmenting events with missing props, end.");
 
 		console.log("Manipulating HTML form begin...");
-		forEachHtmlFormElement(element, function(id, e) {
-		    var valuesForId = eventValuesForField(me.currentEvents, id);
+                // Only manipulate HTML elements if events are present
+                // (not the case for "Add event")
+                if (selectedIds.length > 0) {
+		    forEachHtmlFormElement(element, function(id, e) {
+		        var valuesForId = eventValuesForField(me.currentEvents, id);
 
-                    console.log("values for id "+id+": "+JSON.stringify(valuesForId));
-		    if(allTheSame(valuesForId)) {
-			console.log(id+" has unique value "+valuesForId[0]);
-			setHtmlFormValue(e, valuesForId[0]);
-		    } else {
-			console.log(id+" has non-unique value");
-			setIndeterminateHtmlFormValue(e);
-		    }
-		});
-		console.log("Manipulating HTML form end...");
+                        console.log("values for id "+id+": "+JSON.stringify(valuesForId));
+		        if(allTheSame(valuesForId)) {
+			    console.log(id+" has unique value "+valuesForId[0]);
+			    setHtmlFormValue(e, valuesForId[0]);
+		        } else {
+			    console.log(id+" has non-unique value");
+			    setIndeterminateHtmlFormValue(e);
+		        }
+		    });
+		    console.log("Manipulating HTML form end...");
+                }
 	    });
 	};
 
