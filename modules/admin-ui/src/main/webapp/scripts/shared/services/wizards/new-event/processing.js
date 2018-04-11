@@ -26,7 +26,6 @@ angular.module('adminNg.services')
         // Update the content of the configuration panel with the given HTML
         var me = this, queryParams,
             updateConfigurationPanel = function (html) {
-                console.log('update workflow configuration panel');
                 if (angular.isUndefined(html)) {
                     html = '';
                 }
@@ -72,6 +71,8 @@ angular.module('adminNg.services')
 
         });
 
+        // Execute function for each input HTML element that has an ID
+        // (so is used in the workflow configuration form).
         function forEachHtmlFormElement(htmlElement, f) {
             var result = {};
             htmlElement.each(function (idx, el) {
@@ -85,6 +86,9 @@ angular.module('adminNg.services')
             });
         };
 
+        // Collect all radio elements (which are linked by their name
+        // attribute) into a dictionary:
+        // id: array of other radio ids.
         function gatherRadios(htmlElement) {
             var result = {};
             forEachHtmlFormElement(htmlElement, function(id, e) {
@@ -100,6 +104,9 @@ angular.module('adminNg.services')
             return result;
         }
 
+        // Take a dictionary collected by gatherHtmlFormElements and
+        // nullify all radio elements that are ambiguous (i.e. are all
+        // unchecked).
         function determineIndeterminateRadios(htmlFields, radios) {
             for(var radioId in radios) {
                 if (htmlFields[radioId] === null) {
@@ -117,6 +124,8 @@ angular.module('adminNg.services')
             }
         }
 
+        // Gather all input elements used in the workflow configuration HTML into a dictionary:
+        // id: value or null if it's indeterminate
         function gatherHtmlFormElements(htmlElement) {
             var result = {};
             forEachHtmlFormElement(htmlElement, function(id, e) {
@@ -142,6 +151,8 @@ angular.module('adminNg.services')
             return result;
         }
 
+        // Take a dictionary of event properties and extract all
+        // values of a single property into an array.
         function eventValuesForField(events, searchProp) {
             var result = [];
             for(var eid in events) {
@@ -168,6 +179,8 @@ angular.module('adminNg.services')
           return result;
         }
 
+        // Determine if all elements of an array are the same (returns
+        // true for empty arrays).
         function allTheSame(a) {
             if (a.length === 0) {
                 return true;
@@ -181,6 +194,8 @@ angular.module('adminNg.services')
             return true;
         }
 
+        // Set a HTML form value (abstracts over "set checked" or "set
+        // value" for checkboxes and text fields, respectively)
         function setHtmlFormValue(e, v) {
             if (e.is("[type=text]")) {
                 e.val(v);
@@ -193,6 +208,8 @@ angular.module('adminNg.services')
             }
         }
 
+        // Set an indeterminate HTML form value (depends on the type
+        // of the form element)
         function setIndeterminateHtmlFormValue(e) {
             if (e.is("[type=text]")) {
                 e.val("");
@@ -204,7 +221,7 @@ angular.module('adminNg.services')
         }
 
         this.applyWorkflowProperties = function(workflowProperties, selectedIds) {
-            // Timeout because manipulating the just set HTML doesn't work otherwise
+            // Timeout because manipulating the just assigned HTML doesn't work otherwise.
             $timeout(function() {
                 var element, isRendered = workflowConfigEl.find('.configField').length > 0;
                 if (!isRendered) {
@@ -216,40 +233,27 @@ angular.module('adminNg.services')
                 var htmlFields = gatherHtmlFormElements(element);
                 me.currentEvents = filterEventProperties(workflowProperties, selectedIds);
 
-                console.log("Current events: "+JSON.stringify(me.currentEvents));
-                console.log("HTML fields: "+JSON.stringify(htmlFields));
-                console.log("Augmenting events with missing props, begin...");
                 for(var eventId in me.currentEvents) {
                     var eventProps = me.currentEvents[eventId];
-                    console.log('eventProps: '+JSON.stringify(eventProps));
                     for(var htmlField in htmlFields) {
                         if (!(htmlField in eventProps)) {
-                            console.log(eventId+" doesn't have "+htmlField+", value "+htmlFields[htmlField]);
                             eventProps[htmlField] = htmlFields[htmlField];
                         } else {
-                            console.log(eventId+" has "+htmlField+", value "+eventProps[htmlField]);
                         }
                     }
                 }
-                console.log("Augmenting events with missing props, end.");
-
                 // Only manipulate HTML elements if events are present
                 // (not the case for "Add event")
                 if (selectedIds !== undefined && selectedIds.length > 0) {
-                    console.log("Manipulating HTML form begin...");
                     forEachHtmlFormElement(element, function(id, e) {
                         var valuesForId = eventValuesForField(me.currentEvents, id);
 
-                        console.log("values for id "+id+": "+JSON.stringify(valuesForId));
                         if(allTheSame(valuesForId)) {
-                            console.log(id+" has unique value "+valuesForId[0]);
                             setHtmlFormValue(e, valuesForId[0]);
                         } else {
-                            console.log(id+" has non-unique value");
                             setIndeterminateHtmlFormValue(e);
                         }
                     });
-                    console.log("Manipulating HTML form end...");
                 }
             });
         };
@@ -277,7 +281,6 @@ angular.module('adminNg.services')
 
         // Listener for the workflow selection
         this.changeWorkflow = function (workflowProperties, selectedIds) {
-            console.log('changing workflow');
             originalValues = {};
             me.changingWorkflow = true;
             workflowConfigEl = angular.element(idConfigElement);
@@ -303,7 +306,6 @@ angular.module('adminNg.services')
             }
 
             var radios = gatherRadios(element);
-            console.log('radios: '+JSON.stringify(radios));
             var htmlFields = gatherHtmlFormElements(element);
             determineIndeterminateRadios(htmlFields, radios);
 
@@ -318,7 +320,6 @@ angular.module('adminNg.services')
                 workflowConfigs[eventId] = eventProps;
             }
 
-            console.log('workflow configs: '+JSON.stringify(workflowConfigs))
             return workflowConfigs;
         }
 
