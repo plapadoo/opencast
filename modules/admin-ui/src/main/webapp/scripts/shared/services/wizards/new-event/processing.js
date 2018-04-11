@@ -72,24 +72,24 @@ angular.module('adminNg.services')
 
         });
 
-	function forEachHtmlFormElement(htmlElement, f) {
-	    var result = {};
-	    htmlElement.each(function (idx, el) {
-		var e = angular.element(el);
-		var idAttr = e.attr('id');
+        function forEachHtmlFormElement(htmlElement, f) {
+            var result = {};
+            htmlElement.each(function (idx, el) {
+                var e = angular.element(el);
+                var idAttr = e.attr('id');
 
-		// Ignore input fields that don't have an ID
-		if (angular.isDefined(idAttr)) {
-		    f(idAttr, e);
-		}
-	    });
-	};
+                // Ignore input fields that don't have an ID
+                if (angular.isDefined(idAttr)) {
+                    f(idAttr, e);
+                }
+            });
+        };
 
         function gatherRadios(htmlElement) {
             var result = {};
-	    forEachHtmlFormElement(htmlElement, function(id, e) {
+            forEachHtmlFormElement(htmlElement, function(id, e) {
                 if (e.is('[type=radio]')) {
-		    var radioName = e.attr('name');
+                    var radioName = e.attr('name');
                     var radios = angular.element(document).find('input[name='+radioName+']');
                     result[id] = [];
                     radios.each(function(ridx, radio) {
@@ -117,51 +117,51 @@ angular.module('adminNg.services')
             }
         }
 
-	function gatherHtmlFormElements(htmlElement) {
-	    var result = {};
-	    forEachHtmlFormElement(htmlElement, function(id, e) {
-		if (e.is('[type=text]')) {
+        function gatherHtmlFormElements(htmlElement) {
+            var result = {};
+            forEachHtmlFormElement(htmlElement, function(id, e) {
+                if (e.is('[type=text]')) {
                     if (e.val() === '') {
                         result[id] = null;
                     } else {
-		        result[id] = e.val();
+                        result[id] = e.val();
                     }
-		} else if (e.is('[type=checkbox]') || e.is('[type=radio]')) {
+                } else if (e.is('[type=checkbox]') || e.is('[type=radio]')) {
                     if (e.prop('indeterminate')) {
                         result[id] = null;
                     } else {
-		        if (e.is(':checked')) {
-			    result[id] = "true";
+                        if (e.is(':checked')) {
+                            result[id] = "true";
                         }
-		        else {
-			    result[id] = "false";
+                        else {
+                            result[id] = "false";
                         }
                     }
                 }
-	    });
+            });
             return result;
-	}
+        }
 
         function eventValuesForField(events, searchProp) {
-	    var result = [];
-	    for(var eid in events) {
-		for (var evProp in events[eid]) {
-		    if (evProp == searchProp) {
-			result.push(events[eid][evProp]);
-		    }
-		}
-	    }
-	    return result;
-	}
+            var result = [];
+            for(var eid in events) {
+                for (var evProp in events[eid]) {
+                    if (evProp == searchProp) {
+                        result.push(events[eid][evProp]);
+                    }
+                }
+            }
+            return result;
+        }
 
-	// Filter original workflow properties and make proper
-	// dictionaries out of them so they can be iterated over easily.
+        // Filter original workflow properties and make proper
+        // dictionaries out of them so they can be iterated over easily.
         function filterEventProperties(workflowProperties, selectedIds) {
           var result = {};
           for (var i in workflowProperties) {
             if (i.indexOf("$") !== 0 && workflowProperties.hasOwnProperty(i)) {
               if (selectedIds.indexOf(i) >= 0) {
-		  result[i] = workflowProperties[i];
+                  result[i] = workflowProperties[i];
               }
             }
           }
@@ -169,90 +169,90 @@ angular.module('adminNg.services')
         }
 
         function allTheSame(a) {
-	    if (a.length === 0) {
-		return true;
-	    }
-	    var first = a[0];
-	    for(var i = 0; i < a.length; i++) {
-		if (a[i] !== first) {
-		    return false;
-		}
-	    }
-	    return true;
+            if (a.length === 0) {
+                return true;
+            }
+            var first = a[0];
+            for(var i = 0; i < a.length; i++) {
+                if (a[i] !== first) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         function setHtmlFormValue(e, v) {
-	    if (e.is("[type=text]")) {
-		e.val(v);
-	    } else if (e.is("[type=checkbox]") || e.is("[type=radio]")) {
-		if (v === "true") {
-		    e.attr("checked", true);
-		} else {
-		    e.attr("checked", false);
-		}
-	    }
-	}
+            if (e.is("[type=text]")) {
+                e.val(v);
+            } else if (e.is("[type=checkbox]") || e.is("[type=radio]")) {
+                if (v === "true") {
+                    e.attr("checked", true);
+                } else {
+                    e.attr("checked", false);
+                }
+            }
+        }
 
         function setIndeterminateHtmlFormValue(e) {
-	    if (e.is("[type=text]")) {
-		e.val("");
-	    } else if (e.is("[type=checkbox]")) {
-		e.prop("indeterminate", true);
-	    } else if (e.is("[type=radio]")) {
-		e.attr("checked", false);
-	    }
-	}
+            if (e.is("[type=text]")) {
+                e.val("");
+            } else if (e.is("[type=checkbox]")) {
+                e.prop("indeterminate", true);
+            } else if (e.is("[type=radio]")) {
+                e.attr("checked", false);
+            }
+        }
 
-	this.applyWorkflowProperties = function(workflowProperties, selectedIds) {
-	    // Timeout because manipulating the just set HTML doesn't work otherwise
-	    $timeout(function() {
-		var element, isRendered = workflowConfigEl.find('.configField').length > 0;
-		if (!isRendered) {
-		    element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
-		} else {
-		    element = workflowConfigEl.find('.configField');
-		}
+        this.applyWorkflowProperties = function(workflowProperties, selectedIds) {
+            // Timeout because manipulating the just set HTML doesn't work otherwise
+            $timeout(function() {
+                var element, isRendered = workflowConfigEl.find('.configField').length > 0;
+                if (!isRendered) {
+                    element = angular.element(me.ud.workflow.configuration_panel).find('.configField');
+                } else {
+                    element = workflowConfigEl.find('.configField');
+                }
 
-		var htmlFields = gatherHtmlFormElements(element);
-		me.currentEvents = filterEventProperties(workflowProperties, selectedIds);
+                var htmlFields = gatherHtmlFormElements(element);
+                me.currentEvents = filterEventProperties(workflowProperties, selectedIds);
 
-		console.log("Current events: "+JSON.stringify(me.currentEvents));
-		console.log("HTML fields: "+JSON.stringify(htmlFields));
-		console.log("Augmenting events with missing props, begin...");
-		for(var eventId in me.currentEvents) {
-		    var eventProps = me.currentEvents[eventId];
+                console.log("Current events: "+JSON.stringify(me.currentEvents));
+                console.log("HTML fields: "+JSON.stringify(htmlFields));
+                console.log("Augmenting events with missing props, begin...");
+                for(var eventId in me.currentEvents) {
+                    var eventProps = me.currentEvents[eventId];
                     console.log('eventProps: '+JSON.stringify(eventProps));
-		    for(var htmlField in htmlFields) {
-			if (!(htmlField in eventProps)) {
-			    console.log(eventId+" doesn't have "+htmlField+", value "+htmlFields[htmlField]);
-			    eventProps[htmlField] = htmlFields[htmlField];
-			} else {
-			    console.log(eventId+" has "+htmlField+", value "+eventProps[htmlField]);
-			}
-		    }
-		}
-		console.log("Augmenting events with missing props, end.");
+                    for(var htmlField in htmlFields) {
+                        if (!(htmlField in eventProps)) {
+                            console.log(eventId+" doesn't have "+htmlField+", value "+htmlFields[htmlField]);
+                            eventProps[htmlField] = htmlFields[htmlField];
+                        } else {
+                            console.log(eventId+" has "+htmlField+", value "+eventProps[htmlField]);
+                        }
+                    }
+                }
+                console.log("Augmenting events with missing props, end.");
 
-		console.log("Manipulating HTML form begin...");
                 // Only manipulate HTML elements if events are present
                 // (not the case for "Add event")
-                if (selectedIds.length > 0) {
-		    forEachHtmlFormElement(element, function(id, e) {
-		        var valuesForId = eventValuesForField(me.currentEvents, id);
+                if (selectedIds !== undefined && selectedIds.length > 0) {
+                    console.log("Manipulating HTML form begin...");
+                    forEachHtmlFormElement(element, function(id, e) {
+                        var valuesForId = eventValuesForField(me.currentEvents, id);
 
                         console.log("values for id "+id+": "+JSON.stringify(valuesForId));
-		        if(allTheSame(valuesForId)) {
-			    console.log(id+" has unique value "+valuesForId[0]);
-			    setHtmlFormValue(e, valuesForId[0]);
-		        } else {
-			    console.log(id+" has non-unique value");
-			    setIndeterminateHtmlFormValue(e);
-		        }
-		    });
-		    console.log("Manipulating HTML form end...");
+                        if(allTheSame(valuesForId)) {
+                            console.log(id+" has unique value "+valuesForId[0]);
+                            setHtmlFormValue(e, valuesForId[0]);
+                        } else {
+                            console.log(id+" has non-unique value");
+                            setIndeterminateHtmlFormValue(e);
+                        }
+                    });
+                    console.log("Manipulating HTML form end...");
                 }
-	    });
-	};
+            });
+        };
 
         this.initWorkflowConfig = function (workflowProperties, selectedIds) {
             // set default workflow as selected
@@ -262,18 +262,18 @@ angular.module('adminNg.services')
                     var workflow = me.workflows[i];
 
                     if (workflow.id === me.default_workflow_id){
-			me.ud.workflow = workflow;
-			updateConfigurationPanel(me.ud.workflow.configuration_panel);
-			this.applyWorkflowProperties(workflowProperties, selectedIds);
-			me.save();
-			break;
+                        me.ud.workflow = workflow;
+                        updateConfigurationPanel(me.ud.workflow.configuration_panel);
+                        this.applyWorkflowProperties(workflowProperties, selectedIds);
+                        me.save();
+                        break;
                     }
                 }
             } else {
-		me.ud.workflow = {};
-		delete me.workflowConfiguration;
-	    }
-	};
+                me.ud.workflow = {};
+                delete me.workflowConfiguration;
+            }
+        };
 
         // Listener for the workflow selection
         this.changeWorkflow = function (workflowProperties, selectedIds) {
@@ -304,22 +304,22 @@ angular.module('adminNg.services')
 
             var radios = gatherRadios(element);
             console.log('radios: '+JSON.stringify(radios));
-	    var htmlFields = gatherHtmlFormElements(element);
+            var htmlFields = gatherHtmlFormElements(element);
             determineIndeterminateRadios(htmlFields, radios);
 
-	    for(var eventId in me.currentEvents) {
-		var eventProps = me.currentEvents[eventId];
-		for(var htmlField in htmlFields) {
-		    var htmlValue = htmlFields[htmlField];
-		    if (htmlValue !== null) {
-			eventProps[htmlField] = htmlValue;
-		    }
-		}
-		workflowConfigs[eventId] = eventProps;
-	    }
+            for(var eventId in me.currentEvents) {
+                var eventProps = me.currentEvents[eventId];
+                for(var htmlField in htmlFields) {
+                    var htmlValue = htmlFields[htmlField];
+                    if (htmlValue !== null) {
+                        eventProps[htmlField] = htmlValue;
+                    }
+                }
+                workflowConfigs[eventId] = eventProps;
+            }
 
             console.log('workflow configs: '+JSON.stringify(workflowConfigs))
-	    return workflowConfigs;
+            return workflowConfigs;
         }
 
         // Get the workflow configuration (used for the final value table in the wizard)
@@ -333,17 +333,17 @@ angular.module('adminNg.services')
             }
 
             var radios = gatherRadios(element);
-	    var htmlFields = gatherHtmlFormElements(element);
+            var htmlFields = gatherHtmlFormElements(element);
             determineIndeterminateRadios(htmlFields, radios);
-	    for (var fieldId in htmlFields) {
-		var htmlField = htmlFields[fieldId];
-		if (htmlField === null) {
-		    workflowConfig[fieldId] = "*";
-		} else {
-		    workflowConfig[fieldId] = htmlField;
-		}
-	    }
-	    return workflowConfig;
+            for (var fieldId in htmlFields) {
+                var htmlField = htmlFields[fieldId];
+                if (htmlField === null) {
+                    workflowConfig[fieldId] = "*";
+                } else {
+                    workflowConfig[fieldId] = htmlField;
+                }
+            }
+            return workflowConfig;
         };
 
         this.isValid = function () {
