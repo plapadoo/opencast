@@ -22,6 +22,7 @@ package org.opencastproject.assetmanager.util;
 
 import static com.entwinemedia.fn.Stream.$;
 import static org.opencastproject.assetmanager.api.fn.Enrichments.enrich;
+import static org.opencastproject.systems.OpencastConstants.WORKFLOW_PROPERTIES_NAMESPACE;
 
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.Property;
@@ -55,8 +56,6 @@ public class Workflows {
   private static final Logger logger = LoggerFactory.getLogger(Workflows.class);
 
   private static final String ASSETS_COLLECTION_ID = "assets";
-
-  public static final String WORKFLOW_PROPERTIES_NAMESPACE = "org.opencastproject.workflow.configuration";
 
   private final AssetManager am;
   private final Workspace ws;
