@@ -292,6 +292,8 @@ public abstract class AbstractEventEndpoint {
   @POST
   @Path("workflowProperties")
   @Produces(MediaType.APPLICATION_JSON)
+  @RestQuery(name = "workflowProperties", description = "Returns workflow properties for the specified events by their given ids e.g. [\"1dbe7255-e17d-4279-811d-a5c7ced689bf\", \"04fae22b-0717-4f59-8b72-5f824f76d529\"]", returnDescription = "The workflow properties for every event as JSON", reponses = {
+    @RestResponse(description = "Returns the workflow properties for the events as JSON", responseCode = HttpServletResponse.SC_OK) })
   public Response getEventWorkflowProperties(String eventIdsContent) throws UnauthorizedException {
     if (StringUtils.isBlank(eventIdsContent)) {
       return Response.status(Response.Status.BAD_REQUEST).build();
