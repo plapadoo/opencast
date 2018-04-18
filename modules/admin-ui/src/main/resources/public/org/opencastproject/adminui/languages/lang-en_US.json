@@ -179,6 +179,8 @@
      "VIDEO_CUT_NOT_SAVED": "The editing information could not be saved",
      "VIDEO_CUT_SAVED": "The editing information has been saved",
      "VIDEO_CUT_PROCESSING": "The video is being processed…",
+     "VIDEO_SOURCE_TRACKS_INVALID": "You have selected no video tracks to process",
+     "VIDEO_TOO_MANY_AUDIOS": "You cannot have more than one audio stream on a single video stream",
      "SERVER_UNRESPONSIVE": "Oops! The server seems to be unresponsive. Please try again later.",
      "SERVICE_UNAVAILABLE": "Oops! The server seems to be unresponsive. Please try again later.",
      "ACTIVE_TRANSACTION": "This event can not be edited while there is an active workflow or transaction."
@@ -1642,7 +1644,8 @@
      "AREAS": {
        "METADATA":    "Metadata",
        "COMMENTS":    "Comments",
-       "SEGMENTS":    "Segments"
+       "SEGMENTS":    "Segments",
+       "TRACKS":      "Tracks"
      },
      "ACTIONS": {
        "SPLIT": "Split",
@@ -1658,6 +1661,36 @@
      "SEGMENTS": {
        "REMOVE_SEGMENT":  "Remove Segment",
        "USE_SEGMENT":     "Use this Segment"
+     },
+     "TRACKS": {
+       "DESCRIPTION": "You can unselect tracks to exclude them from further processing. Please note that you need to (re-)publish the event to actually apply the changes.",
+       "NOTIFICATION": {
+         "NO_VIDEO_TRACK_SELECTED": "You must enable at least one video track",
+         "NO_AUDIO_TRACK_SELECTED": "You must enable at least one audio track"
+       },
+       "TRACK": {
+         "HEADER": "Track"
+       },
+       "VIDEO": {
+         "HEADER": "Video track",
+         "NOT_AVAILABLE": "No video tracks available",
+         "NO_PREVIEW_AVAILABLE": "No preview image found",
+         "NO_TRACK_SELECTED": "No video track selected",
+         "TOOLTIPS": {
+           "HIDE": "This video track is currently enabled. Click to disable",
+           "UNHIDE": "This video track is currently disabled. Click to enable."
+         }
+       },
+       "AUDIO": {
+         "HEADER": "Audio track",
+         "NOT_AVAILABLE": "No audio tracks available",
+         "NO_PREVIEW_AVAILABLE": "No preview image found",
+         "NO_TRACK_SELECTED": "No audio track selected",
+         "TOOLTIPS": {
+           "HIDE": "This audio track is currently enabled. Click to disable",
+           "UNHIDE": "This audio track is currently disabled. Click to enable"
+         }
+       }
      },
      "PLAYER":{
        "PLAY":              "Play",

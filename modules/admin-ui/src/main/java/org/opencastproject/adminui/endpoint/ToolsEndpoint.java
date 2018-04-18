@@ -40,6 +40,12 @@ import org.opencastproject.adminui.impl.AdminUIConfiguration;
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.AssetManagerException;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.PropertyId;
+import org.opencastproject.assetmanager.api.Value;
+import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.ARecord;
+import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.assetmanager.util.Workflows;
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.api.IndexService.Source;
@@ -109,6 +115,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Dictionary;
@@ -116,6 +123,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -160,6 +170,9 @@ public class ToolsEndpoint implements ManagedService {
 
   /** The Json key for the tracks array. */
   private static final String TRACKS_KEY = "tracks";
+
+  /** The Json key for the source_tracks array. */
+  private static final String SOURCE_TRACKS_KEY = "source_tracks";
 
   /** Tag that marks workflow for being used from the editor tool */
   private static final String EDITOR_WORKFLOW_TAG = "editor";
@@ -371,10 +384,67 @@ public class ToolsEndpoint implements ManagedService {
       jWorkflows.add(obj(f("id", v(workflow.getId())), f("name", v(workflow.getTitle(), Jsons.BLANK))));
     }
 
+    final AQueryBuilder q = assetManager.createQuery();
+    final AResult r = q.select(q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+            .where(q.mediaPackageId(mp.getIdentifier().compact()).and(q.version().isLatest())).run();
+    // The properties have the format "hide_flavor_audio" or "hide_flavor_video", where flavor is preconfigured.
+    // We filter all the properties that have this format, and then those which have values "true".
+    final Collection<Tuple<String, String>> hiddens = r.getRecords().head2().getProperties().toList()
+      .stream()
+      .map(p -> Tuple.tuple(p.getId().getName().split("_"), p.getValue()))
+      .filter(p -> p.getA().length == 3)
+      .filter(p -> p.getA()[0].equals("hide"))
+      .map(p -> Tuple.tuple(p.getA(), p.getB().get(Value.STRING)))
+      .filter(p -> p.getB().equals("true"))
+      .map(p -> Tuple.tuple(p.getA()[1], p.getA()[2]))
+      .collect(Collectors.toSet());
+
+    final Collection<MediaPackageElementFlavor> acceptedFlavors = Arrays
+      .asList(this.adminUIConfiguration.getSourceTrackLeftFlavor(),
+        this.adminUIConfiguration.getSourceTrackRightFlavor());
+
+    // We already know the internal publication exists, so just "get" it here.
+    final Publication internalPub = getInternalPublication(mp).get();
+
+    final List<JValue> sourceTracks = Arrays.stream(mp.getElements())
+      .filter(e -> e.getElementType().equals(Type.Track))
+      .map(e -> (Track)e)
+      .filter(e -> acceptedFlavors.contains(e.getFlavor()))
+      .map(e -> {
+        String side = null;
+        if (e.getFlavor().equals(this.adminUIConfiguration.getSourceTrackLeftFlavor())) {
+          side = "left";
+        } else if (e.getFlavor().equals(this.adminUIConfiguration.getSourceTrackRightFlavor())) {
+          side = "right";
+        }
+        final boolean audioHidden = hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"));
+        final String audioPreview = Arrays.stream(internalPub.getAttachments())
+          .filter(a -> a.getFlavor().getType().equals(e.getFlavor().getType()))
+          .filter(a -> a.getFlavor().getSubtype().equals(this.adminUIConfiguration.getPreviewAudioSubtype()))
+          .map(MediaPackageElement::getURI).map(URI::toString)
+          .findAny()
+          .orElse(null);
+        final SourceTrackSubInfo audio = new SourceTrackSubInfo(e.hasAudio(), audioPreview,
+          audioHidden);
+        final boolean videoHidden = hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "video"));
+        final String videoPreview = Arrays.stream(internalPub.getAttachments())
+          .filter(a -> a.getFlavor().getType().equals(e.getFlavor().getType()))
+          .filter(a -> a.getFlavor().getSubtype().equals(this.adminUIConfiguration.getPreviewVideoSubtype()))
+          .map(MediaPackageElement::getURI).map(URI::toString)
+          .findAny()
+          .orElse(null);
+        final SourceTrackSubInfo video = new SourceTrackSubInfo(e.hasVideo(), videoPreview,
+          videoHidden);
+        return new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(), audio, video, side);
+      })
+      .map(SourceTrackInfo::toJson)
+      .collect(Collectors.toList());
+
     return RestUtils.okJson(obj(f("title", v(mp.getTitle(), Jsons.BLANK)),
             f("date", v(event.getRecordingStartDate(), Jsons.BLANK)),
             f("series", obj(f("id", v(event.getSeriesId(), Jsons.BLANK)), f("title", v(event.getSeriesName(), Jsons.BLANK)))),
             f("presenters", arr($(event.getPresenters()).map(Functions.stringToJValue))),
+            f(SOURCE_TRACKS_KEY, arr(sourceTracks)),
             f("previews", arr(jPreviews)), f(TRACKS_KEY, arr(jTracks)),
             f("duration", v(mp.getDuration())), f(SEGMENTS_KEY, arr(jSegments)), f("workflows", arr(jWorkflows))));
   }
@@ -410,52 +480,64 @@ public class ToolsEndpoint implements ManagedService {
     final Opt<Event> optEvent = getEvent(mediaPackageId);
     if (optEvent.isNone()) {
       return R.notFound();
-    } else {
-      MediaPackage mediaPackage = index.getEventMediapackage(optEvent.get());
-      Smil smil;
-      try {
-        smil = createSmilCuttingCatalog(editingInfo, mediaPackage);
-      } catch (Exception e) {
-        logger.warn("Unable to create a SMIL cutting catalog ({}): {}", details, getStackTrace(e));
-        return R.badRequest("Unable to create SMIL cutting catalog");
-      }
+    }
 
+    MediaPackage mediaPackage = index.getEventMediapackage(optEvent.get());
+    Smil smil;
+    try {
+      smil = createSmilCuttingCatalog(editingInfo, mediaPackage);
+    } catch (Exception e) {
+      logger.warn("Unable to create a SMIL cutting catalog ({}): {}", details, getStackTrace(e));
+      return R.badRequest("Unable to create SMIL cutting catalog");
+    }
+
+    java.util.stream.Stream.of(this.adminUIConfiguration.getSourceTrackLeftFlavor(),
+        this.adminUIConfiguration.getSourceTrackRightFlavor()).flatMap(flavor -> {
+          final java.util.stream.Stream.Builder<Tuple<String, String>> r = java.util.stream.Stream.builder();
+          final Optional<SourceTrackInfo> track = editingInfo.sourceTracks.stream()
+            .filter(s -> s.getFlavor().equals(flavor)).findAny();
+          final boolean audioHidden = track.map(e -> e.audio.hidden) .orElse(false);
+          r.accept(Tuple.tuple("hide_" + flavor.getType() + "_audio", Boolean.toString(audioHidden)));
+          final boolean videoHidden = track.map(e -> e.video.hidden).orElse(false);
+          r.accept(Tuple.tuple("hide_" + flavor.getType() + "_video", Boolean.toString(videoHidden)));
+          return r.build();
+    }).map(v -> Property.mk(PropertyId.mk(mediaPackageId, WORKFLOW_PROPERTIES_NAMESPACE, v.getA()), Value.mk(v.getB())))
+      .forEach(assetManager::setProperty);
+
+    try {
+      addSmilToArchive(mediaPackage, smil);
+    } catch (IOException e) {
+      logger.warn("Unable to add SMIL cutting catalog to archive: {}", getStackTrace(e));
+      return R.serverError();
+    }
+
+    if (editingInfo.getPostProcessingWorkflow().isSome()) {
+      final String workflowId = editingInfo.getPostProcessingWorkflow().get();
       try {
-        addSmilToArchive(mediaPackage, smil);
-      } catch (IOException e) {
-        logger.warn("Unable to add SMIL cutting catalog to archive: {}", getStackTrace(e));
+        final AQueryBuilder query = assetManager.createQuery();
+        final List<ARecord> queryResults = query
+          .select(query.snapshot(), query.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+          .where(query.mediaPackageId(mediaPackage.getIdentifier().toString()).and(query.version().isLatest())).run()
+          .getRecords().toList();
+        final Map<String, String> workflowParameters = new HashMap<>(0);
+        if (!queryResults.isEmpty())
+          for (final Property property : queryResults.get(0).getProperties())
+            workflowParameters.put(property.getId().getName(), property.getValue().get(Value.STRING));
+        final Workflows workflows = new Workflows(assetManager, workspace, workflowService);
+        workflows.applyWorkflowToLatestVersion($(mediaPackage.getIdentifier().toString()),
+          ConfiguredWorkflow.workflow(workflowService.getWorkflowDefinitionById(workflowId), workflowParameters))
+          .run();
+      } catch (AssetManagerException e) {
+        logger.warn("Unable to start workflow '{}' on archived media package '{}': {}",
+                workflowId, mediaPackage, getStackTrace(e));
         return R.serverError();
+      } catch (WorkflowDatabaseException e) {
+        logger.warn("Unable to load workflow '{}' from workflow service: {}", workflowId, getStackTrace(e));
+        return R.serverError();
+      } catch (NotFoundException e) {
+        logger.warn("Workflow '{}' not found", workflowId);
+        return R.badRequest("Workflow not found");
       }
-
-      if (editingInfo.getPostProcessingWorkflow().isSome()) {
-        final String workflowId = editingInfo.getPostProcessingWorkflow().get();
-        try {
-          final AQueryBuilder query = assetManager.createQuery();
-          final List<ARecord> queryResults = query
-            .select(query.snapshot(), query.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
-            .where(query.mediaPackageId(mediaPackage.getIdentifier().toString()).and(query.version().isLatest())).run()
-            .getRecords().toList();
-          final Map<String, String> workflowParameters = new HashMap<>(0);
-          if (!queryResults.isEmpty())
-            for (final Property property : queryResults.get(0).getProperties())
-              workflowParameters.put(property.getId().getName(), property.getValue().get(Value.STRING));
-          final Workflows workflows = new Workflows(assetManager, workspace, workflowService);
-          workflows.applyWorkflowToLatestVersion($(mediaPackage.getIdentifier().toString()),
-            ConfiguredWorkflow.workflow(workflowService.getWorkflowDefinitionById(workflowId), workflowParameters))
-            .run();
-        } catch (AssetManagerException e) {
-          logger.warn("Unable to start workflow '{}' on archived media package '{}': {}",
-                  workflowId, mediaPackage, getStackTrace(e));
-          return R.serverError();
-        } catch (WorkflowDatabaseException e) {
-          logger.warn("Unable to load workflow '{}' from workflow service: {}", workflowId, getStackTrace(e));
-          return R.serverError();
-        } catch (NotFoundException e) {
-          logger.warn("Workflow '{}' not found", workflowId);
-          return R.badRequest("Workflow not found");
-        }
-      }
-
     }
 
     return R.ok();
@@ -791,16 +873,81 @@ public class ToolsEndpoint implements ManagedService {
     return segments;
   }
 
+  static final class SourceTrackSubInfo {
+    private final boolean present;
+    private final String previewImage;
+    private final boolean hidden;
+
+    SourceTrackSubInfo(final boolean present, final String previewImage, final boolean hidden) {
+      this.present = present;
+      this.previewImage = previewImage;
+      this.hidden = hidden;
+    }
+
+    public static SourceTrackSubInfo parse(final JSONObject object) {
+      Boolean hidden = (Boolean) object.get("hidden");
+      if (hidden == null) {
+        hidden = Boolean.FALSE;
+      }
+      return new SourceTrackSubInfo((Boolean)object.get("present"), (String)object.get("preview_image"), hidden);
+    }
+
+    public JObject toJson() {
+      if (present) {
+        return obj(f("present", true), f("preview_image", previewImage == null ? Jsons.NULL : v(previewImage)),
+          f("hidden", hidden));
+      }
+      return obj(f("present", false));
+    }
+  }
+
+  static final class SourceTrackInfo {
+    private final String flavorType;
+    private final String flavorSubtype;
+    private final SourceTrackSubInfo audio;
+    private final SourceTrackSubInfo video;
+    private final String side;
+
+    MediaPackageElementFlavor getFlavor() {
+      return new MediaPackageElementFlavor(flavorType, flavorSubtype);
+    }
+
+    SourceTrackInfo(final String flavorType, final String flavorSubtype, final SourceTrackSubInfo audio,
+      final SourceTrackSubInfo video, final String side) {
+      this.flavorType = flavorType;
+      this.flavorSubtype = flavorSubtype;
+      this.audio = audio;
+      this.video = video;
+      this.side = side;
+    }
+
+    public static SourceTrackInfo parse(final JSONObject object) {
+      final JSONObject flavor = (JSONObject) object.get("flavor");
+      return new SourceTrackInfo((String) flavor.get("type"), (String) flavor.get("subtype"),
+        SourceTrackSubInfo.parse((JSONObject) object.get("audio")),
+        SourceTrackSubInfo.parse((JSONObject) object.get("video")),
+        (String) object.get("side"));
+    }
+
+    public JObject toJson() {
+      final JObject flavor = obj(f("type", flavorType), f("subtype", flavorSubtype));
+      return obj(f("flavor", flavor), f("audio", audio.toJson()), f("video", video.toJson()), f("side", side));
+    }
+  }
+
   /** Provides access to the parsed editing information */
   static final class EditingInfo {
 
     private final List<Tuple<Long, Long>> segments;
     private final List<String> tracks;
+    private final List<SourceTrackInfo> sourceTracks;
     private final Opt<String> workflow;
 
-    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, Opt<String> workflow) {
+    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, List<SourceTrackInfo> sourceTracks,
+      Opt<String> workflow) {
       this.segments = segments;
       this.tracks = tracks;
+      this.sourceTracks = sourceTracks;
       this.workflow = workflow;
     }
 
@@ -816,6 +963,7 @@ public class ToolsEndpoint implements ManagedService {
       JSONObject concatObject = requireNonNull((JSONObject) obj.get(CONCAT_KEY));
       JSONArray jsonSegments = requireNonNull((JSONArray) concatObject.get(SEGMENTS_KEY));
       JSONArray jsonTracks = requireNonNull((JSONArray) concatObject.get(TRACKS_KEY));
+      JSONArray jsonSourceTracks = requireNonNull((JSONArray) concatObject.get(SOURCE_TRACKS_KEY));
 
       List<Tuple<Long, Long>> segments = new ArrayList<>();
       for (Object segment : jsonSegments) {
@@ -832,7 +980,12 @@ public class ToolsEndpoint implements ManagedService {
         tracks.add((String) track);
       }
 
-      return new EditingInfo(segments, tracks, Opt.nul((String) obj.get("workflow")));
+      List<SourceTrackInfo> sourceTracks = new ArrayList<>();
+      for (Object sourceTrack : jsonSourceTracks) {
+        sourceTracks.add((SourceTrackInfo.parse((JSONObject) sourceTrack)));
+      }
+
+      return new EditingInfo(segments, tracks, sourceTracks, Opt.nul((String) obj.get("workflow")));
     }
 
     /**
