@@ -24,6 +24,7 @@
 angular.module('adminNg.controllers')
 .controller('ToolsCtrl', ['$scope', '$route', '$location', 'Storage', '$window', 'ToolsResource', 'Notifications', 'EventHelperService',
     function ($scope, $route, $location, Storage, $window, ToolsResource, Notifications, EventHelperService) {
+        var errorMessageId = null;
 
         $scope.navigateTo = function (path) {
             $location.path(path).replace();
@@ -89,12 +90,75 @@ angular.module('adminNg.controllers')
             $scope.area = area;
         };
 
+        $scope.anyTrackSelected = function (type) {
+            var selected = false;
+            var present = false;
+            for(var i = 0; i < $scope.video.source_tracks.length; i++) {
+                var t = $scope.video.source_tracks[i][type];
+                if (t.present === true) {
+                    present = true;
+                }
+                if (t.present === true && t.hidden === false) {
+                    selected = true;
+                }
+            }
+            // If we don't have any tracks at all, selecting none is valid
+            if (present === false) {
+                return true;
+            }
+            return selected;
+        };
+
+        $scope.trackClicked = function(index, type) {
+            $scope.video.source_tracks[index][type].hidden = !$scope.video.source_tracks[index][type].hidden;
+        };
+
+        $scope.trackHasPreview = function(index, type) {
+            return $scope.video.source_tracks[index][type].preview_image !== null;
+        };
+
+        $scope.trackIndexToName = function(index) {
+            var flavor = $scope.video.source_tracks[index].flavor;
+            return flavor.type;
+        };
+
+        $scope.tooManyAudios = function () {
+            var audioTrackCount = 0;
+            var videoTrackCount = 0;
+            for(var i = 0; i < $scope.video.source_tracks.length; i++) {
+                var t = $scope.video.source_tracks[i];
+                if (t.audio.present === true && t.audio.hidden === false) {
+                    audioTrackCount++;
+                }
+                if (t.video.present === true && t.video.hidden === false) {
+                    videoTrackCount++;
+                }
+            }
+            return audioTrackCount > videoTrackCount;
+        };
+
+        $scope.sanityCheckSourceTracks = function() {
+            if (!$scope.anyTrackSelected('video')) {
+                errorMessageId = Notifications.add('error', 'VIDEO_SOURCE_TRACKS_INVALID');
+                return false;
+            }
+            if ($scope.tooManyAudios()) {
+                errorMessageId = Notifications.add('error', 'VIDEO_TOO_MANY_AUDIOS');
+                return false;
+            }
+            return true;
+        };
+
         // TODO Move the following to a VideoCtrl
         $scope.player = {};
         $scope.video  = ToolsResource.get({ id: $scope.id, tool: 'editor' });
 
         $scope.submitButton = false;
+
         $scope.submit = function () {
+            if (!$scope.sanityCheckSourceTracks()) {
+                return;
+            }
             $scope.submitButton = true;
             $scope.video.thumbnail.loading = $scope.video.thumbnail.type === 'DEFAULT';
             $scope.video.$save({ id: $scope.id, tool: $scope.tab }, function (response) {
@@ -114,10 +178,14 @@ angular.module('adminNg.controllers')
                     $scope.$root.originalDefaultThumbnailPosition = response.thumbnail.position;
                 }
                 $scope.video.thumbnail.loading = false;
+                if (errorMessageId !== null) {
+                    Notifications.remove(errorMessageId);
+                    errorMessageId = null;
+                }
             }, function () {
                 $scope.submitButton = false;
                 $scope.video.thumbnail.loading = false;
-                Notifications.add('error', 'VIDEO_CUT_NOT_SAVED', 'video-tools');
+                errorMessageId = Notifications.add('error', 'VIDEO_CUT_NOT_SAVED', 'video-tools');
             });
         };
 
