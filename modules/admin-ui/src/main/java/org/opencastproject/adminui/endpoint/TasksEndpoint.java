@@ -31,9 +31,15 @@ import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import static org.opencastproject.index.service.util.RestUtils.okJson;
+import static org.opencastproject.systems.OpencastConstants.WORKFLOW_PROPERTIES_NAMESPACE;
 import static org.opencastproject.workflow.api.ConfiguredWorkflow.workflow;
 
 import org.opencastproject.assetmanager.api.AssetManager;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.Value;
+import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.ARecord;
+import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.assetmanager.util.Workflows;
 import org.opencastproject.util.NotFoundException;
 import org.opencastproject.util.RestUtil;
@@ -182,6 +188,17 @@ public class TasksEndpoint {
         }
       }
     }
+    // FIXME: Only for testing purposes, delete before PR!
+    final AQueryBuilder q = assetManager.createQuery();
+    final String mpId = (String) eventIds.get(0);
+    final AResult r = q.select(q.snapshot(), q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+      .where(q.mediaPackageId(mpId).and(q.version().isLatest())).run();
+    for (final ARecord record : r.getRecords().toList()) {
+      for (final Property prop : record.getProperties().toList()) {
+        configuration.put(prop.getId().getName(), prop.getValue().get(Value.STRING));
+      }
+    }
+      // FIXME: Snippet end
 
     WorkflowDefinition wfd;
     try {
