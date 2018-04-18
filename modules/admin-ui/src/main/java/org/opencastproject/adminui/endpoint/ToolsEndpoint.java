@@ -112,6 +112,7 @@ import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -355,10 +356,30 @@ public class ToolsEndpoint implements ManagedService {
       jWorkflows.add(obj(f("id", v(workflow.getId())), f("name", v(workflow.getTitle(), Jsons.BLANK))));
     }
 
+    final List<JValue> sourceTracks = Arrays.stream(mp.getElements())
+      .filter(e -> e.getElementType().equals(Type.Track))
+      .map(e -> (Track)e)
+      .map(e -> {
+        final JValue audio;
+        if (e.hasAudio())
+          audio = obj(f("present", true), f("preview_image", Jsons.NULL), f("hidden", Jsons.FALSE));
+        else
+          audio = obj(f("present", false));
+        final JValue video;
+        if (e.hasVideo())
+          video = obj(f("present", true), f("preview_image", Jsons.NULL), f("hidden", Jsons.FALSE));
+        else
+          video = obj(f("present", false));
+        final JObject flavor = obj(f("type", e.getFlavor().getType()), f("subtype", e.getFlavor().getSubtype()));
+        return obj(f("flavor", flavor), f("audio", audio), f("video", video));
+      })
+      .collect(Collectors.toList());
+
     return RestUtils.okJson(obj(f("title", v(mp.getTitle(), Jsons.BLANK)),
             f("date", v(event.getRecordingStartDate(), Jsons.BLANK)),
             f("series", obj(f("id", v(event.getSeriesId(), Jsons.BLANK)), f("title", v(event.getSeriesName(), Jsons.BLANK)))),
             f("presenters", arr($(event.getPresenters()).map(Functions.stringToJValue))),
+            f("source_tracks", arr(sourceTracks)),
             f("previews", arr(jPreviews)), f(TRACKS_KEY, arr(jTracks)),
             f("duration", v(mp.getDuration())), f(SEGMENTS_KEY, arr(jSegments)), f("workflows", arr(jWorkflows))));
   }

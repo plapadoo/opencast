@@ -96,8 +96,9 @@ angular.module('adminNg.resources')
                 }, segments);
 
                 response.concat = {
-                    segments: segments,
-                    tracks:   JsHelper.map(data.tracks, 'id')
+                    segments:      segments,
+                    tracks:        JsHelper.map(data.tracks, 'id'),
+		    source_tracks: data.source_tracks
                 };
 
                 if (data.workflow) {
