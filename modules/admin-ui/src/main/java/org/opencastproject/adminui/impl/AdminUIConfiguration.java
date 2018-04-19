@@ -45,9 +45,13 @@ public class AdminUIConfiguration implements ManagedService {
   public static final String OPT_SMIL_SILENCE_FLAVOR = "smil.silence.flavor";
   public static final String OPT_SOURCE_TRACK_PRESENTER_FLAVOR = "sourcetrack.presenter.flavor";
   public static final String OPT_SOURCE_TRACK_PRESENTATION_FLAVOR = "sourcetrack.presentation.flavor";
+  public static final String OPT_PREVIEW_AUDIO_SUBTYPE = "preview.audio.subtype";
+  public static final String OPT_PREVIEW_VIDEO_SUBTYPE = "preview.video.subtype";
 
   private String previewSubtype = "preview";
   private String waveformSubtype = "waveform";
+  private String previewVideoSubtype = "video+preview";
+  private String previewAudioSubtype = "audio+preview";
   private Set<String> smilCatalogTagSet = new HashSet<String>();
   private MediaPackageElementFlavor smilCatalogFlavor = new MediaPackageElementFlavor("smil", "cutting");
   private MediaPackageElementFlavor smilSilenceFlavor = new MediaPackageElementFlavor("*", "silence");
@@ -60,6 +64,14 @@ public class AdminUIConfiguration implements ManagedService {
 
   public String getWaveformSubtype() {
     return waveformSubtype;
+  }
+
+  public String getPreviewAudioSubtype() {
+    return previewAudioSubtype;
+  }
+
+  public String getPreviewVideoSubtype() {
+    return previewVideoSubtype;
   }
 
   public MediaPackageElementFlavor getSmilCatalogFlavor() {
@@ -147,6 +159,24 @@ public class AdminUIConfiguration implements ManagedService {
       logger.info("Source track presentation flavor is '{}'", sourceTrackPresentationFlavor);
     } else {
       logger.warn("No source track presentation configured, using '{}'", sourceTrackPresentationFlavor);
+    }
+
+    // Preview Audio subtype
+    String previewAudio = StringUtils.trimToNull((String) properties.get(OPT_PREVIEW_AUDIO_SUBTYPE));
+    if (previewAudio != null) {
+      previewAudioSubtype = previewAudio;
+      logger.info("Preview audio subtype is '{}'", previewAudioSubtype);
+    } else {
+      logger.warn("No preview audio subtype configured, using '{}'", previewAudioSubtype);
+    }
+
+    // Preview Video subtype
+    String previewVideo = StringUtils.trimToNull((String) properties.get(OPT_PREVIEW_VIDEO_SUBTYPE));
+    if (previewVideo != null) {
+      previewVideoSubtype = previewVideo;
+      logger.info("Preview video subtype is '{}'", previewVideoSubtype);
+    } else {
+      logger.warn("No preview video subtype configured, using '{}'", previewVideoSubtype);
     }
   }
 }
