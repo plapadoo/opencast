@@ -299,7 +299,7 @@ public final class ThumbnailImpl {
     EncoderException {
     final Predicate<Attachment> priorFilter = attachment -> previewFlavor.matches(attachment.getFlavor());
     return updatePublication(mp, InternalPublicationChannel.CHANNEL_ID, priorFilter, previewFlavor,
-      Collections.emptyList(), "thumbnail-down.http");
+      Collections.emptyList(), "editor.thumbnail.preview.downscale");
   }
 
   private URI updateOaiPmh(final MediaPackage mp, final MediaPackageElementFlavor trackFlavor)

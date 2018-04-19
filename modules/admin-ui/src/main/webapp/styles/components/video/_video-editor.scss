@@ -778,18 +778,19 @@ $segment-deleted-selected: darken($segment-deleted, 18%);
 
   .thumbnail-canvas {
     margin: 20px;
-    width: 200px;
-    height: 200px;
+    width: 320px;
+    height: 180px;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center center;
-    border: $thin-border-stroke;
+    background-origin: border-box;
+    border: $thin-border-stroke $main-border-color;
     text-align: center;
   }
 
   .thumbnail-canvas>div {
     background-color: rgba( $black, .4 );
-    line-height: 200px;
+    line-height: 180px;
     color: $off-white;
   }
 
