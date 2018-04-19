@@ -93,7 +93,7 @@
         <configuration key="source-flavor">*/work</configuration>
         <configuration key="target-flavor">*/video+preview</configuration>
         <configuration key="target-tags">preview</configuration>
-        <configuration key="encoding-profile">editor.thumbnail.preview</configuration>
+        <configuration key="encoding-profile">editor.tracks.preview</configuration>
         <configuration key="time">1</configuration>
       </configurations>
     </operation>
@@ -105,7 +105,7 @@
         <configuration key="source-flavor">*/waveform</configuration>
         <configuration key="target-flavor">*/audio+preview</configuration>
         <configuration key="target-tags">preview</configuration>
-        <configuration key="encoding-profile">editor.thumbnail.preview.downscale</configuration>
+        <configuration key="encoding-profile">editor.tracks.preview.downscale</configuration>
       </configurations>
     </operation>
 

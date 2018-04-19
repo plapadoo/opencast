@@ -54,7 +54,7 @@
     <operation
         id="compose"
         description="Strip video stream from presenter if video should be hidden"
-        if="${presenter_video_hidden}"
+        if="${hide_presenter_video}"
         exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavor">presenter/prepared</configuration>
@@ -65,7 +65,7 @@
     <operation
         id="compose"
         description="Strip video stream from presentation if video should be hidden"
-        if="${presentation_video_hidden}"
+        if="${hide_presentation_video}"
         exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavor">presentation/prepared</configuration>
@@ -76,7 +76,7 @@
     <operation
         id="compose"
         description="Strip audio stream from presenter if audio should be muted"
-        if="${presenter_audio_hidden}"
+        if="${hide_presenter_audio}"
         exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavor">presenter/prepared</configuration>
@@ -87,7 +87,7 @@
     <operation
         id="compose"
         description="Strip audio stream from presentation if audio should be muted"
-        if="${presentation_audio_hidden}"
+        if="${hide_presentation_audio}"
         exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavor">presentation/prepared</configuration>
@@ -97,7 +97,7 @@
     </operation>
     <operation
       id="tag"
-      if="${presenter_video_hidden} AND NOT (${presenter_audio_hidden}) AND NOT(${presentation_video_hidden}) AND ${presentation_audio_hidden}"
+      if="${hide_presenter_video} AND NOT (${hide_presenter_audio}) AND NOT(${hide_presentation_video}) AND ${hide_presentation_audio}"
       description="Prepare for muxing presenter audio with presentation video"
       exception-handler-workflow="partial-error">
       <configurations>
@@ -108,7 +108,7 @@
     </operation>
     <operation
       id="tag"
-      if="NOT (${presenter_video_hidden}) AND ${presenter_audio_hidden} AND ${presentation_video_hidden} AND NOT (${presentation_audio_hidden})"
+      if="NOT (${hide_presenter_video}) AND ${hide_presenter_audio} AND ${hide_presentation_video} AND NOT (${hide_presentation_audio})"
       description="Prepare for muxing presentation audio with presenter video"
       exception-handler-workflow="partial-error">
       <configurations>
@@ -132,7 +132,7 @@
 
     <operation
       id="tag"
-      if="NOT (${presenter_video_hidden}) AND NOT (${presenter_audio_hidden}))"
+      if="NOT (${hide_presenter_video}) AND NOT (${hide_presenter_audio})"
       description="Change flavor of prepared tracks to */work if no audio/video is hidden (default behavior)"
       exception-handler-workflow="partial-error">
       <configurations>
@@ -143,7 +143,7 @@
     </operation>
     <operation
       id="tag"
-      if="NOT(${presentation_video_hidden}) AND NOT(${presentation_audio_hidden})"
+      if="NOT(${hide_presentation_video}) AND NOT(${hide_presentation_audio})"
       description="Change flavor of prepared tracks to */work if no audio/video is hidden (default behavior)"
       exception-handler-workflow="partial-error">
       <configurations>
