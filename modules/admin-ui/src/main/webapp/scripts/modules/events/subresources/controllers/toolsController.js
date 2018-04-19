@@ -124,22 +124,26 @@ angular.module('adminNg.controllers')
         }
 
         $scope.sanityCheckSourceTracks = function() {
-            var audioValid = false;
-            var videoValid = false;
+            var audioTrackCount = 0;
+            var videoTrackCount = 0;
             for(var i = 0; i < $scope.video.source_tracks.length; i++) {
                 var t = $scope.video.source_tracks[i];
                 if (t.audio.present === true && t.audio.hidden === false) {
-                    audioValid = true;
+                    audioTrackCount++;
                 }
                 if (t.video.present === true && t.video.hidden === false) {
-                    videoValid = true;
+                    videoTrackCount++;
                 }
             }
-            var result = audioValid || videoValid;
-            if (result === false) {
+            if (videoTrackCount === 0) {
                 Notifications.add('error', 'VIDEO_SOURCE_TRACKS_INVALID');
+                return false;
             }
-            return result;
+            if (audioTrackCount > videoTrackCount) {
+                Notifications.add('error', 'VIDEO_TOO_MANY_AUDIOS');
+                return false;
+            }
+            return true;
         };
 
         // TODO Move the following to a VideoCtrl
