@@ -68,79 +68,79 @@ angular.module('adminNg.controllers')
         };
 
         $scope.anyTrackSelected = function (type) {
-	    var selected = false;
-	    var present = false;
-	    for(var i = 0; i < $scope.video.source_tracks.length; i++) {
-		var t = $scope.video.source_tracks[i][type];
-		if (t.present === true) {
-		    present = true;
-		}
-		if (t.present === true && t.hidden === false) {
-		    selected = true;
-		}
-	    }
-	    // If we don't have any tracks at all, selecting none is valid
-	    if (present === false) {
-		return true;
-	    }
-	    return selected;
-	};
+            var selected = false;
+            var present = false;
+            for(var i = 0; i < $scope.video.source_tracks.length; i++) {
+                var t = $scope.video.source_tracks[i][type];
+                if (t.present === true) {
+                    present = true;
+                }
+                if (t.present === true && t.hidden === false) {
+                    selected = true;
+                }
+            }
+            // If we don't have any tracks at all, selecting none is valid
+            if (present === false) {
+                return true;
+            }
+            return selected;
+        };
 
-	$scope.trackClicked = function(index, type) {
-	    $scope.video.source_tracks[index][type].hidden = !$scope.video.source_tracks[index][type].hidden;
-	};
+        $scope.trackClicked = function(index, type) {
+            $scope.video.source_tracks[index][type].hidden = !$scope.video.source_tracks[index][type].hidden;
+        };
 
-	$scope.trackClass = function(index, type) {
-	    var hidden = $scope.video.source_tracks[index][type].hidden;
-	    var hover = $scope.video.source_tracks[index][type].hover;
-	    if (!angular.isDefined(hover))
-		hover = false;
-	    if (hidden === true) {
-		if (hover === false) {
-		    return type+"-hidden";
-		}
-		return type+"-hover-hidden";
-	    }
-	    if (hover === false) {
-		return type+"-shown";
-	    }
-	    return type+"-hover-shown";
-	};
+        $scope.trackClass = function(index, type) {
+            var hidden = $scope.video.source_tracks[index][type].hidden;
+            var hover = $scope.video.source_tracks[index][type].hover;
+            if (!angular.isDefined(hover))
+                hover = false;
+            if (hidden === true) {
+                if (hover === false) {
+                    return type+"-hidden";
+                }
+                return type+"-hover-hidden";
+            }
+            if (hover === false) {
+                return type+"-shown";
+            }
+            return type+"-hover-shown";
+        };
 
-	$scope.trackHover = function(index, type, value) {
-	    $scope.video.source_tracks[index][type].hover = value;
-	};
+        $scope.trackHover = function(index, type, value) {
+            $scope.video.source_tracks[index][type].hover = value;
+        };
 
-	$scope.trackBackground = function(index, tyoe) {
-	    var img = $scope.video.source_tracks[index][type].preview_image;
-	    if (img !== null)
-		return { "background-image" : "url("+img+")" };
-	    return {};
-	};
+        $scope.trackBackground = function(index, tyoe) {
+            var img = $scope.video.source_tracks[index][type].preview_image;
+            if (img !== null)
+                return { "background-image" : "url("+img+")" };
+            return {};
+        };
 
-	$scope.trackIndextoName = function(index) {
-	    var flavor = $scope.video.source_tracks[index].flavor;
-	    return flavor.type;
-	}
+        $scope.trackIndextoName = function(index) {
+            var flavor = $scope.video.source_tracks[index].flavor;
+            return flavor.type;
+        }
 
-	$scope.sanityCheckSourceTracks = function() {
-	    var audioValid = false;
-	    var videoValid = false;
-	    for(var i = 0; i < $scope.video.source_tracks.length; i++) {
-		var t = $scope.video.source_tracks[i];
-		if (t.audio.present === true && t.audio.hidden === false) {
-		    audioValid = true;
-		}
-		if (t.video.present === true && t.video.hidden === false) {
-		    videoValid = true;
-		}
-	    }
-	    var result = audioValid || videoValid;
-	    if (result === false) {
+        $scope.sanityCheckSourceTracks = function() {
+            var audioValid = false;
+            var videoValid = false;
+            for(var i = 0; i < $scope.video.source_tracks.length; i++) {
+                var t = $scope.video.source_tracks[i];
+                if (t.audio.present === true && t.audio.hidden === false) {
+                    audioValid = true;
+                }
+                if (t.video.present === true && t.video.hidden === false) {
+                    videoValid = true;
+                }
+            }
+            var result = audioValid || videoValid;
+            if (result === false) {
                 Notifications.add('error', 'VIDEO_SOURCE_TRACKS_INVALID');
-	    }
-	    return result;
-	};
+            }
+            return result;
+        };
 
         // TODO Move the following to a VideoCtrl
         $scope.player = {};
@@ -148,9 +148,9 @@ angular.module('adminNg.controllers')
 
         $scope.submitButton = false;
         $scope.submit = function () {
-	    if (!$scope.sanityCheckSourceTracks()) {
-		return;
-	    }
+            if (!$scope.sanityCheckSourceTracks()) {
+                return;
+            }
             $scope.submitButton = true;
             $scope.video.$save({ id: $scope.id, tool: $scope.tab }, function () {
                 $scope.submitButton = false;
