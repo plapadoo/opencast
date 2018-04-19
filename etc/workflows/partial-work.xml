@@ -50,6 +50,7 @@
 
 
     <!-- Hide/mute video/audio streams as selected by the user -->
+
     <operation
         id="compose"
         description="Strip video stream from presenter if video should be hidden"
