@@ -119,6 +119,7 @@ import java.util.Dictionary;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -443,19 +444,17 @@ public class ToolsEndpoint implements ManagedService {
         return R.badRequest("Unable to create SMIL cutting catalog");
       }
 
-      editingInfo.sourceTracks.stream()
-        .flatMap(sourceTrack -> {
-          final Stream.Builder<String> r = Stream.builder();
-          if (sourceTrack.audio.hidden) {
-            r.accept(sourceTrack.flavorType + ";audio");
-          }
-          if (sourceTrack.video.hidden) {
-            r.accept(sourceTrack.flavorType + ";video");
-          }
-          return r.build();
-        })
-        .map(Value::mk)
-        .map(v -> Property.mk(PropertyId.mk(mediaPackageId, WORKFLOW_PROPERTIES_NAMESPACE, "hidden"), v))
+      Stream.of(this.adminUIConfiguration.getSourceTrackPresenterFlavor(),
+          this.adminUIConfiguration.getSourceTrackPresentationFlavor()).flatMap(flavor -> {
+            final Stream.Builder<Tuple<String, String>> r = Stream.builder();
+            final Optional<SourceTrackInfo> track = editingInfo.sourceTracks.stream()
+              .filter(s -> s.getFlavor().equals(flavor)).findAny();
+            final boolean audioHidden = track.map(e -> e.audio.hidden) .orElse(false);
+            r.accept(Tuple.tuple(flavor.getType() + "_audio_hidden", Boolean.toString(audioHidden)));
+            final boolean videoHidden = track.map(e -> e.video.hidden).orElse(false);
+            r.accept(Tuple.tuple(flavor.getType() + "_video_hidden", Boolean.toString(videoHidden)));
+            return r.build();
+      }).map(v -> Property.mk(PropertyId.mk(mediaPackageId, WORKFLOW_PROPERTIES_NAMESPACE, v.getA()), Value.mk(v.getB())))
         .forEach(p -> assetManager.setProperty(p));
 
       try {
@@ -476,6 +475,7 @@ public class ToolsEndpoint implements ManagedService {
                   workflowId, mediaPackage, getStackTrace(e));
           return R.serverError();
         } catch (WorkflowDatabaseException e) {
+
           logger.warn("Unable to load workflow '{}' from workflow service: {}", workflowId, getStackTrace(e));
           return R.serverError();
         } catch (NotFoundException e) {
@@ -849,6 +849,10 @@ public class ToolsEndpoint implements ManagedService {
     private final String flavorSubtype;
     private final SourceTrackSubInfo audio;
     private final SourceTrackSubInfo video;
+
+    MediaPackageElementFlavor getFlavor() {
+      return new MediaPackageElementFlavor(flavorType, flavorSubtype);
+    }
 
     SourceTrackInfo(final String flavorType, final String flavorSubtype, final SourceTrackSubInfo audio, final SourceTrackSubInfo video) {
       this.flavorType = flavorType;
