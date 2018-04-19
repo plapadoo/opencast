@@ -228,9 +228,10 @@
                           </tr>
                           <tr ng-repeat="row in video.source_tracks">
                             <td>
-                              <div ng-if="video.source_tracks[$index].audio.present === true" class="audio-canvas" style="trackBackground($index, 'audio')" ng-click="trackClicked($index, 'audio')" ng-mouseenter="trackHover($index, 'audio', true)" ng-mouseleave="trackHover($index, 'audio', false)">
+                              <div ng-if="video.source_tracks[$index].audio.present === true" class="audio-canvas" ng-style="trackBackground($index, 'audio')" ng-click="trackClicked($index, 'audio')" ng-mouseenter="trackHover($index, 'audio', true)" ng-mouseleave="trackHover($index, 'audio', false)">
                                 <div class="{{trackClass($index, 'audio')}}">
-                                  <i translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK_NA"></i>
+                                  <i ng-if="!trackHasPreview($index, 'audio')" translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK_NA"></i>
+                                  <i ng-if="trackHasPreview($index, 'audio')">&nbsp;</i>
                                 </div>
                               </div>
                               <div ng-if="video.source_tracks[$index].audio.present === false" class="audio-line-height">
@@ -239,9 +240,10 @@
                               <div class="track-name">{{trackIndextoName($index)}}</div>
                             </td>
                             <td>
-                              <div ng-if="video.source_tracks[$index].video.present === true" class="video-canvas" style="trackBackground($index, 'video')" ng-click="trackClicked($index, 'video')" ng-mouseenter="trackHover($index, 'video', true)" ng-mouseleave="trackHover($index, 'video', false)">
+                              <div ng-if="video.source_tracks[$index].video.present === true" class="video-canvas" ng-style="trackBackground($index, 'video')" ng-click="trackClicked($index, 'video')" ng-mouseenter="trackHover($index, 'video', true)" ng-mouseleave="trackHover($index, 'video', false)">
                                 <div class="{{trackClass($index, 'video')}}" >
-                                  <i translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK_NA"></i>
+                                  <i ng-if="!trackHasPreview($index, 'video')" translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK_NA"></i>
+                                  <i ng-if="trackHasPreview($index, 'video')">&nbsp;</i>
                                 </div>
                               </div>
                               <div ng-if="video.source_tracks[$index].video.present === false" class="video-line-height">

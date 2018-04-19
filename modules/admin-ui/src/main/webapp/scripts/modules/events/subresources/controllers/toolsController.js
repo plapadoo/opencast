@@ -107,11 +107,15 @@ angular.module('adminNg.controllers')
             return type+"-hover-shown";
         };
 
+        $scope.trackHasPreview = function(index, type) {
+            return $scope.video.source_tracks[index][type].preview_image !== null;
+        };
+
         $scope.trackHover = function(index, type, value) {
             $scope.video.source_tracks[index][type].hover = value;
         };
 
-        $scope.trackBackground = function(index, tyoe) {
+        $scope.trackBackground = function(index, type) {
             var img = $scope.video.source_tracks[index][type].preview_image;
             if (img !== null)
                 return { "background-image" : "url("+img+")" };
