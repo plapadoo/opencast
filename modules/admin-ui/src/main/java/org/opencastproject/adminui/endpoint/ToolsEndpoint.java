@@ -379,9 +379,15 @@ public class ToolsEndpoint implements ManagedService {
       .map(p -> Tuple.tuple(p[0], p[1]))
       .collect(Collectors.toSet());
 
+    final Collection<MediaPackageElementFlavor> acceptedFlavors = Arrays
+      .asList(this.adminUIConfiguration.getSourceTrackPresenterFlavor(),
+        this.adminUIConfiguration.getSourceTrackPresentationFlavor());
+
     final List<JValue> sourceTracks = Arrays.stream(mp.getElements())
       .filter(e -> e.getElementType().equals(Type.Track))
-      .map(e -> (Track)e).map(e -> new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(),
+      .map(e -> (Track)e)
+      .filter(e -> acceptedFlavors.contains(e.getFlavor()))
+      .map(e -> new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(),
         new SourceTrackSubInfo(e.hasAudio(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"))),
         new SourceTrackSubInfo(e.hasVideo(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "video")))))
       .map(SourceTrackInfo::toJson)

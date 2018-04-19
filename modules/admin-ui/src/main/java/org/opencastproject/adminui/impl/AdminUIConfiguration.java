@@ -43,12 +43,16 @@ public class AdminUIConfiguration implements ManagedService {
   public static final String OPT_SMIL_CATALOG_FLAVOR = "smil.catalog.flavor";
   public static final String OPT_SMIL_CATALOG_TAGS = "smil.catalog.tags";
   public static final String OPT_SMIL_SILENCE_FLAVOR = "smil.silence.flavor";
+  public static final String OPT_SOURCE_TRACK_PRESENTER_FLAVOR = "sourcetrack.presenter.flavor";
+  public static final String OPT_SOURCE_TRACK_PRESENTATION_FLAVOR = "sourcetrack.presentation.flavor";
 
   private String previewSubtype = "preview";
   private String waveformSubtype = "waveform";
   private Set<String> smilCatalogTagSet = new HashSet<String>();
   private MediaPackageElementFlavor smilCatalogFlavor = new MediaPackageElementFlavor("smil", "cutting");
   private MediaPackageElementFlavor smilSilenceFlavor = new MediaPackageElementFlavor("*", "silence");
+  private MediaPackageElementFlavor sourceTrackPresenterFlavor = new MediaPackageElementFlavor("presenter", "source");
+  private MediaPackageElementFlavor sourceTrackPresentationFlavor = new MediaPackageElementFlavor("presentation", "source");
 
   public String getPreviewSubtype() {
     return previewSubtype;
@@ -68,6 +72,14 @@ public class AdminUIConfiguration implements ManagedService {
 
   public MediaPackageElementFlavor getSmilSilenceFlavor() {
     return smilSilenceFlavor;
+  }
+
+  public MediaPackageElementFlavor getSourceTrackPresenterFlavor() {
+    return sourceTrackPresenterFlavor;
+  }
+
+  public MediaPackageElementFlavor getSourceTrackPresentationFlavor() {
+    return sourceTrackPresentationFlavor;
   }
 
   @Override
@@ -120,6 +132,21 @@ public class AdminUIConfiguration implements ManagedService {
     } else {
       logger.warn("No smil silence flavor configured, using '{}'", smilSilenceFlavor);
     }
-  }
 
+    final String sourceTrackPresenter = StringUtils.trimToNull((String) properties.get(OPT_SOURCE_TRACK_PRESENTER_FLAVOR));
+    if (sourceTrackPresenter != null) {
+      sourceTrackPresenterFlavor = MediaPackageElementFlavor.parseFlavor(sourceTrackPresenter);
+      logger.info("Source track presenter flavor is '{}'", sourceTrackPresenterFlavor);
+    } else {
+      logger.warn("No source track presenter configured, using '{}'", sourceTrackPresenterFlavor);
+    }
+
+    final String sourceTrackPresentation = StringUtils.trimToNull((String) properties.get(OPT_SOURCE_TRACK_PRESENTATION_FLAVOR));
+    if (sourceTrackPresentation != null) {
+      sourceTrackPresentationFlavor = MediaPackageElementFlavor.parseFlavor(sourceTrackPresentation);
+      logger.info("Source track presentation flavor is '{}'", sourceTrackPresentationFlavor);
+    } else {
+      logger.warn("No source track presentation configured, using '{}'", sourceTrackPresentationFlavor);
+    }
+  }
 }
