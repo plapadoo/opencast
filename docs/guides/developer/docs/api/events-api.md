@@ -16,6 +16,7 @@ Query String Parameter     |Type            | Description
 `withmetadata`             | [`boolean`](types.md#basic) | Whether the metadata catalogs should be included in the response.
 `withscheduling`           | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
 `withpublications`         | [`boolean`](types.md#basic) | Whether the publication ids and urls should be included in the response.
+`withscheduling`           | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
 `filter`                   | [`string`](types.md#basic)  | A comma seperated list of filters to limit the results with. A filter is the filter's name followed by a colon ":" and then the value to filter with so it is the form `Filter Name`:`Value to Filter With`. See the below table for the list of available filters.
 `sort`                     | [`string`](types.md#basic)  | Sort the results based upon a list of comma seperated sorting criteria. In the comma seperated list each type of sorting is specified as a pair such as: `Sort Name`:`ASC` or `Sort Name`:`DESC`. Adding the suffix ASC or DESC sets the order as ascending or descending order and is mandatory. See the below table about the available sort names in the table below.
 `limit`                    | [`string`](types.md#basic)  | The maximum number of results to return for a single request.
@@ -58,9 +59,9 @@ Field                | Type                                 | Description
 `identifier`         | [`string`](types.md#basic)           | The unique identifier of the event
 `creator`            | [`string`](types.md#basic)           | The technical creator of this event
 `presenter`\*        | [`array[string]`](types.md#array)    | The presenters of this event
-`created`            | [`datetime`](types.md#date-and-time) | The date and time this event was created
+`created`\*          | [`datetime`](types.md#date-and-time) | The date and time this event was created
 `subjects`\*         | [`array[string]`](types.md#array)    | The subjects of this event
-`start`              | [`datetime`](types.md#date-and-time) | The technical start date and time of this event
+`start`\*            | [`datetime`](types.md#date-and-time) | The bibliographic start date and time of this event
 `description`\*      | [`string`](types.md#basic)           | The description of this event
 `title`\*            | [`string`](types.md#basic)           | The title of this event
 `processing_state`   | [`string`](types.md#basic)           | The current processing state of this event
@@ -70,6 +71,14 @@ Field                | Type                                 | Description
 `has_previews`       | [`boolean`](types.md#basic)          | Whether this event can be opened with the video editor
 `location`\*         | [`string`](types.md#basic)           | The bibliographic location of this event
 `publication_status` | [`array[string]`](types.md#array)    | The publications available for this event
+`language`\*         | [`string`](types.md#basic)           | The language of this event (version 1.1.0 and higher)
+`rightsholder`\*     | [`string`](types.md#basic)           | The rights holder of this event (version 1.1.0 and higher)
+`license`\*          | [`string`](types.md#basic)           | The license of this event (version 1.1.0 and higher)
+`is_part_of`\*       | [`string`](types.md#basic)           | The technical identifier of the series this event belongs to (version 1.1.0 and higher)
+`series`             | [`string`](types.md#basic)           | The title of the series this event belongs to (version 1.1.0 and higher)
+`source`\*           | [`string`](types.md#basic)           | The source of this event (version 1.1.0 and higher)
+`status`             | [`string`](types.md#basic)           | The technical status of this event (version 1.1.0 and higher)
+
 
 \* Metadata fields of metadata catalog `dublincore/episode`
 
@@ -262,7 +271,6 @@ In case of a conflict (409):
 ]
 ```
 
-
 ### GET /api/events/{event_id}
 
 Returns a single event.
@@ -271,12 +279,13 @@ By setting the optional `sign` parameter to `true`, the method will pre-sign dis
 in Opencast. Remember to consider the [maximum validity of signed URLs](security-api.md#Introduction) when caching this
 response.
 
-Query String Parameter     |Type            | Description
-:--------------------------|:---------------|:----------------------------
-`sign`                     | boolean        | Whether public distribution urls should be signed.
-`withacl`                  | boolean        | Whether the acl metadata should be included in the response.
-`withmetadata`             | boolean        | Whether the metadata catalogs should be included in the response.
-`withpublications`         | boolean        | Whether the publication ids and urls should be included in the response.
+Query String Parameter | Type                        | Description
+:----------------------|:----------------------------|:-----------
+`sign`                 | [`boolean`](types.md#basic) | Whether public distribution urls should be signed.
+`withacl`              | [`boolean`](types.md#basic) | Whether the acl metadata should be included in the response.
+`withmetadata`         | [`boolean`](types.md#basic) | Whether the metadata catalogs should be included in the response.
+`withpublications`     | [`boolean`](types.md#basic) | Whether the publication ids and urls should be included in the response.
+`withscheduling`       | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
 
 __Response__
 
@@ -287,7 +296,7 @@ Field                | Type                                 | Description
 `identifier`         | [`string`](types.md#basic)           | The unique identifier of the event
 `creator`            | [`string`](types.md#basic)           | The technical creator of this event
 `presenter`\*        | [`array[string]`](types.md#array)    | The presenters of this event
-`created`            | [`datetime`](types.md#date-and-time) | The date and time this event was created
+`created`\*          | [`datetime`](types.md#date-and-time) | The date and time this event was created
 `subjects`\*         | [`array[string]`](types.md#array)    | The subjects of this event
 `start`              | [`datetime`](types.md#date-and-time) | The technical start date and time of this event
 `description`\*      | [`string`](types.md#basic)           | The description of this event
@@ -299,6 +308,13 @@ Field                | Type                                 | Description
 `has_previews`       | [`boolean`](types.md#basic)          | Whether this event can be opened with the video editor
 `location`\*         | [`string`](types.md#basic)           | The bibliographic location of this event
 `publication_status` | [`array[string]`](types.md#array)    | The publications available for this event
+`language`\*         | [`string`](types.md#basic)           | The language of this event (version 1.1.0 and higher)
+`rightsholder`\*     | [`string`](types.md#basic)           | The rights holder of this event (version 1.1.0 and higher)
+`license`\*          | [`string`](types.md#basic)           | The license of this event (version 1.1.0 and higher)
+`is_part_of`\*       | [`string`](types.md#basic)           | The technical identifier of the series this event belongs to (version 1.1.0 and higher)
+`series`             | [`string`](types.md#basic)           | The title of the series this event belongs to (version 1.1.0 and higher)
+`source`\*           | [`string`](types.md#basic)           | The source of this event (version 1.1.0 and higher)
+`status`             | [`string`](types.md#basic)           | The technical status of this event (version 1.1.0 and higher)
 
 \* Metadata fields of metadata catalog `dublincore/episode`
 
@@ -784,8 +800,9 @@ __Response__
 
 # Scheduling Information
 
-<!--- ##################################################################### -->
 ### GET /api/events/{event_id}/scheduling
+
+Available since API version 1.1.0.
 
 Returns an event's scheduling information.
 
@@ -804,8 +821,9 @@ __Response__
 }
 ```
 
-<!--- ##################################################################### -->
 ### PUT /api/events/{event_id}/scheduling
+
+Available since API version 1.1.0.
 
 Update the scheduling information of the event with id `{event_id}`.
 
