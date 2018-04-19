@@ -1633,15 +1633,39 @@
        "USE_SEGMENT":     "Use this Segment"
      },
      "THUMBNAIL": {
-       "CURRENT_POSITION": "Current position:",
-       "DESCRIPTION_1" : "A thumbnail used to represent the event is generated automatically. In case you want a different thumbnail, you can upload an image, or extract a thumbnail at the current playback position.",
-       "DESCRIPTION_2" : "For uploading a thumbnail, move your mouse over the thumbnail preview on the left, click the upload button, and select an image to use.",
-       "DESCRIPTION_3" : "To extract a thumbnail at the current playback position, press the camera button below. In case you have a dual-stream video, two camera buttons are shown, one for each stream.",
-       "DESCRIPTION_4" : "If you want to restore the default thumbnail again, move your mouse over the thumbnail preview on the left and press the remove (x) button in the top left corner of the preview.",
-       "NOT_AVAILABLE": "No preview available",
-       "TAKE_SNAPSHOT": "Take a snapshot at the current position and use it as the thumbnail",
-       "USE_DEFAULT": "Remove current thumbnail and use default",
-       "UPLOAD": "Upload a new thumbnail"
+       "DESCRIPTION" : "A default thumbnail used to visually represent the event is generated automatically. In case you want to use a different thumbnail, you can extract a thumbnail from the video at the current playback position or upload an image.",
+       "ACTIONS": {
+         "EXTRACT": {
+           "FROM_VIDEO": {
+             "LABEL": "Extract from video",
+             "TOOLTIP": "Extract the thumbnail from the video at the current playback position"
+           },
+           "FROM_LEFT_VIDEO": {
+             "LABEL": "Extract from left video",
+             "TOOLTIP": "Extract the thumbnail from the left video at the current playback position"
+           },
+           "FROM_RIGHT_VIDEO": {
+             "LABEL": "Extract from right video",
+             "TOOLTIP": "Extract the thumbnail from the right video at the current playback position"
+           }
+         },
+         "UPLOAD": {
+           "LABEL": "Upload image",
+           "TOOLTIP": "Upload a thumbnail image"
+         },
+         "USE_DEFAULT": {
+           "LABEL": "Use default thumbnail",
+           "TOOLTIP": "Use the default thumbnail that is generated automatically"
+         }
+       },
+       "PREVIEW" : {
+         "NOT_AVAILABLE": "No preview available"
+       },
+       "CURRENT": {
+         "DEFAULT": "You are currently using the default thumbnail.",
+         "SNAPSHOT": "The current thumbnail has been extracted from the video.",
+         "UPLOAD": "You are currently using an uploaded thumbnail."
+       }
      },
      "PLAYER":{
        "PLAY":              "Play",

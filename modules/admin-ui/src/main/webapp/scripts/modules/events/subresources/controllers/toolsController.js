@@ -63,10 +63,6 @@ angular.module('adminNg.controllers')
               });
         };
 
-        $scope.thumbnailHover = function (hovering) {
-          $scope.video.thumbnail.hovering = hovering;
-        };
-
         $scope.openTab = function (tab) {
             $scope.tab = tab;
             if ($scope.tab === "editor") {
