@@ -79,6 +79,36 @@
       </configurations>
     </operation>
 
+
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <!-- Track previews                                                    -->
+    <!--                                                                   -->
+    <!-- Create track previews for video editor stream selection feature   -->
+    <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+    <operation
+      id="image"
+      description="Create video preview images for presenter and presentation"
+      exception-handler-workflow="partial-error">
+      <configurations>
+        <configuration key="source-flavor">*/work</configuration>
+        <configuration key="target-flavor">*/video+preview</configuration>
+        <configuration key="target-tags">preview</configuration>
+        <configuration key="encoding-profile">editor.thumbnail.preview</configuration>
+        <configuration key="time">1</configuration>
+      </configurations>
+    </operation>
+    <operation
+      id="compose"
+      description="Create audio preview images (waveforms) for presenter and presentation"
+      exception-handler-workflow="partial-error">
+      <configurations>
+        <configuration key="source-flavor">*/waveform</configuration>
+        <configuration key="target-flavor">*/audio+preview</configuration>
+        <configuration key="target-tags">preview</configuration>
+        <configuration key="encoding-profile">editor.thumbnail.preview.downscale</configuration>
+      </configurations>
+    </operation>
+
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
     <!-- Silence detection                                                 -->
     <!--                                                                   -->
