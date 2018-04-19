@@ -387,13 +387,34 @@ public class ToolsEndpoint implements ManagedService {
       .asList(this.adminUIConfiguration.getSourceTrackPresenterFlavor(),
         this.adminUIConfiguration.getSourceTrackPresentationFlavor());
 
+    // We already know the internal publication exists, so just "get" it here.
+    final Publication internalPub = getInternalPublication(mp).get();
+
     final List<JValue> sourceTracks = Arrays.stream(mp.getElements())
       .filter(e -> e.getElementType().equals(Type.Track))
       .map(e -> (Track)e)
       .filter(e -> acceptedFlavors.contains(e.getFlavor()))
-      .map(e -> new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(),
-        new SourceTrackSubInfo(e.hasAudio(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"))),
-        new SourceTrackSubInfo(e.hasVideo(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "video")))))
+      .map(e -> {
+        final boolean audioHidden = hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"));
+        final String audioPreview = Arrays.stream(internalPub.getAttachments())
+          .filter(a -> a.getFlavor().getType().equals(e.getFlavor().getType()))
+          .filter(a -> a.getFlavor().getSubtype().equals(this.adminUIConfiguration.getPreviewAudioSubtype()))
+          .map(MediaPackageElement::getURI).map(URI::toString)
+          .findAny()
+          .orElse(null);
+        final SourceTrackSubInfo audio = new SourceTrackSubInfo(e.hasAudio(), audioPreview,
+          audioHidden);
+        final boolean videoHidden = hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "video"));
+        final String videoPreview = Arrays.stream(internalPub.getAttachments())
+          .filter(a -> a.getFlavor().getType().equals(e.getFlavor().getType()))
+          .filter(a -> a.getFlavor().getSubtype().equals(this.adminUIConfiguration.getPreviewVideoSubtype()))
+          .map(MediaPackageElement::getURI).map(URI::toString)
+          .findAny()
+          .orElse(null);
+        final SourceTrackSubInfo video = new SourceTrackSubInfo(e.hasVideo(), videoPreview,
+          videoHidden);
+        return new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(), audio, video);
+      })
       .map(SourceTrackInfo::toJson)
       .collect(Collectors.toList());
 
