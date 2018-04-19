@@ -14,6 +14,7 @@ Query String Parameter     |Type            | Description
 `sign`                     | [`boolean`](types.md#basic) | Whether public distribution urls should be signed.
 `withacl`                  | [`boolean`](types.md#basic) | Whether the acl metadata should be included in the response.
 `withmetadata`             | [`boolean`](types.md#basic) | Whether the metadata catalogs should be included in the response.
+`withscheduling`           | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
 `withpublications`         | [`boolean`](types.md#basic) | Whether the publication ids and urls should be included in the response.
 `withscheduling`           | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
 `filter`                   | [`string`](types.md#basic)  | A comma seperated list of filters to limit the results with. A filter is the filter's name followed by a colon ":" and then the value to filter with so it is the form `Filter Name`:`Value to Filter With`. See the below table for the list of available filters.
@@ -285,7 +286,6 @@ Query String Parameter | Type                        | Description
 `withmetadata`         | [`boolean`](types.md#basic) | Whether the metadata catalogs should be included in the response.
 `withpublications`     | [`boolean`](types.md#basic) | Whether the publication ids and urls should be included in the response.
 `withscheduling`       | [`boolean`](types.md#basic) | Whether the scheduling information should be included in the response (version 1.1.0 and higher).
-
 
 __Response__
 
