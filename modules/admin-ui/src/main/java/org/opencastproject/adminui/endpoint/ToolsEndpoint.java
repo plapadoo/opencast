@@ -371,13 +371,16 @@ public class ToolsEndpoint implements ManagedService {
     final AQueryBuilder q = assetManager.createQuery();
     final AResult r = q.select(q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
             .where(q.mediaPackageId(mp.getIdentifier().compact()).and(q.version().isLatest())).run();
+    // The properties have the format "hide_flavor_audio" or "hide_flavor_video", where flavor is preconfigured.
+    // We filter all the properties that have this format, and then those which have values "true".
     final Collection<Tuple<String, String>> hiddens = r.getRecords().head2().getProperties().toList()
       .stream()
-      .filter(p -> p.getId().getName().equals("hidden"))
-      .map(Property::getValue)
-      .map(p -> p.get(Value.STRING))
-      .map(p -> p.split(";"))
-      .map(p -> Tuple.tuple(p[0], p[1]))
+      .map(p -> Tuple.tuple(p.getId().getName().split("_"), p.getValue()))
+      .filter(p -> p.getA().length == 3)
+      .filter(p -> p.getA()[0].equals("hide"))
+      .map(p -> Tuple.tuple(p.getA(), p.getB().get(Value.STRING)))
+      .filter(p -> p.getB().equals("true"))
+      .map(p -> Tuple.tuple(p.getA()[1], p.getA()[2]))
       .collect(Collectors.toSet());
 
     final Collection<MediaPackageElementFlavor> acceptedFlavors = Arrays
@@ -450,12 +453,12 @@ public class ToolsEndpoint implements ManagedService {
             final Optional<SourceTrackInfo> track = editingInfo.sourceTracks.stream()
               .filter(s -> s.getFlavor().equals(flavor)).findAny();
             final boolean audioHidden = track.map(e -> e.audio.hidden) .orElse(false);
-            r.accept(Tuple.tuple(flavor.getType() + "_audio_hidden", Boolean.toString(audioHidden)));
+            r.accept(Tuple.tuple("hide_" + flavor.getType() + "_audio", Boolean.toString(audioHidden)));
             final boolean videoHidden = track.map(e -> e.video.hidden).orElse(false);
-            r.accept(Tuple.tuple(flavor.getType() + "_video_hidden", Boolean.toString(videoHidden)));
+            r.accept(Tuple.tuple("hide_" + flavor.getType() + "_video", Boolean.toString(videoHidden)));
             return r.build();
       }).map(v -> Property.mk(PropertyId.mk(mediaPackageId, WORKFLOW_PROPERTIES_NAMESPACE, v.getA()), Value.mk(v.getB())))
-        .forEach(p -> assetManager.setProperty(p));
+        .forEach(assetManager::setProperty);
 
       try {
         addSmilToArchive(mediaPackage, smil);
