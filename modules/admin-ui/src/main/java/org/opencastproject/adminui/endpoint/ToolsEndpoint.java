@@ -33,12 +33,18 @@ import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static javax.servlet.http.HttpServletResponse.SC_OK;
 import static org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace;
+import static org.opencastproject.systems.OpencastConstants.WORKFLOW_PROPERTIES_NAMESPACE;
 import static org.opencastproject.util.data.Tuple.tuple;
 
 import org.opencastproject.adminui.impl.AdminUIConfiguration;
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
 import org.opencastproject.assetmanager.api.AssetManager;
 import org.opencastproject.assetmanager.api.AssetManagerException;
+import org.opencastproject.assetmanager.api.Property;
+import org.opencastproject.assetmanager.api.PropertyId;
+import org.opencastproject.assetmanager.api.Value;
+import org.opencastproject.assetmanager.api.query.AQueryBuilder;
+import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.assetmanager.util.Workflows;
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.api.IndexService.Source;
@@ -106,6 +112,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Dictionary;
@@ -113,6 +120,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -157,6 +165,9 @@ public class ToolsEndpoint implements ManagedService {
 
   /** The Json key for the tracks array. */
   private static final String TRACKS_KEY = "tracks";
+
+  /** The Json key for the source_tracks array. */
+  private static final String SOURCE_TRACKS_KEY = "source_tracks";
 
   /** Tag that marks workflow for being used from the editor tool */
   private static final String EDITOR_WORKFLOW_TAG = "editor";
@@ -356,30 +367,31 @@ public class ToolsEndpoint implements ManagedService {
       jWorkflows.add(obj(f("id", v(workflow.getId())), f("name", v(workflow.getTitle(), Jsons.BLANK))));
     }
 
+    final AQueryBuilder q = assetManager.createQuery();
+    final AResult r = q.select(q.propertiesOf(WORKFLOW_PROPERTIES_NAMESPACE))
+            .where(q.mediaPackageId(mp.getIdentifier().compact()).and(q.version().isLatest())).run();
+    final Collection<Tuple<String, String>> hiddens = r.getRecords().head2().getProperties().toList()
+      .stream()
+      .filter(p -> p.getId().getName().equals("hidden"))
+      .map(Property::getValue)
+      .map(p -> p.get(Value.STRING))
+      .map(p -> p.split(";"))
+      .map(p -> Tuple.tuple(p[0], p[1]))
+      .collect(Collectors.toSet());
+
     final List<JValue> sourceTracks = Arrays.stream(mp.getElements())
       .filter(e -> e.getElementType().equals(Type.Track))
-      .map(e -> (Track)e)
-      .map(e -> {
-        final JValue audio;
-        if (e.hasAudio())
-          audio = obj(f("present", true), f("preview_image", Jsons.NULL), f("hidden", Jsons.FALSE));
-        else
-          audio = obj(f("present", false));
-        final JValue video;
-        if (e.hasVideo())
-          video = obj(f("present", true), f("preview_image", Jsons.NULL), f("hidden", Jsons.FALSE));
-        else
-          video = obj(f("present", false));
-        final JObject flavor = obj(f("type", e.getFlavor().getType()), f("subtype", e.getFlavor().getSubtype()));
-        return obj(f("flavor", flavor), f("audio", audio), f("video", video));
-      })
+      .map(e -> (Track)e).map(e -> new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(),
+        new SourceTrackSubInfo(e.hasAudio(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"))),
+        new SourceTrackSubInfo(e.hasVideo(), null, hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "video")))))
+      .map(SourceTrackInfo::toJson)
       .collect(Collectors.toList());
 
     return RestUtils.okJson(obj(f("title", v(mp.getTitle(), Jsons.BLANK)),
             f("date", v(event.getRecordingStartDate(), Jsons.BLANK)),
             f("series", obj(f("id", v(event.getSeriesId(), Jsons.BLANK)), f("title", v(event.getSeriesName(), Jsons.BLANK)))),
             f("presenters", arr($(event.getPresenters()).map(Functions.stringToJValue))),
-            f("source_tracks", arr(sourceTracks)),
+            f(SOURCE_TRACKS_KEY, arr(sourceTracks)),
             f("previews", arr(jPreviews)), f(TRACKS_KEY, arr(jTracks)),
             f("duration", v(mp.getDuration())), f(SEGMENTS_KEY, arr(jSegments)), f("workflows", arr(jWorkflows))));
   }
@@ -424,6 +436,21 @@ public class ToolsEndpoint implements ManagedService {
         logger.warn("Unable to create a SMIL cutting catalog ({}): {}", details, getStackTrace(e));
         return R.badRequest("Unable to create SMIL cutting catalog");
       }
+
+      editingInfo.sourceTracks.stream()
+        .flatMap(sourceTrack -> {
+          final Stream.Builder<String> r = Stream.builder();
+          if (sourceTrack.audio.hidden) {
+            r.accept(sourceTrack.flavorType + ";audio");
+          }
+          if (sourceTrack.video.hidden) {
+            r.accept(sourceTrack.flavorType + ";video");
+          }
+          return r.build();
+        })
+        .map(Value::mk)
+        .map(v -> Property.mk(PropertyId.mk(mediaPackageId, WORKFLOW_PROPERTIES_NAMESPACE, "hidden"), v))
+        .forEach(p -> assetManager.setProperty(p));
 
       try {
         addSmilToArchive(mediaPackage, smil);
@@ -786,16 +813,69 @@ public class ToolsEndpoint implements ManagedService {
     return segments;
   }
 
+  static final class SourceTrackSubInfo {
+    private final boolean present;
+    private final String previewImage;
+    private final boolean hidden;
+
+    SourceTrackSubInfo(final boolean present, final String previewImage, final boolean hidden) {
+      this.present = present;
+      this.previewImage = previewImage;
+      this.hidden = hidden;
+    }
+
+    public static SourceTrackSubInfo parse(final JSONObject object) {
+      Boolean hidden = (Boolean) object.get("hidden");
+      if (hidden == null)
+        hidden = Boolean.FALSE;
+      return new SourceTrackSubInfo((Boolean)object.get("present"), (String)object.get("preview_image"), hidden);
+    }
+
+    public JObject toJson() {
+      if (present)
+        return obj(f("present", true), f("preview_image", previewImage == null ? Jsons.NULL : v(previewImage)), f("hidden", hidden));
+      return obj(f("present", false));
+    }
+  }
+
+  static final class SourceTrackInfo {
+    private final String flavorType;
+    private final String flavorSubtype;
+    private final SourceTrackSubInfo audio;
+    private final SourceTrackSubInfo video;
+
+    SourceTrackInfo(final String flavorType, final String flavorSubtype, final SourceTrackSubInfo audio, final SourceTrackSubInfo video) {
+      this.flavorType = flavorType;
+      this.flavorSubtype = flavorSubtype;
+      this.audio = audio;
+      this.video = video;
+    }
+
+    public static SourceTrackInfo parse(final JSONObject object) {
+      final JSONObject flavor = (JSONObject) object.get("flavor");
+      return new SourceTrackInfo((String) flavor.get("type"), (String) flavor.get("subtype"),
+        SourceTrackSubInfo.parse((JSONObject) object.get("audio")),
+        SourceTrackSubInfo.parse((JSONObject) object.get("video")));
+    }
+
+    public JObject toJson() {
+      final JObject flavor = obj(f("type", flavorType), f("subtype", flavorSubtype));
+      return obj(f("flavor", flavor), f("audio", audio.toJson()), f("video", video.toJson()));
+    }
+  }
+
   /** Provides access to the parsed editing information */
   static final class EditingInfo {
 
     private final List<Tuple<Long, Long>> segments;
     private final List<String> tracks;
+    private final List<SourceTrackInfo> sourceTracks;
     private final Opt<String> workflow;
 
-    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, Opt<String> workflow) {
+    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, List<SourceTrackInfo> sourceTracks, Opt<String> workflow) {
       this.segments = segments;
       this.tracks = tracks;
+      this.sourceTracks = sourceTracks;
       this.workflow = workflow;
     }
 
@@ -811,6 +891,7 @@ public class ToolsEndpoint implements ManagedService {
       JSONObject concatObject = requireNonNull((JSONObject) obj.get(CONCAT_KEY));
       JSONArray jsonSegments = requireNonNull((JSONArray) concatObject.get(SEGMENTS_KEY));
       JSONArray jsonTracks = requireNonNull((JSONArray) concatObject.get(TRACKS_KEY));
+      JSONArray jsonSourceTracks = requireNonNull((JSONArray) concatObject.get(SOURCE_TRACKS_KEY));
 
       List<Tuple<Long, Long>> segments = new ArrayList<>();
       for (Object segment : jsonSegments) {
@@ -827,7 +908,12 @@ public class ToolsEndpoint implements ManagedService {
         tracks.add((String) track);
       }
 
-      return new EditingInfo(segments, tracks, Opt.nul((String) obj.get("workflow")));
+      List<SourceTrackInfo> sourceTracks = new ArrayList<>();
+      for (Object sourceTrack : jsonSourceTracks) {
+        sourceTracks.add((SourceTrackInfo.parse((JSONObject) sourceTrack)));
+      }
+
+      return new EditingInfo(segments, tracks, sourceTracks, Opt.nul((String) obj.get("workflow")));
     }
 
     /**

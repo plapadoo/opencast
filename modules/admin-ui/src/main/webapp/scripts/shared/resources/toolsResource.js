@@ -87,18 +87,22 @@ angular.module('adminNg.resources')
                     return data;
                 }
 
-                var response = {}, segments = [];
+                var response = {}, segments = [], source_tracks = [];
                 angular.forEach(data.segments, function (segment) {
                     delete segment.$$hashKey;
                     if (!segment.deleted) {
                         this.push(segment);
                     }
                 }, segments);
+                angular.forEach(data.source_tracks, function (source_track) {
+                    delete source_track.$$hashKey;
+		    this.push(source_track);
+                }, source_tracks);
 
                 response.concat = {
                     segments:      segments,
                     tracks:        JsHelper.map(data.tracks, 'id'),
-		    source_tracks: data.source_tracks
+		    source_tracks: source_tracks
                 };
 
                 if (data.workflow) {
