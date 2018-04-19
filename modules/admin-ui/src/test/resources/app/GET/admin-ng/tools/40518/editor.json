@@ -21,6 +21,22 @@
     "flavor": "presenter\/video",
     "mimetype": "video\/mpeg"
   }],
+  "source_tracks":[{
+    "flavor":{
+      "subtype":"source",
+      "type":"presenter"
+    },
+    "audio":{
+      "preview_image":null,
+      "hidden":false,
+      "present":true
+    },
+    "video":{
+      "preview_image":null,
+      "hidden":false,
+      "present":true
+    }
+  }],
   "segments": [{
     "start": 0,
     "end": 17003
