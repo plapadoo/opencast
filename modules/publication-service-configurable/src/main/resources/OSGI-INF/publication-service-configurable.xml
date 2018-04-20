@@ -26,12 +26,12 @@
                cardinality="1..1"
                policy="static"
                bind="setOrganizationDirectoryService" />
-    <reference name="distributionService"
+    <reference name="DownloadDistributionService"
                interface="org.opencastproject.distribution.api.DownloadDistributionService"
                cardinality="1..1"
                policy="static"
                target="(distribution.channel=download)"
-               bind="setDistributionService" />
+               bind="setDownloadDistributionService" />
   </scr:component>
 
    <scr:component name="org.opencastproject.publication.configurable.endpoint.ConfigurablePublicationRestService" immediate="true">

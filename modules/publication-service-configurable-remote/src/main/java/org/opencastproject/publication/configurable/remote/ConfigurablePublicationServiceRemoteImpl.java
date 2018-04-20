@@ -33,6 +33,8 @@ import org.opencastproject.publication.api.ConfigurablePublicationService;
 import org.opencastproject.publication.api.PublicationException;
 import org.opencastproject.serviceregistry.api.RemoteBase;
 
+import com.google.gson.Gson;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -43,7 +45,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * A remote publication service invoker.
@@ -52,23 +54,25 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
 
   /** The logger */
   private static final Logger logger = LoggerFactory.getLogger(ConfigurablePublicationServiceRemoteImpl.class);
-  private static final String SEPARATOR = ";;";
+
+  /* Gson is thread-safe so we use a single instance */
+  private Gson gson = new Gson();
 
   public ConfigurablePublicationServiceRemoteImpl() {
     super(JOB_TYPE);
   }
 
   @Override
-  public Job replace(final MediaPackage mediaPackage, final String channelId, final Collection<? extends MediaPackageElement> addElements,
-          final Collection<String> retractElementIds) throws PublicationException, MediaPackageException {
-    final String mediapackageXml = MediaPackageParser.getAsXml(mediaPackage);
+  public Job replace(final MediaPackage mediaPackage, final String channelId,
+          final Collection<? extends MediaPackageElement> addElements, final Set<String> retractElementIds)
+              throws PublicationException, MediaPackageException {
+
     final List<BasicNameValuePair> params = new ArrayList<>();
-    final String addElementsFlattened = MediaPackageElementParser.getArrayAsXml(addElements);
-    final String retractElementsFlattened = retractElementIds.stream().collect(Collectors.joining(SEPARATOR));
-    params.add(new BasicNameValuePair("mediapackage", mediapackageXml));
+    params.add(new BasicNameValuePair("mediapackage", MediaPackageParser.getAsXml(mediaPackage)));
     params.add(new BasicNameValuePair("channel", channelId));
-    params.add(new BasicNameValuePair("addElements", addElementsFlattened));
-    params.add(new BasicNameValuePair("retractElements", retractElementsFlattened));
+    params.add(new BasicNameValuePair("addElements", MediaPackageElementParser.getArrayAsXml(addElements)));
+    params.add(new BasicNameValuePair("retractElements", gson.toJson(retractElementIds)));
+
     final HttpPost post = new HttpPost("/replace");
     HttpResponse response = null;
     try {
@@ -81,8 +85,7 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
           return JobParser.parseJob(response.getEntity().getContent());
         } catch (final Exception e) {
           throw new PublicationException(
-                  "Unable to publish media package '" + mediaPackage + "' using a remote publication service",
-                  e);
+                  "Unable to publish media package '" + mediaPackage + "' using a remote publication service", e);
         }
       }
     } catch (final Exception e) {

@@ -21,7 +21,7 @@
 package org.opencastproject.publication.configurable;
 
 import org.opencastproject.distribution.api.DistributionException;
-import org.opencastproject.distribution.api.DistributionService;
+import org.opencastproject.distribution.api.DownloadDistributionService;
 import org.opencastproject.job.api.AbstractJobProducer;
 import org.opencastproject.job.api.Job;
 import org.opencastproject.mediapackage.MediaPackage;
@@ -40,23 +40,27 @@ import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.serviceregistry.api.ServiceRegistryException;
 import org.opencastproject.util.JobUtil;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class ConfigurablePublicationServiceImpl extends AbstractJobProducer implements ConfigurablePublicationService {
+
   private static final Logger logger = LoggerFactory.getLogger(ConfigurablePublicationServiceImpl.class);
-  private static final String SEPARATOR = ";;";
-  private static final Pattern SEPARATOR_PATTERN = Pattern.compile(SEPARATOR);
+
+  /* Gson is thread-safe so we use a single instance */
+  private Gson gson = new Gson();
 
   @Override
   public void activate(ComponentContext cc) {
@@ -76,7 +80,7 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
     Replace
   }
 
-  private DistributionService distributionService;
+  private DownloadDistributionService distributionService;
 
   private SecurityService securityService;
 
@@ -86,7 +90,7 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
 
   private ServiceRegistry serviceRegistry;
 
-  public void setDistributionService(final DistributionService distributionService) {
+  public void setDownloadDistributionService(final DownloadDistributionService distributionService) {
     this.distributionService = distributionService;
   }
 
@@ -126,22 +130,14 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
     return this.organizationDirectoryService;
   }
 
-  private static String flattenStrings(final Collection<String> s) {
-    return s.stream().collect(Collectors.joining(SEPARATOR));
-  }
-
-  private static Collection<String> unflattenStrings(final String s) {
-    return SEPARATOR_PATTERN.splitAsStream(s).collect(Collectors.toSet());
-  }
-
   @Override
   public Job replace(final MediaPackage mediaPackage, final String channelId,
-          final Collection<? extends MediaPackageElement> addElements, final Collection<String> retractElementIds)
+          final Collection<? extends MediaPackageElement> addElements, final Set<String> retractElementIds)
           throws PublicationException, MediaPackageException {
     try {
       return serviceRegistry.createJob(JOB_TYPE, Operation.Replace.toString(),
               Arrays.asList(MediaPackageParser.getAsXml(mediaPackage), channelId,
-                      MediaPackageElementParser.getArrayAsXml(addElements), flattenStrings(retractElementIds)));
+                      MediaPackageElementParser.getArrayAsXml(addElements), gson.toJson(retractElementIds)));
     } catch (final ServiceRegistryException e) {
       throw new PublicationException("Unable to create job", e);
     }
@@ -149,81 +145,77 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
 
   @Override
   protected String process(final Job job) throws Exception {
-    final List<String> args = job.getArguments();
-    final MediaPackage mediaPackage = MediaPackageParser.getFromXml(args.get(0));
-    final String channelId = args.get(1);
-    final Collection<? extends MediaPackageElement> addElementIds = MediaPackageElementParser
-            .getArrayFromXml(args.get(2));
-    final Collection<String> retractElementIds = unflattenStrings(args.get(3));
+    final List<String> arguments = job.getArguments();
+    final MediaPackage mediaPackage = MediaPackageParser.getFromXml(arguments.get(0));
+    final String channelId = arguments.get(1);
+    final Collection<? extends MediaPackageElement> addElements = MediaPackageElementParser
+            .getArrayFromXml(arguments.get(2));
+    Set<String> retractElementIds = gson.fromJson(arguments.get(3), new TypeToken<Set<String>>() { }.getType());
 
     Publication result = null;
     switch (Operation.valueOf(job.getOperation())) {
       case Replace:
-        result = doReplace(mediaPackage, channelId, addElementIds, retractElementIds);
+        result = doReplace(mediaPackage, channelId, addElements, retractElementIds);
         break;
       default:
         break;
     }
-    if (result != null)
+    if (result != null) {
       return MediaPackageElementParser.getAsXml(result);
-    return null;
+    } else {
+      return null;
+    }
   }
 
   private void distributeMany(final MediaPackage mp, final String channelId,
           final Collection<? extends MediaPackageElement> elements)
           throws DistributionException, MediaPackageException {
-    // Add all the elements top-level so the distribution service knows what to do
-    elements.forEach(mp::add);
 
-    final Optional<Publication> publicationOpt = Arrays.stream(mp.getPublications())
-            .filter(p -> p.getChannel().equalsIgnoreCase(channelId)).findAny();
+    final Optional<Publication> publicationOpt = getPublication(mp, channelId);
 
-    if (!publicationOpt.isPresent())
-      return;
+    if (publicationOpt.isPresent()) {
 
-    final Publication publication = publicationOpt.get();
+      final Publication publication = publicationOpt.get();
 
-    try {
-      final List<Job> jobs = new ArrayList<>();
-      // Then distribute them all in parallel, collecting the jobs
+      // Add all the elements top-level so the distribution service knows what to do
+      elements.forEach(mp::add);
+
+      Set<String> elementIds = new HashSet<>();
       for (final MediaPackageElement mpe : elements) {
-        jobs.add(distributionService.distribute(channelId, mp, mpe.getIdentifier()));
+        elementIds.add(mpe.getIdentifier());
       }
 
-      // Then, wait for the jobs
-      for (final Job j : jobs) {
-        if (!JobUtil.waitForJob(serviceRegistry, j).isSuccess())
+      try {
+        Job job = distributionService.distribute(channelId, mp, elementIds, false);
+
+        if (!JobUtil.waitForJob(serviceRegistry, job).isSuccess()) {
           throw new DistributionException("At least one of the publication jobs did not complete successfully");
-        final MediaPackageElement jobResult = MediaPackageElementParser.getFromXml(j.getPayload());
-        PublicationImpl.addElementToPublication(publication, jobResult);
+        }
+        List<? extends MediaPackageElement> distributedElements = MediaPackageElementParser.getArrayFromXml(job.getPayload());
+        for (MediaPackageElement mpe : distributedElements) {
+           PublicationImpl.addElementToPublication(publication, mpe);
+        }
+      } finally {
+        // Remove our changes
+        elements.stream().map(MediaPackageElement::getIdentifier).forEach(mp::removeElementById);
       }
-    } finally {
-      // Remove our changes
-      elements.stream().map(MediaPackageElement::getIdentifier).forEach(mp::removeElementById);
     }
-  }
-
-  private List<Job> retractMany(final MediaPackage mp, final String channelId, final Collection<String> elementIds)
-          throws DistributionException {
-    final List<Job> result = new ArrayList<>();
-    for (final String elementId : elementIds) {
-      result.add(distributionService.retract(channelId, mp, elementId));
-    }
-    return result;
   }
 
   private Publication doReplace(final MediaPackage mp, final String channelId,
-          final Collection<? extends MediaPackageElement> addElementIds, final Collection<String> retractElementIds)
+          final Collection<? extends MediaPackageElement> addElementIds, final Set<String> retractElementIds)
           throws DistributionException, MediaPackageException {
-    final List<Job> retractions = retractMany(mp, channelId, retractElementIds);
     // Retract old elements
-    if (!JobUtil.waitForJobs(serviceRegistry, retractions).isSuccess()) {
+    final Job retractJob = distributionService.retract(channelId, mp, retractElementIds);
+
+    if (!JobUtil.waitForJobs(serviceRegistry, retractJob).isSuccess()) {
       throw new DistributionException("At least one of the retraction jobs did not complete successfully");
     }
 
     final Optional<Publication> priorPublication = getPublication(mp, channelId);
 
     final Publication publication;
+
     if (priorPublication.isPresent()) {
       publication = priorPublication.get();
     } else {
