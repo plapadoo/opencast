@@ -220,36 +220,40 @@
                   <div class="area-body">
                     <div class="full-col">
                       <div class="obj content-wrapper">
-                        <div class="headline" translate="VIDEO_TOOL.TRACKS.HEADLINE"><!-- headline --></div>
+                        <h1 class="headline" translate="VIDEO_TOOL.TRACKS.HEADLINE"><!-- Publish the following tracks --></h1>
                         <table>
                           <tr>
-                            <th ng-class="{ 'track-warn': !anyTrackSelected('audio') }"><div translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK"><!-- Audio track --></div></th>
-                            <th ng-class="{ 'track-warn': !anyTrackSelected('video') }"><div translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK"><!-- Video track --></th>
+                            <th ng-class="{ 'track-warn': !anyTrackSelected('audio') }" translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK"><!-- Audio track --></th>
+                            <th ng-class="{ 'track-warn': !anyTrackSelected('video') }" translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK"><!-- Video track --></th>
+                          </tr>
+                          <tr>
+                            <td><span class="track-warn" ng-show="!anyTrackSelected('audio')" translate="VIDEO_TOOL.TRACKS.NO_AUDIO_TRACK_SELECTED"><!--No audio tracks selected--></span></td>
+                            <td><span class="track-warn" ng-show="!anyTrackSelected('video')" translate="VIDEO_TOOL.TRACKS.NO_VIDEO_TRACK_SELECTED"><!--No video tracks selected--></span></td>
                           </tr>
                           <tr ng-repeat="row in video.source_tracks">
                             <td>
-                              <div ng-if="video.source_tracks[$index].audio.present === true" class="audio-canvas" ng-style="trackBackground($index, 'audio')" ng-click="trackClicked($index, 'audio')" ng-mouseenter="trackHover($index, 'audio', true)" ng-mouseleave="trackHover($index, 'audio', false)">
-                                <div class="{{trackClass($index, 'audio')}}">
-                                  <i ng-if="!trackHasPreview($index, 'audio')" translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK_NA"></i>
-                                  <i ng-if="trackHasPreview($index, 'audio')">&nbsp;</i>
+                              <div ng-if="video.source_tracks[$index].audio.present"
+                                class="audio-canvas"
+                                style="background-image: url({{video.source_tracks[$index].audio.preview_image}})"
+                                ng-click="trackClicked($index, 'audio')">
+                                <div class="{{video.source_tracks[$index].audio.hidden ? 'track-hidden' : 'track'}}" >
+                                  <span class="audio-line-height" ng-if="!trackHasPreview($index, 'audio')" translate="VIDEO_TOOL.TRACKS.AUDIO_TRACK_NA"></span>
                                 </div>
                               </div>
-                              <div ng-if="video.source_tracks[$index].audio.present === false" class="audio-line-height">
-                                NO AUDIO
-                              </div>
-                              <div class="track-name">{{trackIndextoName($index)}}</div>
+                              <span ng-if="!video.source_tracks[$index].audio.present" class="audio-line-height" translate="VIDEO_TOOL.TRACKS.NO_AUDIO"><!-- Stream has no audio --></span>
+                              <div class="track-name">{{trackIndexToName($index)}}</div>
                             </td>
                             <td>
-                              <div ng-if="video.source_tracks[$index].video.present === true" class="video-canvas" ng-style="trackBackground($index, 'video')" ng-click="trackClicked($index, 'video')" ng-mouseenter="trackHover($index, 'video', true)" ng-mouseleave="trackHover($index, 'video', false)">
-                                <div class="{{trackClass($index, 'video')}}" >
-                                  <i ng-if="!trackHasPreview($index, 'video')" translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK_NA"></i>
-                                  <i ng-if="trackHasPreview($index, 'video')">&nbsp;</i>
+                              <div ng-if="video.source_tracks[$index].video.present"
+                                class="video-canvas"
+                                style="background-image: url({{video.source_tracks[$index].video.preview_image}})"
+                                ng-click="trackClicked($index, 'video')">
+                                <div class="{{video.source_tracks[$index].video.hidden ? 'track-hidden' : 'track'}}" >
+                                  <span class="video-line-height" ng-if="!trackHasPreview($index, 'video')" translate="VIDEO_TOOL.TRACKS.VIDEO_TRACK_NA"></span>
                                 </div>
                               </div>
-                              <div ng-if="video.source_tracks[$index].video.present === false" class="video-line-height">
-                                NO VIDEO
-                              </div>
-                              <div class="track-name">{{trackIndextoName($index)}}</div>
+                              <span ng-if="!video.source_tracks[$index].video.present" class="video-line-height" translate="VIDEO_TOOL.TRACKS.NO_VIDEO"><!-- Stream has no video --></span>
+                              <div class="track-name">{{trackIndexToName($index)}}</div>
                             </td>
                           </tr>
                         </table>

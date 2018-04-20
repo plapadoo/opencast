@@ -1659,11 +1659,15 @@
        "USE_SEGMENT":     "Use this Segment"
      },
      "TRACKS": {
-	 "HEADLINE": "Publish the following tracks",
-	 "AUDIO_TRACK": "Audio track",
-	 "VIDEO_TRACK": "Video track",
-	 "VIDEO_TRACK_NA": "No preview image",
-	 "AUDIO_TRACK_NA": "No preview image"
+       "HEADLINE": "Publish the following tracks",
+       "AUDIO_TRACK": "Audio track",
+       "VIDEO_TRACK": "Video track",
+       "VIDEO_TRACK_NA": "No preview image",
+       "AUDIO_TRACK_NA": "No preview image",
+       "NO_AUDIO": "Stream has no audio",
+       "NO_VIDEO": "Stream has no video",
+       "NO_AUDIO_TRACK_SELECTED": "No audio tracks selected",
+       "NO_VIDEO_TRACK_SELECTED": "No video tracks selected"
      },
      "PLAYER":{
        "PLAY":              "Play",

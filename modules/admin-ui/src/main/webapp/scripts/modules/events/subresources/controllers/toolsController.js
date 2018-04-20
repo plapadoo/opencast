@@ -90,39 +90,11 @@ angular.module('adminNg.controllers')
             $scope.video.source_tracks[index][type].hidden = !$scope.video.source_tracks[index][type].hidden;
         };
 
-        $scope.trackClass = function(index, type) {
-            var hidden = $scope.video.source_tracks[index][type].hidden;
-            var hover = $scope.video.source_tracks[index][type].hover;
-            if (!angular.isDefined(hover))
-                hover = false;
-            if (hidden === true) {
-                if (hover === false) {
-                    return type+"-hidden";
-                }
-                return type+"-hover-hidden";
-            }
-            if (hover === false) {
-                return type+"-shown";
-            }
-            return type+"-hover-shown";
-        };
-
         $scope.trackHasPreview = function(index, type) {
             return $scope.video.source_tracks[index][type].preview_image !== null;
         };
 
-        $scope.trackHover = function(index, type, value) {
-            $scope.video.source_tracks[index][type].hover = value;
-        };
-
-        $scope.trackBackground = function(index, type) {
-            var img = $scope.video.source_tracks[index][type].preview_image;
-            if (img !== null)
-                return { "background-image" : "url("+img+")" };
-            return {};
-        };
-
-        $scope.trackIndextoName = function(index) {
+        $scope.trackIndexToName = function(index) {
             var flavor = $scope.video.source_tracks[index].flavor;
             return flavor.type;
         }

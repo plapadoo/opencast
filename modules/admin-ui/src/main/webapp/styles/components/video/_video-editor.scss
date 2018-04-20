@@ -762,91 +762,80 @@ $segment-deleted-selected: darken($segment-deleted, 18%);
 }
 
 .editor-tracks {
-    .headline {
-        font-size:1.5em;
-    }
-    .content-wrapper {
-        padding:10px;
-    }
-    table {
-        margin-top:30px;
-    }
-    label {
-        font-weight:bold;
-    }
-    td {
-        vertical-align: middle;
-        text-align:center;
-    }
-    img {
-        vertical-align: middle;
-    }
-    .audio-canvas {
-        width: 600px;
-        margin-top: 55px;
-        margin-bottom: 55px;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center center;
-        text-align: center;
-        border: $thin-border-stroke;
-    }
-    .audio-line-height {
-        line-height: 50px;
-    }
-    .audio-canvas .audio-hidden {
-        background-color: rgba( $red, .4 );
-        line-height: 50px;
-        color: $off-white;
-    }
-    .audio-canvas .audio-hover-hidden {
-        background-color: rgba( $red, .6 );
-        line-height: 50px;
-        color: $off-white;
-    }
-    .audio-canvas .audio-shown {
-        line-height: 50px;
-    }
-    .audio-canvas .audio-hover-shown {
-        background-color: rgba( $black, .2 );
-        line-height: 50px;
-    }
-    .track-name {
-        font-weight: bold;
-    }
-    .track-warn {
-        color: #fda3a3;
-    }
-    .video-canvas {
-        width: 320px;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center center;
-        text-align: center;
-        border: $thin-border-stroke;
-    }
-    .video-line-height {
-        line-height: 160px;
-    }
-    .video-canvas .video-hidden {
-        background-color: rgba( $red, .4 );
-        line-height: 160px;
-        color: $off-white;
-    }
-    .video-canvas .video-hover-hidden {
-        background-color: rgba( $red, .6 );
-        line-height: 160px;
-        color: $off-white;
-    }
-    .video-canvas .video-shown {
-        line-height: 160px;
-    }
-    .video-canvas .video-hover-shown {
-        background-color: rgba( $black, .2 );
-        line-height: 160px;
-    }
-    th {
-        font-size:1.4em;
-        font-weight:bold;
-    }
+
+  .headline {
+    font-size:1.5em;
+  }
+
+  .audio-canvas, .video-canvas {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+    text-align: center;
+    border: $thin-border-stroke;
+  }
+
+  .audio-canvas {
+    width: 600px;
+    height: 50px;
+    margin-top: 65px;
+    margin-bottom: 65px;
+  }
+
+  .video-canvas {
+    width: 320px;
+    height: 180px;
+  }
+
+  .track-name {
+    font-weight: bold;
+  }
+
+  .content-wrapper {
+    padding:10px;
+  }
+
+  table {
+    margin-top:30px;
+  }
+
+  th {
+    font-size:1.4em;
+    font-weight:bold;
+  }
+
+  td {
+    height: 40px;
+    vertical-align: middle;
+    text-align:center;
+  }
+
+  .track-warn {
+    color: #fda3a3;
+  }
+
+  .track, .track-hidden {
+    width: 100%;
+    height: 100%;
+  }
+
+  .track-hidden {
+    background-color: rgba( $red, .4 );
+  }
+
+  .track-hidden:hover {
+    background-color: rgba( $red, .6 );
+  }
+
+  .track:hover {
+    background-color: rgba( $black, .2 );
+  }
+
+  .audio-line-height {
+    line-height: 50px;
+  }
+
+  .video-line-height {
+    line-height: 180px;
+  }
 }
