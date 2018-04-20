@@ -128,13 +128,13 @@
       </configurations>
     </operation>
 
-    <!-- Make sure tracks are correctly flavored in case no video/audio is hidden/muted -->
 
+    <!-- Make sure tracks are correctly flavored in case no video/audio is hidden/muted or nothing is muxed. -->
     <operation
-      id="tag"
-      if="NOT (${hide_presenter_video}) AND NOT (${hide_presenter_audio})"
-      description="Change flavor of prepared tracks to */work if no audio/video is hidden (default behavior)"
-      exception-handler-workflow="partial-error">
+        id="tag"
+        if="NOT (${hide_presenter_video}) AND NOT (${hide_presenter_audio}) AND NOT (${hide_presentation_video}) AND NOT (${hide_presentation_audio})"
+        description="Change flavor of prepared tracks to */work if no audio/video muting/hiding is done (default behavior)"
+        exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavors">presenter/prepared</configuration>
         <configuration key="target-flavor">presenter/work</configuration>
@@ -142,12 +142,34 @@
       </configurations>
     </operation>
     <operation
-      id="tag"
-      if="NOT(${hide_presentation_video}) AND NOT(${hide_presentation_audio})"
-      description="Change flavor of prepared tracks to */work if no audio/video is hidden (default behavior)"
-      exception-handler-workflow="partial-error">
+        id="tag"
+        if="NOT (${hide_presenter_video}) AND NOT (${hide_presenter_audio}) AND NOT (${hide_presentation_video}) AND NOT (${hide_presentation_audio})"
+        description="Change flavor of prepared tracks to */work if no audio/video muting/hiding is done (default behavior)"
+        exception-handler-workflow="partial-error">
       <configurations>
         <configuration key="source-flavors">presentation/prepared</configuration>
+        <configuration key="target-flavor">presentation/work</configuration>
+        <configuration key="copy">false</configuration>
+      </configurations>
+    </operation>
+    <operation
+      id="tag"
+      if="(NOT (${hide_presenter_video}) OR ${hide_presenter_audio} OR ${hide_presentation_video} OR NOT (${hide_presentation_audio})) AND (${hide_presenter_video} OR NOT (${hide_presenter_audio}) OR NOT(${hide_presentation_video}) OR ${hide_presentation_audio})"
+      description="Change flavor of prework tracks to */work if no a/v muxing is done"
+      exception-handler-workflow="partial-error">
+      <configurations>
+        <configuration key="source-flavors">presenter/prework</configuration>
+        <configuration key="target-flavor">presenter/work</configuration>
+        <configuration key="copy">false</configuration>
+      </configurations>
+    </operation>
+    <operation
+      id="tag"
+      if="(NOT (${hide_presenter_video}) OR ${hide_presenter_audio} OR ${hide_presentation_video} OR NOT (${hide_presentation_audio})) AND (${hide_presenter_video} OR NOT (${hide_presenter_audio}) OR NOT(${hide_presentation_video}) OR ${hide_presentation_audio})"
+      description="Change flavor of prework tracks to */work if no a/v muxing is done"
+      exception-handler-workflow="partial-error">
+      <configurations>
+        <configuration key="source-flavors">presentation/prework</configuration>
         <configuration key="target-flavor">presentation/work</configuration>
         <configuration key="copy">false</configuration>
       </configurations>
