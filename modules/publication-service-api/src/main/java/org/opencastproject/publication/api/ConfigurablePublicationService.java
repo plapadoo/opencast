@@ -27,10 +27,29 @@ import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageException;
 
 import java.util.Collection;
+import java.util.Set;
 
 public interface ConfigurablePublicationService {
+
   String JOB_TYPE = "org.opencastproject.publication.configurable";
 
+  /**
+   * Replaces media package elements.
+   * 
+   * @param mediaPackage
+   *          the media package
+   * @param channelId
+   *          the id of the publication channel
+   * @param addElements
+   *          the media package elements to be added
+   * @param retractElementIds
+   *          the ids of the media package elements to be removed
+   * @return The job
+   * @throws PublicationException
+   *           if there was a problem publishing the media
+   * @throws MediaPackageException
+   *           if there was a problem with the mediapackage element
+   */
   Job replace(MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
-          Collection<String> retractElementIds) throws PublicationException, MediaPackageException;
+          Set<String> retractElementIds) throws PublicationException, MediaPackageException;
 }

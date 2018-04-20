@@ -96,7 +96,6 @@ public final class ThumbnailImpl {
 
     ThumbnailSource(final long number) {
       this.number = number;
-
     }
 
     public long getNumber() {
@@ -126,15 +125,19 @@ public final class ThumbnailImpl {
     }
 
     public OptionalDouble getPosition() {
-      if (position == null)
+      if (position != null) {
+        return OptionalDouble.of(position);
+      } else {
         return OptionalDouble.empty();
-      return OptionalDouble.of(position);
+      }
     }
 
     public Optional<String> getTrack() {
-      if (track == null)
+      if (track != null) {
+        return Optional.of(track);
+      } else {
         return Optional.empty();
-      return Optional.of(track);
+      }
     }
 
     public URI getUrl() {
@@ -191,20 +194,23 @@ public final class ThumbnailImpl {
 
   private Optional<Attachment> getThumbnailPreviewForMediaPackage(final MediaPackage mp) {
     final Optional<Publication> internalPublication = getPublication(mp, InternalPublicationChannel.CHANNEL_ID);
-    if (!internalPublication.isPresent()) {
+    if (internalPublication.isPresent()) {
+      return Arrays
+        .stream(internalPublication.get().getAttachments())
+        .filter(attachment -> previewFlavor.matches(attachment.getFlavor()))
+        .findFirst();
+    } else {
       throw new IllegalStateException("Expected internal publication, but found none for mp " + mp.getIdentifier());
     }
-    return Arrays
-      .stream(internalPublication.get().getAttachments())
-      .filter(attachment -> previewFlavor.matches(attachment.getFlavor()))
-      .findFirst();
   }
 
-  public Optional<Thumbnail> getThumbnail(final MediaPackage mp, final UrlSigningService urlSigningService, final Long expireSeconds)
-    throws UrlSigningException, URISyntaxException {
+  public Optional<Thumbnail> getThumbnail(final MediaPackage mp, final UrlSigningService urlSigningService,
+        final Long expireSeconds) throws UrlSigningException, URISyntaxException {
+
     final Optional<Attachment> optThumbnail = getThumbnailPreviewForMediaPackage(mp);
-    if (!optThumbnail.isPresent())
+    if (!optThumbnail.isPresent()) {
       return Optional.empty();
+    }
     final Attachment thumbnail = optThumbnail.get();
     final URI url;
     if (urlSigningService.accepts(thumbnail.getURI().toString())) {
@@ -279,10 +285,11 @@ public final class ThumbnailImpl {
         .orElse(Arrays.stream(mp.getTracks(defaultTrackSecondary)).findFirst()
           .orElse(null)));
 
-    if (!track.isPresent()) {
+    if (track.isPresent()) {
+      return track.get();
+    } else {
       throw new MediaPackageException("Cannot find stream with primary or secondaŕy default flavor.");
     }
-    return track.get();
   }
 
   private void archive(final MediaPackage mp) {
@@ -329,12 +336,14 @@ public final class ThumbnailImpl {
     final URI publishThumbnailUri = workspace
       .put(mp.getIdentifier().compact(), publishThumbnailId, this.tempThumbnailFileName, inputStream);
     inputStream.close();
+
     final Attachment publishAttachment = AttachmentImpl.fromURI(publishThumbnailUri);
     publishAttachment.setIdentifier(UUID.randomUUID().toString());
     publishAttachment.setFlavor(publishFlavor.applyTo(trackFlavor));
     publishTags.forEach(publishAttachment::addTag);
     publishAttachment.setMimeType(this.tempThumbnailMimeType);
     publicationsToUpdate.add(publishAttachment);
+
     flavorsToRetract.add(publishFlavor);
     final long replaceStart = System.currentTimeMillis();
     final Job publishJob = oaiPmhPublicationService.replace(mp, oaiPmhChannel, publicationsToUpdate,
@@ -350,9 +359,10 @@ public final class ThumbnailImpl {
   }
 
   private Tuple<URI, MediaPackageElement> updatePublication(final MediaPackage mp, final String channelId,
-    final Predicate<Attachment> priorFilter, final MediaPackageElementFlavor flavor, final Collection<String> tags, final String conversionProfile)
-    throws DistributionException, NotFoundException, IOException, MediaPackageException, PublicationException,
-    EncoderException {
+    final Predicate<Attachment> priorFilter, final MediaPackageElementFlavor flavor, final Collection<String> tags,
+    final String conversionProfile) throws DistributionException, NotFoundException, IOException,
+  MediaPackageException, PublicationException, EncoderException {
+
     final Optional<Publication> pubOpt = getPublication(mp, channelId);
     if (!pubOpt.isPresent()) {
       return null;
@@ -363,19 +373,19 @@ public final class ThumbnailImpl {
     final InputStream inputStream = tempInputStream();
     final URI aUri = workspace.put(mp.getIdentifier().compact(), aid, tempThumbnailFileName, inputStream);
     inputStream.close();
-    final Attachment a = AttachmentImpl.fromURI(aUri);
-    a.setIdentifier(aid);
-    a.setFlavor(flavor);
-    tags.forEach(a::addTag);
-    a.setMimeType(tempThumbnailMimeType);
+    final Attachment attachment = AttachmentImpl.fromURI(aUri);
+    attachment.setIdentifier(aid);
+    attachment.setFlavor(flavor);
+    tags.forEach(attachment::addTag);
+    attachment.setMimeType(tempThumbnailMimeType);
     if (conversionProfile != null) {
-      downscaleAttachment(conversionProfile, a);
+      downscaleAttachment(conversionProfile, attachment);
     }
 
-    final Collection<MediaPackageElement> addElements = Collections.singleton(a);
-    final Collection<String> removeElements = Arrays.stream(pub.getAttachments()).filter(priorFilter)
-      .map(MediaPackageElement::getIdentifier).collect(Collectors.toList());
-    final Publication newPublication = replaceIgnoreExceptions(mp, channelId, addElements, removeElements);
+    final Collection<MediaPackageElement> addElements = Collections.singleton(attachment);
+    final Set<String> removeElementsIds = Arrays.stream(pub.getAttachments()).filter(priorFilter)
+      .map(MediaPackageElement::getIdentifier).collect(Collectors.toSet());
+    final Publication newPublication = replaceIgnoreExceptions(mp, channelId, addElements, removeElementsIds);
     mp.remove(pub);
     mp.add(newPublication);
     //noinspection ConstantConditions
@@ -384,16 +394,16 @@ public final class ThumbnailImpl {
     return Tuple.tuple(aUri, newElement);
   }
 
-  private void downscaleAttachment(final String conversionProfile, final Attachment a)
+  private void downscaleAttachment(final String conversionProfile, final Attachment attachment)
     throws EncoderException, MediaPackageException, DistributionException {
-    final Job conversionJob = composerService.convertImage(a,conversionProfile);
+    final Job conversionJob = composerService.convertImage(attachment, conversionProfile);
     if (!waitForJob(serviceRegistry, conversionJob).isSuccess()) {
       throw new DistributionException("Image downscaling did not work");
     }
     // What the composer returns is not our original attachment, modified, but a new one, basically containing just
     // a URI.
     final Attachment downscaled = (Attachment) MediaPackageElementParser.getFromXml(conversionJob.getPayload());
-    a.setURI(downscaled.getURI());
+    attachment.setURI(downscaled.getURI());
   }
 
   private URI updateExternalPublication(final MediaPackage mp, final MediaPackageElementFlavor trackFlavor)
@@ -405,9 +415,11 @@ public final class ThumbnailImpl {
     final Predicate<Attachment> priorFilter = flavorFilter.and(tagsFilter);
     final Tuple<URI, MediaPackageElement> result = updatePublication(mp, "api", priorFilter,
       publishFlavor.applyTo(trackFlavor), publishTags, null);
-    if (result == null)
+    if (result != null) {
+      return result.getA();
+    } else {
       return null;
-    return result.getA();
+    }
   }
 
   private InputStream tempInputStream() throws NotFoundException, IOException {
@@ -447,16 +459,16 @@ public final class ThumbnailImpl {
   }
 
   private Publication replaceIgnoreExceptions(final MediaPackage mp, final String channelId,
-    final Collection<? extends MediaPackageElement> addElementIds, final Collection<String> retractElementIds)
+    final Collection<? extends MediaPackageElement> addElements, final Set<String> retractElementIds)
     throws DistributionException, MediaPackageException, PublicationException {
 
-    final Job j = this.configurablePublicationService.replace(mp, channelId, addElementIds, retractElementIds);
+    final Job job = this.configurablePublicationService.replace(mp, channelId, addElements, retractElementIds);
 
-    if (!waitForJob(serviceRegistry, j).isSuccess()) {
+    if (!waitForJob(serviceRegistry, job).isSuccess()) {
       throw new DistributionException("At least one of the retraction jobs did not complete successfully");
     }
 
-    return (Publication) MediaPackageElementParser.getFromXml(j.getPayload());
+    return (Publication) MediaPackageElementParser.getFromXml(job.getPayload());
   }
 
   private MediaPackageElement chooseThumbnail(final MediaPackage mp, final Track track, final double position)

@@ -35,13 +35,15 @@ import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
 import org.opencastproject.util.doc.rest.RestService;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.FormParam;
@@ -62,10 +64,11 @@ import javax.ws.rs.core.Response;
         + "either restarting or has failed. A status code 500 means a general failure has occurred which is not "
         + "recoverable and was not anticipated. In other words, there is a bug!" })
 public class ConfigurablePublicationRestService extends AbstractJobProducerEndpoint {
-  private static final String SEPARATOR = ";;";
-  private static final Pattern SEPARATE_PATTERN = Pattern.compile(SEPARATOR);
 
   private static final Logger logger = LoggerFactory.getLogger(ConfigurablePublicationRestService.class);
+
+  /* Gson is thread-safe so we use a single instance */
+  private Gson gson = new Gson();
 
   private ConfigurablePublicationService service;
   private ServiceRegistry serviceRegistry;
@@ -80,7 +83,7 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
 
   @Override
   public JobProducer getService() {
-    // The implementation is, of course, resolved by OSGi, so to be "clean", we hold a referenc to just the interface
+    // The implementation is, of course, resolved by OSGi, so to be "clean", we hold a reference to just the interface
     // in this class, but at _this_ point, we assume it at least implements JobProducer.
     return (JobProducer) this.service;
   }
@@ -90,10 +93,6 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
     return this.serviceRegistry;
   }
 
-  private Collection<String> unflattenString(final String s) {
-    return SEPARATE_PATTERN.splitAsStream(s).collect(Collectors.toList());
-  }
-
   @POST
   @Path("/replace")
   @Produces(MediaType.TEXT_XML)
@@ -101,29 +100,29 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
           @RestParameter(name = "mediapackage", isRequired = true, description = "The media package", type = RestParameter.Type.TEXT),
           @RestParameter(name = "channel", isRequired = true, description = "The channel name", type = RestParameter.Type.STRING),
           @RestParameter(name = "addElements", isRequired = true, description =
-                  "The additional elements to published, separated by '" + SEPARATOR
-                          + "'", type = RestParameter.Type.STRING),
+                  "The media package elements to published", type = RestParameter.Type.STRING),
           @RestParameter(name = "retractElements", isRequired = true, description =
-                  "The element IDs to be retracted from the media package, separated by '" + SEPARATOR
-                          + "'", type = RestParameter.Type.STRING) }, reponses = {
+                  "The identifiers of the media package elements to be retracted from the media package", type = RestParameter.Type.STRING) }, reponses = {
           @RestResponse(responseCode = HttpServletResponse.SC_OK, description = "An XML representation of the publication job") })
   public Response replace(@FormParam("mediapackage") final String mediaPackageXml,
           @FormParam("channel") final String channel, @FormParam("addElements") final String addElementsXml,
-          @FormParam("retractElements") final String retractElementsFlattened) throws Exception {
+          @FormParam("retractElements") final String retractElements) throws Exception {
+    Response response;
     final Job job;
     try {
       final MediaPackage mediaPackage = MediaPackageParser.getFromXml(mediaPackageXml);
       final Collection<? extends MediaPackageElement> addElements = new HashSet<>(
               MediaPackageElementParser.getArrayFromXml(addElementsXml));
-      final Collection<String> retractElements = unflattenString(retractElementsFlattened);
-      job = service.replace(mediaPackage, channel, addElements, retractElements);
+      Set<String> retractElementsIds = gson.fromJson(retractElements, new TypeToken<Set<String>>() { }.getType());
+      job = service.replace(mediaPackage, channel, addElements, retractElementsIds);
+      response = Response.ok(new JaxbJob(job)).build();
     } catch (IllegalArgumentException e) {
       logger.warn("Unable to create a publication job", e);
-      return Response.status(Response.Status.BAD_REQUEST).build();
+      response = Response.status(Response.Status.BAD_REQUEST).build();
     } catch (Exception e) {
       logger.warn("Error publishing element", e);
-      return Response.serverError().build();
+      response = Response.serverError().build();
     }
-    return Response.ok(new JaxbJob(job)).build();
+    return response;
   }
 }
