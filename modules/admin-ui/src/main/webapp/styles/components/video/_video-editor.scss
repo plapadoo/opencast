@@ -771,6 +771,7 @@ $segment-deleted-selected: saturate(darken($segment-deleted, 25%), 5%);
 
   form {
     display: inline;
+    margin-left: 6px;
   }
 
   .controls {
@@ -790,6 +791,7 @@ $segment-deleted-selected: saturate(darken($segment-deleted, 25%), 5%);
     margin: 20px;
     width: 320px;
     height: 180px;
+    min-width: 320px;
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center center;
