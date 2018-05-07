@@ -239,8 +239,19 @@
              "WORKFLOW": "Task"
           }
       },
-      "EDIT": {
-          "CAPTION": "Edit scheduled"
+      "EDIT_EVENTS": {
+          "CAPTION": "Edit scheduled events",
+          "GENERAL": {
+              "CAPTION": "General",
+              "SUMMARY": "({{ count }} events selected)",
+              "CANNOTSTART": "Highlighted event(s) cannot be processed, only scheduled events are supported."
+          },
+          "METADATA": {
+              "EDIT": "Edit metadata"
+          },
+          "SUMMARY": {
+              "CAPTION": "Summary"
+          }
       }
    },
    "DATES": {

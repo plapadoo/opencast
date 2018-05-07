@@ -1,0 +1,126 @@
+<section ng-form="editEventsForm" ng-show="open" ng-keyup="keyUp($event)" tabindex="1" class="modal wizard modal-animation ng-hide" ng-controller="EditEventsCtrl">
+    <header>
+        <a class="fa fa-times close-modal" ng-click="close()"></a>
+        <h2 translate="BULK_ACTIONS.EDIT_EVENTS.CAPTION"><!-- Template --></h2>
+    </header>
+    <wizard edit-mode="false" name="editEventsWz" on-finish="submit()" template="shared/partials/wizardNav.html">
+        <wz-step wz-title="General" canexit="editEventsForm.generalForm.$valid" wz-disabled="!editEventsForm.generalForm.$valid" ng-form="generalForm" novalidate>
+            <!-- First Step: General -->
+            <div class="modal-content active">
+                <div class="modal-body">
+                    <div class="row">
+                        <div ng-show="editEventsForm.generalForm.$valid" class="alert sticky warning">
+                            <p translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.CANNOTSTART">
+                                <!-- Cannot start -->
+                            </p>
+                        </div>
+                        <div data-notifications="edit-events"/>
+                    </div>
+                    <div class="full-col">
+                        <div class="obj tbl-list">
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.CAPTION">
+                                <span class="header-value" translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.SUMMARY" translate-values='{ count: rows.length}'>
+                                </span>
+                            </header>
+                            <div class="obj-container">
+                                <table class="main-tbl">
+                                    <thead>
+                                    <tr>
+                                        <th class="small"><input type="checkbox" ng-model="allSelected" ng-change="allSelectedChanged(allSelected)" class="select-all-cbox"></th>
+                                        <th class="full-width" translate="EVENTS.EVENTS.TABLE.TITLE">
+                                            <!-- Title -->
+                                        </th>
+                                        <th class="full-width" translate="EVENTS.EVENTS.TABLE.SERIES">
+                                            <!-- Series -->
+                                        </th>
+                                        <th class="full-width" translate="EVENTS.EVENTS.TABLE.WORKFLOW_STATE">
+                                            <!-- Progress -->
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody >
+                                    <tr ng-repeat="row in rows" ng-form="rowsForm" ng-class="{error: rowsForm.selection.$error.taskStartable}">
+                                        <td><input name="selection" ng-required="!hasAnySelected()" type="checkbox" task-startable="{{row.source}}" ng-model="row.selected" ng-change="rowSelectionChanged($index)" class="child-cbox"></td>
+                                        <td>{{ row.title }}</td>
+                                        <td>{{ row.series_name}}</td>
+                                        <td>{{ row.source }}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+
+                            </div><!-- obj-container -->
+
+                        </div><!-- obj -->
+
+                    </div>
+
+                </div>
+
+            </div><!-- modal-content [general] -->
+
+            <footer>
+                <a wz-next class="submit"
+                   ng-class="{active: editEventsForm.generalForm.$valid, disabled: editEventsForm.generalForm.$invalid}">
+                    {{ 'WIZARD.NEXT_STEP' | translate }}
+                </a>
+            </footer>
+        </wz-step>
+
+        <!-- Second Step: The actual Editing -->
+        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.TASKS.CAPTION' | translate }}" ng-form="editEventsForm" novalidate canexit="editEventsForm.$valid">
+            <div class="modal-content active">
+
+                <div class="modal-body">
+                    <div class="full-col">
+
+                        <div class="obj list-obj">
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.METADATA.EDIT"><!-- Edit Metadata --></header>
+                            <div class="obj-container">
+
+                              INSERT STUFF HERE
+
+                            </div><!-- obj-container -->
+
+                        </div><!--list-obj -->
+                    </div><!-- full-col-->
+                </div><!-- modal-body -->
+            </div><!-- modal-content [task] -->
+            <footer>
+                <a wz-next class="submit"
+                   ng-class="{active: editEventsForm.$valid, inactive: editEventsForm.$invalid}">
+                    {{ 'WIZARD.NEXT_STEP' | translate }}
+                </a>
+                <a wz-previous translate="WIZARD.BACK" class="cancel">
+                </a>
+            </footer>
+        </wz-step>
+
+        <!-- Third step: Summary -->
+        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION' | translate }}" novalidate canexit="true">
+            <div class="modal-content active">
+                <div class="modal-body">
+                    <div class="full-col">
+                        <div class="obj list-obj">
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION"><!-- Summary --></header>
+                            <div class="obj-container">
+                            </div><!-- obj-container -->
+                        </div>
+                    </div>
+
+                </div>
+            </div><!-- modal-content [summary] -->
+            <footer>
+                <a wz-next class="submit"
+                   ng-class="{active: editEventsForm.$valid, inactive: editEventsForm.$invalid, disabled: submitButton}">
+                    {{ 'WIZARD.CREATE' | translate }}
+                </a>
+                <a wz-previous translate="WIZARD.BACK" class="cancel">
+                </a>
+            </footer>
+        </wz-step>
+
+    </wizard>
+
+
+    <div class="btm-spacer"></div>
+</section>
