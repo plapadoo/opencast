@@ -56,6 +56,7 @@ import static org.opencastproject.util.doc.rest.RestParameter.Type.TEXT;
 import org.opencastproject.adminui.exception.JobEndpointException;
 import org.opencastproject.adminui.impl.AdminUIConfiguration;
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
+import org.opencastproject.adminui.util.BulkUpdateUtil;
 import org.opencastproject.adminui.util.QueryPreprocessor;
 import org.opencastproject.authorization.xacml.manager.api.AclService;
 import org.opencastproject.authorization.xacml.manager.api.AclServiceException;
@@ -78,6 +79,7 @@ import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.index.service.impl.index.event.EventIndexSchema;
 import org.opencastproject.index.service.impl.index.event.EventSearchQuery;
 import org.opencastproject.index.service.impl.index.event.EventUtils;
+import org.opencastproject.index.service.impl.index.series.Series;
 import org.opencastproject.index.service.resources.list.provider.EventCommentsListProvider;
 import org.opencastproject.index.service.resources.list.provider.EventsListProvider.Comments;
 import org.opencastproject.index.service.resources.list.query.EventListQuery;
@@ -171,8 +173,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -1024,6 +1028,57 @@ public abstract class AbstractEventEndpoint {
       metadataList.setLocked(Locked.WORKFLOW_RUNNING);
 
     return okJson(metadataList.toJSON());
+  }
+
+  @PUT
+  @Path("bulkupdate")
+  @RestQuery(name = "bulkupdate", description = "Update all of the given events at once", restParameters = {
+    @RestParameter(name = "update", isRequired = true, type = RestParameter.Type.TEXT, description = "The list of events and fields to update.") }, reponses = {
+    @RestResponse(description = "All events have been updated successfully.", responseCode = HttpServletResponse.SC_OK),
+    @RestResponse(description = "Could not parse update instructions.", responseCode = HttpServletResponse.SC_BAD_REQUEST),
+    @RestResponse(description = "The conflicts included in the response body occurred. No events were updated.", responseCode = HttpServletResponse.SC_CONFLICT),
+    @RestResponse(description = "The events or series included in the response body were not found. No events were updated.", responseCode = HttpServletResponse.SC_NOT_FOUND) },
+    returnDescription = "In case of success, no content is returned. In case of conflicts, the conflicts are returned. In case events were not found, their ids are returned")
+  public Response bulkUpdate(@FormParam("update") String updateJson) throws SearchIndexException {
+
+    try {
+      final BulkUpdateUtil.BulkUpdateInstructions instructions = new BulkUpdateUtil.BulkUpdateInstructions(updateJson);
+      final Map<String, Event> events = instructions.getEventIds().stream()
+        .collect(Collectors.toMap(id->id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id).orElse(null)));
+
+      final Set<String> notFoundIds = events.entrySet().stream()
+        .filter(e -> e.getValue() == null)
+        .map(Entry::getKey)
+        .collect(Collectors.toSet());
+
+      if (!notFoundIds.isEmpty()) {
+        return notFound(JSONUtils.setToJSON(notFoundIds));
+      }
+
+      if (instructions.getTitle() != null) {
+        //TODO
+      }
+
+      if (instructions.getLocation() != null) {
+        //TODO
+      }
+
+      if (instructions.getSeriesId() != null) {
+        final Opt<Series> series = getIndexService().getSeries(instructions.getSeriesId(), getIndex());
+        if (series.isNone()) {
+          return notFound(JSONUtils.setToJSON(Collections.singleton(instructions.getSeriesId())));
+        }
+        //TODO
+      }
+
+      if (instructions.getStart() != null || instructions.getEnd() != null) {
+        //TODO
+      }
+
+      return ok();
+    } catch (IllegalArgumentException e) {
+      return badRequest("Cannot parse bulk update instructions");
+    }
   }
 
   @PUT
