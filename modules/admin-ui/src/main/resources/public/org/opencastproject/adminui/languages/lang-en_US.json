@@ -251,6 +251,10 @@
           },
           "SUMMARY": {
               "CAPTION": "Summary"
+          },
+          "EDIT": {
+              "CAPTION": "Edit",
+              "METADATA": "Metadata"
           }
       }
    },

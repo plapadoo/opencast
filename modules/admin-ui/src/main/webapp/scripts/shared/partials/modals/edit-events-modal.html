@@ -9,7 +9,7 @@
             <div class="modal-content active">
                 <div class="modal-body">
                     <div class="row">
-                        <div ng-show="editEventsForm.generalForm.$valid" class="alert sticky warning">
+                        <div ng-show="editEventsForm.generalForm.$error.scheduledEvent" class="alert sticky warning">
                             <p translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.CANNOTSTART">
                                 <!-- Cannot start -->
                             </p>
@@ -39,8 +39,8 @@
                                     </tr>
                                     </thead>
                                     <tbody >
-                                    <tr ng-repeat="row in rows" ng-form="rowsForm" ng-class="{error: rowsForm.selection.$error.taskStartable}">
-                                        <td><input name="selection" ng-required="!hasAnySelected()" type="checkbox" task-startable="{{row.source}}" ng-model="row.selected" ng-change="rowSelectionChanged($index)" class="child-cbox"></td>
+                                    <tr ng-repeat="row in rows" ng-form="rowsForm" ng-class="{error: rowsForm.selection.$error.scheduledEvent}">
+                                        <td><input name="selection" ng-required="!hasAnySelected()" type="checkbox" scheduled-event="{{row.source}}" ng-model="row.selected" ng-change="rowSelectionChanged($index)" class="child-cbox"></td>
                                         <td>{{ row.title }}</td>
                                         <td>{{ row.series_name}}</td>
                                         <td>{{ row.source }}</td>
@@ -67,14 +67,14 @@
         </wz-step>
 
         <!-- Second Step: The actual Editing -->
-        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.TASKS.CAPTION' | translate }}" ng-form="editEventsForm" novalidate canexit="editEventsForm.$valid">
+        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.EDIT.CAPTION' | translate }}" ng-form="editEventsForm" novalidate canexit="editEventsForm.$valid">
             <div class="modal-content active">
 
                 <div class="modal-body">
                     <div class="full-col">
 
                         <div class="obj list-obj">
-                            <header translate="BULK_ACTIONS.EDIT_EVENTS.METADATA.EDIT"><!-- Edit Metadata --></header>
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.METADATA"><!-- Edit Metadata --></header>
                             <div class="obj-container">
 
                               INSERT STUFF HERE
