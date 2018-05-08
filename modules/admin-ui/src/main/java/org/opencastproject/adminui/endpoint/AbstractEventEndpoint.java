@@ -40,8 +40,10 @@ import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 import static org.apache.commons.lang3.StringUtils.trimToNull;
 import static org.opencastproject.index.service.util.RestUtils.conflictJson;
 import static org.opencastproject.index.service.util.RestUtils.notFound;
+import static org.opencastproject.index.service.util.RestUtils.notFoundJson;
 import static org.opencastproject.index.service.util.RestUtils.okJson;
 import static org.opencastproject.index.service.util.RestUtils.okJsonList;
+import static org.opencastproject.index.service.util.RestUtils.serverErrorJson;
 import static org.opencastproject.util.DateTimeSupport.toUTC;
 import static org.opencastproject.util.RestUtil.R.badRequest;
 import static org.opencastproject.util.RestUtil.R.conflict;
@@ -547,10 +549,10 @@ public abstract class AbstractEventEndpoint {
     }
 
     if (start.isNone() && end.isNone() && agentId.isNone() && agentConfiguration.isNone() && optOut.isNone()) {
-      getSchedulerService().updateEvent(event.getIdentifier(), start, end, agentId, Opt.<Set<String>>none(),
-        Opt.<MediaPackage>none(), Opt.<Map<String, String>>none(), agentConfiguration, optOut,
-        SchedulerService.ORIGIN);
+      return;
     }
+    getSchedulerService().updateEvent(event.getIdentifier(), start, end, agentId, Opt.<Set<String>>none(),
+      Opt.<MediaPackage>none(), Opt.<Map<String, String>>none(), agentConfiguration, optOut, SchedulerService.ORIGIN);
   }
 
   private Event getEventOrThrowNotFoundException(final String eventId) throws NotFoundException, SearchIndexException {
@@ -1064,7 +1066,7 @@ public abstract class AbstractEventEndpoint {
       .map(Entry::getKey)
       .collect(Collectors.toSet());
     if (!notFoundIds.isEmpty()) {
-      return notFound(JSONUtils.setToJSON(notFoundIds));
+      return notFoundJson(JSONUtils.setToJSON(notFoundIds));
     }
 
     final Map<String, String> metadataUpdateFailures = new HashMap<>();
@@ -1083,7 +1085,9 @@ public abstract class AbstractEventEndpoint {
       // Update the scheduling information
       try {
         if (instructions.getScheduling() != null) {
+          // TODO: add dates to start and end
           updateEventScheduling(instructions.getScheduling(), event);
+          // TODO: Update non-technical metadata ?
         }
       } catch (Exception exception) {
         schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
@@ -1092,10 +1096,10 @@ public abstract class AbstractEventEndpoint {
 
     // Check if there were any errors updating the metadata or scheduling information
     if (!metadataUpdateFailures.isEmpty() || !schedulingUpdateFailures.isEmpty()) {
-      return Response.serverError().entity(obj(
+      return serverErrorJson(obj(
         f("metadataFailures", JSONUtils.mapToJSON(metadataUpdateFailures)),
         f("schedulingFailures", JSONUtils.mapToJSON(schedulingUpdateFailures))
-      )).build();
+      ));
     }
     return ok();
   }
