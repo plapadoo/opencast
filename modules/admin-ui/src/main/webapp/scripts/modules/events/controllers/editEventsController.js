@@ -90,8 +90,15 @@ angular.module('adminNg.controllers')
         }
     }
 
+    var fromJsWeekday = function(d) {
+        // Javascript week days start at sunday (so 0=SU), so we have to roll over.
+        return JsHelper.getWeekDays()[d + 1 % 7];
+    }
+
+
     $scope.hours = JsHelper.initArray(24);
     $scope.minutes = JsHelper.initArray(60);
+    $scope.weekdays = JsHelper.getWeekDays();
 
     // Get scheduling information for the events
     $scope.scheduling = {};
@@ -111,7 +118,8 @@ angular.module('adminNg.controllers')
             duration: {
                 hour: getSchedulingPart(function(entry) { return entry.duration.hour; }),
                 minute: getSchedulingPart(function(entry) { return entry.duration.minute; })
-            }
+            },
+            weekday: getSchedulingPart(function(entry) { return fromJsWeekday(new Date(entry.start.date).getDay()).key; })
         };
     });
 
