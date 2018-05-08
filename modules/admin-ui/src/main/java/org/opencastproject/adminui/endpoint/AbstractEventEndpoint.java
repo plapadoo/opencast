@@ -217,11 +217,11 @@ public abstract class AbstractEventEndpoint {
   /**
    * Scheduling JSON keys
    */
-  private static final String SCHEDULING_AGENT_ID_KEY = "agentId";
-  private static final String SCHEDULING_START_KEY = "start";
-  private static final String SCHEDULING_END_KEY = "end";
-  private static final String SCHEDULING_AGENT_CONFIGURATION_KEY = "agentConfiguration";
-  private static final String SCHEDULING_OPT_OUT_KEY = "optOut";
+  public static final String SCHEDULING_AGENT_ID_KEY = "agentId";
+  public static final String SCHEDULING_START_KEY = "start";
+  public static final String SCHEDULING_END_KEY = "end";
+  public static final String SCHEDULING_AGENT_CONFIGURATION_KEY = "agentConfiguration";
+  public static final String SCHEDULING_OPT_OUT_KEY = "optOut";
 
   private static final String WORKFLOW_ACTION_STOP = "STOP";
 
@@ -1124,8 +1124,9 @@ public abstract class AbstractEventEndpoint {
       // Update the scheduling information
       try {
         if (instructions.getScheduling() != null) {
-          // TODO: add dates to start and end
-          updateEventScheduling(instructions.getScheduling(), event);
+          // Since we only have the start/end time, we have to add the correct date(s) for this event.
+          final String schedulingJson = BulkUpdateUtil.addSchedulingDates(event, instructions.getScheduling());
+          updateEventScheduling(schedulingJson, event);
           // TODO: Update non-technical metadata ?
         }
       } catch (Exception exception) {

@@ -21,33 +21,93 @@
 
 package org.opencastproject.adminui.util;
 
+import static org.opencastproject.adminui.endpoint.AbstractEventEndpoint.SCHEDULING_END_KEY;
+import static org.opencastproject.adminui.endpoint.AbstractEventEndpoint.SCHEDULING_START_KEY;
+
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.matterhorn.search.SearchIndexException;
-
-import com.entwinemedia.fn.data.Opt;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+
 public final class BulkUpdateUtil {
+
+  private static final JSONParser JSON_PARSER = new JSONParser();
 
   private BulkUpdateUtil() {
   }
 
-  public static Optional<Event> getEvent(IndexService indexService, AdminUISearchIndex index, String id) {
+  public static Optional<Event> getEvent(
+    final IndexService indexSvc,
+    final AdminUISearchIndex index,
+    final String id) {
     try {
-      final Opt<Event> optEvent = indexService.getEvent(id, index);
-      return optEvent.isSome() ? Optional.of(optEvent.get()) : Optional.empty();
+      final Event event = indexSvc.getEvent(id, index).orNull();
+      return Optional.ofNullable(event);
     } catch (SearchIndexException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  public static String addSchedulingDates(
+    final Event event,
+    final String schedulingJson)
+    throws IllegalArgumentException {
+    try {
+      final JSONObject scheduling = (JSONObject) JSON_PARSER.parse(schedulingJson);
+      OffsetDateTime startDate = Instant.parse(event.getRecordingStartDate()).atOffset(ZoneOffset.UTC);
+      OffsetDateTime endDate = Instant.parse(event.getRecordingEndDate()).atOffset(ZoneOffset.UTC);
+      if (scheduling.containsKey(SCHEDULING_START_KEY)) {
+        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate);
+      }
+      if (scheduling.containsKey(SCHEDULING_END_KEY)) {
+        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate);
+      }
+      if (endDate.isBefore(startDate)) {
+        endDate = endDate.plusDays(1);
+      }
+      if (scheduling.containsKey("weekday")) {
+        final String weekdayAbbrev = ((String) scheduling.get("weekday"));
+        final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
+          .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
+          .findAny()
+          .orElseThrow(() -> new IllegalArgumentException("Cannot parse weekday: " + weekdayAbbrev));
+        final int daysDiff = newWeekDay.getValue() - startDate.getDayOfWeek().getValue();
+        startDate = startDate.plusDays(daysDiff);
+        endDate = endDate.plusDays(daysDiff);
+      }
+      scheduling.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_DATE_TIME));
+      scheduling.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_DATE_TIME));
+      return scheduling.toJSONString();
+    } catch (ParseException e) {
+      throw new IllegalArgumentException(e);
+    }
+  }
+
+  private static OffsetDateTime adjustedSchedulingDate(
+    final JSONObject scheduling,
+    final String dateKey,
+    final OffsetDateTime date) {
+    final JSONObject time = (JSONObject) scheduling.get(dateKey);
+    final int hour = Math.toIntExact((Long) time.get("hour"));
+    final int minute = Math.toIntExact((Long) time.get("minute"));
+    return date.toLocalDate().atTime(LocalTime.of(hour, minute)).atOffset(ZoneOffset.UTC);
   }
 
   public static class BulkUpdateInstructions {
@@ -60,9 +120,9 @@ public final class BulkUpdateUtil {
     private final String scheduling;
 
     @SuppressWarnings("unchecked")
-    public BulkUpdateInstructions(String json) throws IllegalArgumentException {
+    public BulkUpdateInstructions(final String json) throws IllegalArgumentException {
       try {
-        final JSONObject jsonObject = (JSONObject) new JSONParser().parse(json);
+        final JSONObject jsonObject = (JSONObject) JSON_PARSER.parse(json);
         eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
         metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA))
           .map(o -> ((JSONArray) o).toJSONString()).orElse(null);
