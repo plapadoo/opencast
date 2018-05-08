@@ -27,8 +27,10 @@ import static org.opencastproject.adminui.endpoint.AbstractEventEndpoint.SCHEDUL
 
 import org.opencastproject.adminui.impl.index.AdminUISearchIndex;
 import org.opencastproject.index.service.api.IndexService;
+import org.opencastproject.index.service.catalog.adapter.events.CommonEventCatalogUIAdapter;
 import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.matterhorn.search.SearchIndexException;
+import org.opencastproject.mediapackage.MediaPackageElements;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -137,23 +139,13 @@ public final class BulkUpdateUtil {
       }
 
       final JSONObject result = new JSONObject();
-      result.put("flavor", "dublincore/episode");
-      result.put("title", "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE");
+      result.put("flavor", MediaPackageElements.EPISODE.toString());
+      result.put("title", CommonEventCatalogUIAdapter.EPISODE_TITLE);
       result.put("fields", fields);
       return result.toJSONString();
     } catch (ParseException e) {
       throw new IllegalArgumentException(e);
     }
-  }
-
-  private static OffsetDateTime adjustedSchedulingDate(
-    final JSONObject scheduling,
-    final String dateKey,
-    final OffsetDateTime date) {
-    final JSONObject time = (JSONObject) scheduling.get(dateKey);
-    final int hour = Math.toIntExact((Long) time.get("hour"));
-    final int minute = Math.toIntExact((Long) time.get("minute"));
-    return date.toLocalDate().atTime(LocalTime.of(hour, minute)).atOffset(ZoneOffset.UTC);
   }
 
   @SuppressWarnings("unchecked")
@@ -169,6 +161,16 @@ public final class BulkUpdateUtil {
     } catch (ParseException | ArrayIndexOutOfBoundsException e) {
       throw new IllegalArgumentException(e);
     }
+  }
+
+  private static OffsetDateTime adjustedSchedulingDate(
+    final JSONObject scheduling,
+    final String dateKey,
+    final OffsetDateTime date) {
+    final JSONObject time = (JSONObject) scheduling.get(dateKey);
+    final int hour = Math.toIntExact((Long) time.get("hour"));
+    final int minute = Math.toIntExact((Long) time.get("minute"));
+    return date.toLocalDate().atTime(LocalTime.of(hour, minute)).atOffset(ZoneOffset.UTC);
   }
 
   public static class BulkUpdateInstructions {
