@@ -29,9 +29,21 @@ function ($scope, Table, Notifications, EventBulkEditResource, decorateWithTable
     $scope.test = false;
     $scope.currentForm = 'generalForm';
 
+    $scope.saveField = function(arg, arg2) {
+        console.log('saving '+JSON.stringify(arg)+' '+JSON.stringify(arg2));
+    };
+
+    $scope.metadataRows = [{
+        id: "title",
+        label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
+        readOnly: false,
+        required: true,
+        type: "text",
+        value: "Tears of Steel (No. 1)"
+    }];
+
     $scope.valid = function () {
-        return true;
-        //return $scope.getSelectedIds().length > 0;
+        return $scope.getSelectedIds().length > 0;
     };
 
     var onSuccess = function () {

@@ -77,7 +77,153 @@
                             <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.METADATA"><!-- Edit Metadata --></header>
                             <div class="obj-container">
 
-                              INSERT STUFF HERE
+                              <table class="main-tbl">
+                                <tr ng-repeat="row in metadataRows track by $index">
+                                  <td>
+                                    <span translate="{{ row.label }}"></span>
+                                    <i ng-show="row.required" class="required">*</i>
+                                  </td>
+                                  <td admin-ng-editable
+                                      required-role="ROLE_UI_EVENTS_DETAILS_METADATA_EDIT"
+                                      params="row"
+                                      save="saveField">
+                                  </td>
+                                </tr>
+                              </table>
+
+                            </div><!-- obj-container -->
+
+                        </div><!--list-obj -->
+
+                        <div class="obj list-obj">
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.SCHEDULING"><!-- Edit scheduling --></header>
+                            <div class="obj-container">
+
+                              <!-- Scheduling configuration -->
+                              <div class="obj tbl-details">
+                                <header>
+                                  <span translate="EVENTS.EVENTS.DETAILS.SCHEDULING.CAPTION">
+                                    <!-- Scheduling configuration -->
+                                  </span>
+                                </header>
+                                <div class="obj-container">
+                                  <table class="main-tbl">
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.TIMEZONE' | translate }}</td>
+                                      <td>{{ tz }}</td>
+                                    </tr>
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.START_TIME' | translate }}</td>
+                                      <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.start.hour" ng-change="onTemporalValueChange('start')"
+                                                data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
+                                                ng-options="h.index as h.value for h in hours"
+                                                />
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.start.minute" ng-change="onTemporalValueChange('start')"
+                                                data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
+                                                ng-options="m.index as m.value for m in minutes"
+                                                />
+                                      </td>
+                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        {{ source.start.hour | addLeadingZeros : 2 }} : {{ source.start.minute | addLeadingZeros : 2}}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.DURATION' | translate }}</td>
+                                      <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.duration.hour" ng-change="onTemporalValueChange('duration')"
+                                                data-placeholder="{{ 'WIZARD.DURATION.HOURS' | translate }}"
+                                                ng-options="h.index as h.value for h in hours"
+                                                />
+
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.duration.minute" ng-change="onTemporalValueChange('duration')"
+                                                data-placeholder="{{ 'WIZARD.DURATION.MINUTES' | translate }}"
+                                                ng-options="m.index as m.value for m in minutes"
+                                                />
+                                      </td>
+                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        {{ source.duration.hour | addLeadingZeros : 2 }} : {{ source.duration.minute | addLeadingZeros : 2}}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.END_TIME' | translate }}</td>
+                                      <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.end.hour" ng-change="onTemporalValueChange('end')"
+                                                data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
+                                                ng-options="h.index as h.value for h in hours"
+                                                />
+                                        <select chosen
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'100px'"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.end.minute" ng-change="onTemporalValueChange('end')"
+                                                data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
+                                                ng-options="m.index as m.value for m in minutes"
+                                                />
+                                        <span ng-bind="source.end.date"
+                                              ng-show="source.end.date !== source.start.date"
+                                              />
+                                      </td>
+                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        {{ source.end.hour | addLeadingZeros : 2 }} : {{ source.end.minute | addLeadingZeros : 2}}
+                                        <span ng-bind="source.end.date"
+                                              ng-show="source.end.date !== source.start.date"
+                                              />
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.LOCATION' | translate }}</td>
+                                      <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        <select chosen pre-select-from="captureAgents"
+                                                ng-disabled="checkingConflicts"
+                                                data-width="'200px'"
+                                                ng-change="roomChanged(); saveScheduling()"
+                                                data-disable-search-threshold="8"
+                                                ng-model="source.device"
+                                                ng-options="value.name for (id, value) in captureAgents"
+                                                data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.LOCATION' | translate }}"
+                                                />
+                                      </td>
+                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
+                                        {{ source.device.name }}
+                                      </td>
+                                    </tr>
+                                    <tr>
+                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.INPUTS' | translate }}</td>
+                                      <td>
+                                        <label ng-repeat="inputMethod in source.device.inputs">
+                                          <input type="checkbox"
+                                                 ng-change="saveScheduling()"
+                                                 ng-model="source.device.inputMethods[inputMethod.id]"
+                                                 ng-disabled="checkingConflicts || !$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')"> {{ inputMethod.value | translate }}
+                                          <br>
+                                        </label>
+                                      </td>
+                                    </tr>
+                                  </table>
+                                </div>
+
+                              </div>
 
                             </div><!-- obj-container -->
 
