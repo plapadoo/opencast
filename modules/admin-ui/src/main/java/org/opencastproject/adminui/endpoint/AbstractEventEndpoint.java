@@ -470,6 +470,45 @@ public abstract class AbstractEventEndpoint {
     }
   }
 
+  @POST
+  @Path("scheduling.json")
+  @Produces(MediaType.APPLICATION_JSON)
+  public Response getEventsScheduling(@FormParam("eventIds") final String eventIds) {
+    final JSONParser parser = new JSONParser();
+    final JSONArray eventIdsArray;
+    try {
+      eventIdsArray = (JSONArray) parser.parse(eventIds);
+    } catch (final org.json.simple.parser.ParseException e) {
+      logger.warn("Unable to parse event ids {} : {}", eventIds, ExceptionUtils.getStackTrace(e));
+      return Response.status(Status.BAD_REQUEST).build();
+    } catch (final NullPointerException e) {
+      logger.warn("Unable to parse event ids because it was null");
+      return Response.status(Status.BAD_REQUEST).build();
+    } catch (final ClassCastException e) {
+      logger.warn("Unable to parse event ids because it was the wrong class {} : {}", eventIds,
+        ExceptionUtils.getStackTrace(e));
+      return Response.status(Status.BAD_REQUEST).build();
+    }
+
+    final List<JValue> fields = new ArrayList<>(eventIds.length());
+    for (final Object o : eventIdsArray) {
+      final String eventId = o.toString();
+      try {
+        fields.add(technicalMetadataToJson.apply(getSchedulerService().getTechnicalMetadata(eventId)));
+      } catch (final NotFoundException e) {
+        logger.warn("Unable to find id {}", eventId, ExceptionUtils.getStackTrace(e));
+        return Response.status(Status.BAD_REQUEST).build();
+      } catch (final UnauthorizedException e) {
+        logger.warn("Unauthorized access to event ID {}", eventId, ExceptionUtils.getStackTrace(e));
+        return Response.status(Status.BAD_REQUEST).build();
+      } catch (final SchedulerException e) {
+        logger.warn("Scheduler exception accessing event ID {}", eventId, ExceptionUtils.getStackTrace(e));
+        return Response.status(Status.BAD_REQUEST).build();
+      }
+    }
+    return okJson(arr(fields));
+  }
+
   @PUT
   @Path("{eventId}/scheduling")
   @RestQuery(name = "updateEventScheduling", description = "Updates the scheduling information of an event", returnDescription = "The method doesn't return any content", pathParameters = {

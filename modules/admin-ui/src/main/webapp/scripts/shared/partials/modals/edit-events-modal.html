@@ -119,7 +119,7 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="schedulingg.start.hour" ng-change="onTemporalValueChange('start')"
+                                                ng-model="scheduling.start.hour" ng-change="onTemporalValueChange('start')"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -127,7 +127,7 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.start.minute" ng-change="onTemporalValueChange('start')"
+                                                ng-model="scheduling.start.minute" ng-change="onTemporalValueChange('start')"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
@@ -143,7 +143,7 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.duration.hour" ng-change="onTemporalValueChange('duration')"
+                                                ng-model="scheduling.duration.hour" ng-change="onTemporalValueChange('duration')"
                                                 data-placeholder="{{ 'WIZARD.DURATION.HOURS' | translate }}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -152,13 +152,13 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.duration.minute" ng-change="onTemporalValueChange('duration')"
+                                                ng-model="scheduling.duration.minute" ng-change="onTemporalValueChange('duration')"
                                                 data-placeholder="{{ 'WIZARD.DURATION.MINUTES' | translate }}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
                                       </td>
                                       <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        {{ source.duration.hour | addLeadingZeros : 2 }} : {{ source.duration.minute | addLeadingZeros : 2}}
+                                        {{ scheduling.duration.hour | addLeadingZeros : 2 }} : {{ scheduling.duration.minute | addLeadingZeros : 2}}
                                       </td>
                                     </tr>
                                     <tr>
@@ -168,7 +168,7 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.end.hour" ng-change="onTemporalValueChange('end')"
+                                                ng-model="scheduling.end.hour" ng-change="onTemporalValueChange('end')"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -176,18 +176,18 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.end.minute" ng-change="onTemporalValueChange('end')"
+                                                ng-model="scheduling.end.minute" ng-change="onTemporalValueChange('end')"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
-                                        <span ng-bind="source.end.date"
-                                              ng-show="source.end.date !== source.start.date"
+                                        <span ng-bind="scheduling.end.date"
+                                              ng-show="scheduling.end.date !== scheduling.start.date"
                                               />
                                       </td>
                                       <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        {{ source.end.hour | addLeadingZeros : 2 }} : {{ source.end.minute | addLeadingZeros : 2}}
-                                        <span ng-bind="source.end.date"
-                                              ng-show="source.end.date !== source.start.date"
+                                        {{ scheduling.end.hour | addLeadingZeros : 2 }} : {{ scheduling.end.minute | addLeadingZeros : 2}}
+                                        <span ng-bind="scheduling.end.date"
+                                              ng-show="scheduling.end.date !== scheduling.start.date"
                                               />
                                       </td>
                                     </tr>

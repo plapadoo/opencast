@@ -22,8 +22,8 @@
 
 // Controller for the "edit scheduled events" wizard
 angular.module('adminNg.controllers')
-    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'decorateWithTableRowSelection',
-function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, decorateWithTableRowSelection) {
+    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'decorateWithTableRowSelection',
+                                   function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, decorateWithTableRowSelection) {
     $scope.rows = Table.copySelected();
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
@@ -31,6 +31,14 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     /* Get the current client timezone */
     var tzOffset = (new Date()).getTimezoneOffset() / -60;
     $scope.tz = 'UTC' + (tzOffset < 0 ? '-' : '+') + tzOffset;
+
+    var eventIds = function() {
+        var result = [];
+        angular.forEach($scope.rows, function(row) {
+            result.push(row.id);
+        });
+        return result;
+    };
 
     // Get available series
     $scope.seriesResults = {};
@@ -46,7 +54,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         $scope.captureAgents = data.rows;
     });
 
-    function getMetadata(getter) {
+    function getMetadataPart(getter) {
         var result = null;
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
@@ -54,14 +62,61 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             if (result === null) {
                 result = val;
             } else if (result !== val) {
-                return null
+                return null;
             }
         }
         return result;
     }
 
-    $scope.scheduling = {
-        location: getMetadata(function(row) { return row.location; })
+    function getSchedulingPart(getter) {
+        var result = { ambiguous: false, value: null };
+        angular.forEach($scope.schedulingSingle, function(value, key) {
+            console.log(JSON.stringify(value));
+            console.log(JSON.stringify(value.start));
+            var val = getter(value);
+            if (result.ambiguous === false) {
+                if (result.value === null) {
+                    result.value = val;
+                } else if (result.value !== val) {
+                    result.ambiguous = true;
+                    result.value = null;
+                }
+            }
+        });
+        if (result.ambiguous === true) {
+            return null;
+        } else {
+            return result.value;
+        }
+    }
+
+    $scope.hours = JsHelper.initArray(24);
+    $scope.minutes = JsHelper.initArray(60);
+
+    // Get scheduling information for the events
+    $scope.scheduling = {};
+    $scope.schedulingSingle = {};
+    EventsSchedulingResource.bulkGet(eventIds()).$promise.then(function (results) {
+        $scope.schedulingSingle = results;
+        $scope.scheduling = {
+            location: getMetadataPart(function(row) { return row.location; }),
+            start: {
+                hour: getSchedulingPart(function(entry) { return entry.start.hour; }),
+                minute: getSchedulingPart(function(entry) { return entry.start.minute; })
+            },
+            end: {
+                hour: getSchedulingPart(function(entry) { return entry.end.hour; }),
+                minute: getSchedulingPart(function(entry) { return entry.end.minute; })
+            },
+            duration: {
+                hour: getSchedulingPart(function(entry) { return entry.duration.hour; }),
+                minute: getSchedulingPart(function(entry) { return entry.duration.minute; })
+            }
+        };
+    });
+
+    $scope.onTemporalValueChange = function(type) {
+        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, true);
     };
 
     $scope.saveScheduling = function() {
@@ -76,7 +131,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             readOnly: false,
             required: true,
             type: "text",
-            value: getMetadata(function(row) { return row.title; })
+            value: getMetadataPart(function(row) { return row.title; })
         },
         {
             id: "isPartOf",
@@ -86,7 +141,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             required: false,
             translatable: false,
             type: "text",
-            value: getMetadata(function(row) { return row.series_id; })
+            value: getMetadataPart(function(row) { return row.series_id; })
         },
     ];
 
