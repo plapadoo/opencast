@@ -119,7 +119,7 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.start.hour" ng-change="onTemporalValueChange('start')"
+                                                ng-model="schedulingg.start.hour" ng-change="onTemporalValueChange('start')"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -199,7 +199,7 @@
                                                 data-width="'200px'"
                                                 ng-change="roomChanged(); saveScheduling()"
                                                 data-disable-search-threshold="8"
-                                                ng-model="source.device"
+                                                ng-model="scheduling.location"
                                                 ng-options="value.name for (id, value) in captureAgents"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.LOCATION' | translate }}"
                                                 />
