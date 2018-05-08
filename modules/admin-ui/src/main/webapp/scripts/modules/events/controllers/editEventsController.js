@@ -22,8 +22,8 @@
 
 // Controller for the "edit scheduled events" wizard
 angular.module('adminNg.controllers')
-    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'decorateWithTableRowSelection',
-function ($scope, Table, Notifications, EventBulkEditResource, decorateWithTableRowSelection) {
+    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'decorateWithTableRowSelection',
+function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, decorateWithTableRowSelection) {
     $scope.rows = Table.copySelected();
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
@@ -33,14 +33,47 @@ function ($scope, Table, Notifications, EventBulkEditResource, decorateWithTable
         console.log('saving '+JSON.stringify(arg)+' '+JSON.stringify(arg2));
     };
 
-    $scope.metadataRows = [{
-        id: "title",
-        label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
-        readOnly: false,
-        required: true,
-        type: "text",
-        value: "Tears of Steel (No. 1)"
-    }];
+    $scope.seriesResults = {};
+    SeriesResource.query().$promise.then(function(results) {
+        angular.forEach(results.rows, function(row) {
+            $scope.seriesResults[row.title] = row.id;
+        });
+    });
+
+    function getMetadata(getter) {
+        var result = null;
+        for (var i = 0; i < $scope.rows.length; i++) {
+            var row = $scope.rows[i];
+            var val = getter(row);
+            if (result === null) {
+                result = val;
+            } else if (result !== val) {
+                return null
+            }
+        }
+        return result;
+    }
+
+    $scope.metadataRows = [
+        {
+            id: "title",
+            label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
+            readOnly: false,
+            required: true,
+            type: "text",
+            value: getMetadata(function(row) { return row.title; })
+        },
+        {
+            id: "isPartOf",
+            collection: $scope.seriesResults,
+            label: "EVENTS.EVENTS.DETAILS.METADATA.SERIES",
+            readOnly: false,
+            required: false,
+            translatable: false,
+            type: "text",
+            value: getMetadata(function(row) { return row.series_id; })
+        },
+    ];
 
     $scope.valid = function () {
         return $scope.getSelectedIds().length > 0;
