@@ -140,7 +140,7 @@ public final class BulkUpdateUtil {
       result.put("flavor", "dublincore/episode");
       result.put("title", "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE");
       result.put("fields", fields);
-      return JSONArray.toJSONString(Collections.singletonList(result));
+      return result.toJSONString();
     } catch (ParseException e) {
       throw new IllegalArgumentException(e);
     }
@@ -161,8 +161,8 @@ public final class BulkUpdateUtil {
     if (first == null) return second;
     if (second == null) return first;
     try {
-      final JSONObject firstJson = (JSONObject) ((JSONArray) JSON_PARSER.parse(first)).get(0);
-      final JSONObject secondJson = (JSONObject) ((JSONArray) JSON_PARSER.parse(second)).get(0);
+      final JSONObject firstJson = (JSONObject) JSON_PARSER.parse(first);
+      final JSONObject secondJson = (JSONObject) JSON_PARSER.parse(second);
       JSONArray fields = ((JSONArray) firstJson.get("fields"));
       fields.addAll((JSONArray) secondJson.get("fields"));
       return JSONArray.toJSONString(Collections.singletonList(firstJson));
@@ -186,7 +186,7 @@ public final class BulkUpdateUtil {
         final JSONObject jsonObject = (JSONObject) JSON_PARSER.parse(json);
         eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
         metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA))
-          .map(o -> ((JSONArray) o).toJSONString()).orElse(null);
+          .map(o -> ((JSONObject) o).toJSONString()).orElse(null);
         scheduling = Optional.ofNullable(jsonObject.get(KEY_SCHEDULING))
           .map(o -> ((JSONObject) o).toJSONString()).orElse(null);
       } catch (ParseException e) {
