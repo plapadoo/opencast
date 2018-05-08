@@ -1112,14 +1112,8 @@ public abstract class AbstractEventEndpoint {
     final Map<String, String> schedulingUpdateFailures = new HashMap<>();
 
     events.values().forEach(e -> e.ifPresent(event -> {
-      // Update the event metadata
-      try {
-        if (instructions.getMetadata() != null) {
-          getIndexService().updateAllEventMetadata(event.getIdentifier(), instructions.getMetadata(), getIndex());
-        }
-      } catch (Exception exception) {
-        metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
-      }
+
+      String metadataJson = null;
 
       // Update the scheduling information
       try {
@@ -1127,10 +1121,21 @@ public abstract class AbstractEventEndpoint {
           // Since we only have the start/end time, we have to add the correct date(s) for this event.
           final String schedulingJson = BulkUpdateUtil.addSchedulingDates(event, instructions.getScheduling());
           updateEventScheduling(schedulingJson, event);
-          // TODO: Update non-technical metadata ?
+          // We have to update the non-technical metadata as well to keep them in sync with the technical ones.
+          metadataJson = BulkUpdateUtil.toNonTechnicalMetadataJson(schedulingJson);
         }
       } catch (Exception exception) {
         schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+      }
+
+      // Update the event metadata
+      try {
+        if (instructions.getMetadata() != null || metadataJson != null) {
+          metadataJson = BulkUpdateUtil.mergeMetadataFields(metadataJson, instructions.getMetadata());
+          getIndexService().updateAllEventMetadata(event.getIdentifier(), metadataJson, getIndex());
+        }
+      } catch (Exception exception) {
+        metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
       }
     }));
 
