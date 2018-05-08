@@ -28,6 +28,11 @@ import org.opencastproject.matterhorn.search.SearchIndexException;
 
 import com.entwinemedia.fn.data.Opt;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -43,46 +48,35 @@ public class BulkUpdateUtil {
   }
 
   public static class BulkUpdateInstructions {
-    private final List<String> eventIds;
-    private final String title;
-    private final String seriesId;
-    private final String location;
-    private final String start;
-    private final String end;
+    private static final String KEY_EVENTS = "events";
+    private static final String KEY_METADATA = "metadata";
+    private static final String KEY_SCHEDULING = "scheduling";
 
+    private final List<String> eventIds;
+    private final String metadata;
+    private final String scheduling;
 
     public BulkUpdateInstructions(String json) throws IllegalArgumentException {
-      //TODO
-      eventIds = null;
-      title = null;
-      seriesId = null;
-      location = null;
-      start = null;
-      end = null;
+      try {
+        final JSONObject jsonObject = (JSONObject) new JSONParser().parse(json);
+        eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
+        metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA)).map(Object::toString).orElse(null);
+        scheduling = Optional.ofNullable(jsonObject.get(KEY_SCHEDULING)).map(Object::toString).orElse(null);
+      } catch (ParseException e) {
+        throw new IllegalArgumentException(e);
+      }
     }
 
     public List<String> getEventIds() {
       return eventIds;
     }
 
-    public String getTitle() {
-      return title;
+    public String getMetadata() {
+      return metadata;
     }
 
-    public String getLocation() {
-      return location;
-    }
-
-    public String getSeriesId() {
-      return seriesId;
-    }
-
-    public String getStart() {
-      return start;
-    }
-
-    public String getEnd() {
-      return end;
+    public String getScheduling() {
+      return scheduling;
     }
   }
 

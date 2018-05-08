@@ -79,7 +79,6 @@ import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.index.service.impl.index.event.EventIndexSchema;
 import org.opencastproject.index.service.impl.index.event.EventSearchQuery;
 import org.opencastproject.index.service.impl.index.event.EventUtils;
-import org.opencastproject.index.service.impl.index.series.Series;
 import org.opencastproject.index.service.resources.list.provider.EventCommentsListProvider;
 import org.opencastproject.index.service.resources.list.provider.EventsListProvider.Comments;
 import org.opencastproject.index.service.resources.list.query.EventListQuery;
@@ -485,56 +484,7 @@ public abstract class AbstractEventEndpoint {
 
     try {
       final Event event = getEventOrThrowNotFoundException(eventId);
-      TechnicalMetadata technicalMetadata = getSchedulerService().getTechnicalMetadata(eventId);
-      final org.codehaus.jettison.json.JSONObject schedulingJson = new org.codehaus.jettison.json.JSONObject(
-              scheduling);
-      Opt<String> agentId = Opt.none();
-      if (schedulingJson.has(SCHEDULING_AGENT_ID_KEY)) {
-        agentId = Opt.some(schedulingJson.getString(SCHEDULING_AGENT_ID_KEY));
-        logger.trace("Updating agent id of event '{}' from '{}' to '{}'",
-                eventId, technicalMetadata.getAgentId(), agentId);
-      }
-
-      Opt<Date> start = Opt.none();
-      if (schedulingJson.has(SCHEDULING_START_KEY)) {
-        start = Opt.some(new Date(DateTimeSupport.fromUTC(schedulingJson.getString(SCHEDULING_START_KEY))));
-        logger.trace("Updating start time of event '{}' id from '{}' to '{}'",
-                eventId, DateTimeSupport.toUTC(technicalMetadata.getStartDate().getTime()),
-                        DateTimeSupport.toUTC(start.get().getTime()));
-      }
-
-      Opt<Date> end = Opt.none();
-      if (schedulingJson.has(SCHEDULING_END_KEY)) {
-        end = Opt.some(new Date(DateTimeSupport.fromUTC(schedulingJson.getString(SCHEDULING_END_KEY))));
-        logger.trace("Updating end time of event '{}' id from '{}' to '{}'",
-                eventId, DateTimeSupport.toUTC(technicalMetadata.getEndDate().getTime()),
-                        DateTimeSupport.toUTC(end.get().getTime()));
-      }
-
-      Opt<Map<String, String>> agentConfiguration = Opt.none();
-      if (schedulingJson.has(SCHEDULING_AGENT_CONFIGURATION_KEY)) {
-        agentConfiguration = Opt.some(JSONUtils.toMap(schedulingJson.getJSONObject(SCHEDULING_AGENT_CONFIGURATION_KEY)));
-        logger.trace("Updating agent configuration of event '{}' id from '{}' to '{}'",
-                eventId, technicalMetadata.getCaptureAgentConfiguration(), agentConfiguration);
-      }
-
-      Opt<Opt<Boolean>> optOut = Opt.none();
-      if (schedulingJson.has(SCHEDULING_OPT_OUT_KEY)) {
-        optOut = Opt.some(Opt.some(schedulingJson.getBoolean(SCHEDULING_OPT_OUT_KEY)));
-        logger.trace("Updating optout status of event '{}' id from '{}' to '{}'",
-                eventId, event.getOptedOut(), optOut);
-      }
-
-      if (start.isNone() && end.isNone() && agentId.isNone() && agentConfiguration.isNone() && optOut.isNone())
-        return Response.noContent().build();
-
-      if ((start.isSome() || end.isSome())
-              && end.getOr(technicalMetadata.getEndDate()).before(start.getOr(technicalMetadata.getStartDate())))
-        return RestUtil.R.badRequest("The end date is before the start date");
-
-      getSchedulerService().updateEvent(eventId, start, end, agentId, Opt.<Set<String>> none(),
-              Opt.<MediaPackage> none(), Opt.<Map<String, String>> none(), agentConfiguration, optOut,
-              SchedulerService.ORIGIN);
+      updateEventScheduling(scheduling, event);
       return Response.noContent().build();
     } catch (JSONException e) {
       return RestUtil.R.badRequest("The scheduling object is not valid");
@@ -544,6 +494,62 @@ public abstract class AbstractEventEndpoint {
       logger.error("Unable to update scheduling technical metadata of event {}: {}", eventId,
               ExceptionUtils.getStackTrace(e));
       throw new WebApplicationException(e, SC_INTERNAL_SERVER_ERROR);
+    } catch (IllegalStateException e) {
+      return RestUtil.R.badRequest(e.getMessage());
+    }
+  }
+
+  private void updateEventScheduling(String scheduling, Event event) throws NotFoundException, UnauthorizedException,
+    SchedulerException, JSONException, ParseException {
+    final TechnicalMetadata technicalMetadata = getSchedulerService().getTechnicalMetadata(event.getIdentifier());
+    final org.codehaus.jettison.json.JSONObject schedulingJson = new org.codehaus.jettison.json.JSONObject(
+            scheduling);
+    Opt<String> agentId = Opt.none();
+    if (schedulingJson.has(SCHEDULING_AGENT_ID_KEY)) {
+      agentId = Opt.some(schedulingJson.getString(SCHEDULING_AGENT_ID_KEY));
+      logger.trace("Updating agent id of event '{}' from '{}' to '{}'",
+        event.getIdentifier(), technicalMetadata.getAgentId(), agentId);
+    }
+
+    Opt<Date> start = Opt.none();
+    if (schedulingJson.has(SCHEDULING_START_KEY)) {
+      start = Opt.some(new Date(DateTimeSupport.fromUTC(schedulingJson.getString(SCHEDULING_START_KEY))));
+      logger.trace("Updating start time of event '{}' id from '{}' to '{}'",
+        event.getIdentifier(), DateTimeSupport.toUTC(technicalMetadata.getStartDate().getTime()),
+                      DateTimeSupport.toUTC(start.get().getTime()));
+    }
+
+    Opt<Date> end = Opt.none();
+    if (schedulingJson.has(SCHEDULING_END_KEY)) {
+      end = Opt.some(new Date(DateTimeSupport.fromUTC(schedulingJson.getString(SCHEDULING_END_KEY))));
+      logger.trace("Updating end time of event '{}' id from '{}' to '{}'",
+        event.getIdentifier(), DateTimeSupport.toUTC(technicalMetadata.getEndDate().getTime()),
+                      DateTimeSupport.toUTC(end.get().getTime()));
+    }
+
+    Opt<Map<String, String>> agentConfiguration = Opt.none();
+    if (schedulingJson.has(SCHEDULING_AGENT_CONFIGURATION_KEY)) {
+      agentConfiguration = Opt.some(JSONUtils.toMap(schedulingJson.getJSONObject(SCHEDULING_AGENT_CONFIGURATION_KEY)));
+      logger.trace("Updating agent configuration of event '{}' id from '{}' to '{}'",
+        event.getIdentifier(), technicalMetadata.getCaptureAgentConfiguration(), agentConfiguration);
+    }
+
+    Opt<Opt<Boolean>> optOut = Opt.none();
+    if (schedulingJson.has(SCHEDULING_OPT_OUT_KEY)) {
+      optOut = Opt.some(Opt.some(schedulingJson.getBoolean(SCHEDULING_OPT_OUT_KEY)));
+      logger.trace("Updating optout status of event '{}' id from '{}' to '{}'",
+        event.getIdentifier(), event.getOptedOut(), optOut);
+    }
+
+    if ((start.isSome() || end.isSome())
+            && end.getOr(technicalMetadata.getEndDate()).before(start.getOr(technicalMetadata.getStartDate()))) {
+      throw new IllegalStateException("The end date is before the start date");
+    }
+
+    if (start.isNone() && end.isNone() && agentId.isNone() && agentConfiguration.isNone() && optOut.isNone()) {
+      getSchedulerService().updateEvent(event.getIdentifier(), start, end, agentId, Opt.<Set<String>>none(),
+        Opt.<MediaPackage>none(), Opt.<Map<String, String>>none(), agentConfiguration, optOut,
+        SchedulerService.ORIGIN);
     }
   }
 
@@ -1036,18 +1042,18 @@ public abstract class AbstractEventEndpoint {
     @RestParameter(name = "update", isRequired = true, type = RestParameter.Type.TEXT, description = "The list of events and fields to update.") }, reponses = {
     @RestResponse(description = "All events have been updated successfully.", responseCode = HttpServletResponse.SC_OK),
     @RestResponse(description = "Could not parse update instructions.", responseCode = HttpServletResponse.SC_BAD_REQUEST),
-    @RestResponse(description = "The conflicts included in the response body occurred. No events were updated.", responseCode = HttpServletResponse.SC_CONFLICT),
-    @RestResponse(description = "The events or series included in the response body were not found. No events were updated.", responseCode = HttpServletResponse.SC_NOT_FOUND) },
-    returnDescription = "In case of success, no content is returned. In case of conflicts, the conflicts are returned. In case events were not found, their ids are returned")
-  public Response bulkUpdate(@FormParam("update") String updateJson) throws SearchIndexException {
+    @RestResponse(description = "Faield updating metadata or scheduling information. Some events may have been updated. Details are available in the response body.", responseCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
+    @RestResponse(description = "The events in the response body were not found. No events were updated.", responseCode = HttpServletResponse.SC_NOT_FOUND) },
+    returnDescription = "In case of success, no content is returned. In case of errors while updating the metadata or scheduling information, the errors are returned. In case events were not found, their ids are returned")
+  public Response bulkUpdate(@FormParam("update") String updateJson) {
 
     try {
       final BulkUpdateUtil.BulkUpdateInstructions instructions = new BulkUpdateUtil.BulkUpdateInstructions(updateJson);
-      final Map<String, Event> events = instructions.getEventIds().stream()
-        .collect(Collectors.toMap(id->id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id).orElse(null)));
+      final Map<String, Optional<Event>> events = instructions.getEventIds().stream()
+        .collect(Collectors.toMap(id->id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
 
       final Set<String> notFoundIds = events.entrySet().stream()
-        .filter(e -> e.getValue() == null)
+        .filter(e -> !e.getValue().isPresent())
         .map(Entry::getKey)
         .collect(Collectors.toSet());
 
@@ -1055,24 +1061,32 @@ public abstract class AbstractEventEndpoint {
         return notFound(JSONUtils.setToJSON(notFoundIds));
       }
 
-      if (instructions.getTitle() != null) {
-        //TODO
-      }
+      final Map<String, String> metadataUpdateFailures = new HashMap<>();
+      final Map<String, String> schedulingUpdateFailures = new HashMap<>();
 
-      if (instructions.getLocation() != null) {
-        //TODO
-      }
-
-      if (instructions.getSeriesId() != null) {
-        final Opt<Series> series = getIndexService().getSeries(instructions.getSeriesId(), getIndex());
-        if (series.isNone()) {
-          return notFound(JSONUtils.setToJSON(Collections.singleton(instructions.getSeriesId())));
+      events.values().forEach(e -> e.ifPresent(event -> {
+        try {
+          if (instructions.getMetadata() != null) {
+            getIndexService().updateAllEventMetadata(event.getIdentifier(), instructions.getMetadata(), getIndex());
+          }
+        } catch (Exception exception) {
+          metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
         }
-        //TODO
-      }
 
-      if (instructions.getStart() != null || instructions.getEnd() != null) {
-        //TODO
+        try {
+          if (instructions.getScheduling() != null) {
+            updateEventScheduling(instructions.getScheduling(), event);
+          }
+        } catch (Exception exception) {
+          schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+        }
+      }));
+
+      if (!metadataUpdateFailures.isEmpty() || !schedulingUpdateFailures.isEmpty()) {
+        return Response.serverError().entity(obj(
+          f("metadataFailures", JSONUtils.mapToJSON(metadataUpdateFailures)),
+          f("schedulingFailures", JSONUtils.mapToJSON(schedulingUpdateFailures))
+        )).build();
       }
 
       return ok();
