@@ -36,7 +36,10 @@ import org.json.simple.parser.ParseException;
 import java.util.List;
 import java.util.Optional;
 
-public class BulkUpdateUtil {
+public final class BulkUpdateUtil {
+
+  private BulkUpdateUtil() {
+  }
 
   public static Optional<Event> getEvent(IndexService indexService, AdminUISearchIndex index, String id) {
     try {
@@ -56,12 +59,15 @@ public class BulkUpdateUtil {
     private final String metadata;
     private final String scheduling;
 
+    @SuppressWarnings("unchecked")
     public BulkUpdateInstructions(String json) throws IllegalArgumentException {
       try {
         final JSONObject jsonObject = (JSONObject) new JSONParser().parse(json);
         eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
-        metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA)).map(Object::toString).orElse(null);
-        scheduling = Optional.ofNullable(jsonObject.get(KEY_SCHEDULING)).map(Object::toString).orElse(null);
+        metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA))
+          .map(o -> ((JSONArray) o).toJSONString()).orElse(null);
+        scheduling = Optional.ofNullable(jsonObject.get(KEY_SCHEDULING))
+          .map(o -> ((JSONObject) o).toJSONString()).orElse(null);
       } catch (ParseException e) {
         throw new IllegalArgumentException(e);
       }

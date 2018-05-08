@@ -1047,52 +1047,57 @@ public abstract class AbstractEventEndpoint {
     returnDescription = "In case of success, no content is returned. In case of errors while updating the metadata or scheduling information, the errors are returned. In case events were not found, their ids are returned")
   public Response bulkUpdate(@FormParam("update") String updateJson) {
 
+    final BulkUpdateUtil.BulkUpdateInstructions instructions;
     try {
-      final BulkUpdateUtil.BulkUpdateInstructions instructions = new BulkUpdateUtil.BulkUpdateInstructions(updateJson);
-      final Map<String, Optional<Event>> events = instructions.getEventIds().stream()
-        .collect(Collectors.toMap(id->id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
-
-      final Set<String> notFoundIds = events.entrySet().stream()
-        .filter(e -> !e.getValue().isPresent())
-        .map(Entry::getKey)
-        .collect(Collectors.toSet());
-
-      if (!notFoundIds.isEmpty()) {
-        return notFound(JSONUtils.setToJSON(notFoundIds));
-      }
-
-      final Map<String, String> metadataUpdateFailures = new HashMap<>();
-      final Map<String, String> schedulingUpdateFailures = new HashMap<>();
-
-      events.values().forEach(e -> e.ifPresent(event -> {
-        try {
-          if (instructions.getMetadata() != null) {
-            getIndexService().updateAllEventMetadata(event.getIdentifier(), instructions.getMetadata(), getIndex());
-          }
-        } catch (Exception exception) {
-          metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
-        }
-
-        try {
-          if (instructions.getScheduling() != null) {
-            updateEventScheduling(instructions.getScheduling(), event);
-          }
-        } catch (Exception exception) {
-          schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
-        }
-      }));
-
-      if (!metadataUpdateFailures.isEmpty() || !schedulingUpdateFailures.isEmpty()) {
-        return Response.serverError().entity(obj(
-          f("metadataFailures", JSONUtils.mapToJSON(metadataUpdateFailures)),
-          f("schedulingFailures", JSONUtils.mapToJSON(schedulingUpdateFailures))
-        )).build();
-      }
-
-      return ok();
+      instructions = new BulkUpdateUtil.BulkUpdateInstructions(updateJson);
     } catch (IllegalArgumentException e) {
       return badRequest("Cannot parse bulk update instructions");
     }
+
+    // Get all the events to edit
+    final Map<String, Optional<Event>> events = instructions.getEventIds().stream()
+      .collect(Collectors.toMap(id->id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
+
+    // Check for invalid (non-existing) event ids
+    final Set<String> notFoundIds = events.entrySet().stream()
+      .filter(e -> !e.getValue().isPresent())
+      .map(Entry::getKey)
+      .collect(Collectors.toSet());
+    if (!notFoundIds.isEmpty()) {
+      return notFound(JSONUtils.setToJSON(notFoundIds));
+    }
+
+    final Map<String, String> metadataUpdateFailures = new HashMap<>();
+    final Map<String, String> schedulingUpdateFailures = new HashMap<>();
+
+    events.values().forEach(e -> e.ifPresent(event -> {
+      // Update the event metadata
+      try {
+        if (instructions.getMetadata() != null) {
+          getIndexService().updateAllEventMetadata(event.getIdentifier(), instructions.getMetadata(), getIndex());
+        }
+      } catch (Exception exception) {
+        metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+      }
+
+      // Update the scheduling information
+      try {
+        if (instructions.getScheduling() != null) {
+          updateEventScheduling(instructions.getScheduling(), event);
+        }
+      } catch (Exception exception) {
+        schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+      }
+    }));
+
+    // Check if there were any errors updating the metadata or scheduling information
+    if (!metadataUpdateFailures.isEmpty() || !schedulingUpdateFailures.isEmpty()) {
+      return Response.serverError().entity(obj(
+        f("metadataFailures", JSONUtils.mapToJSON(metadataUpdateFailures)),
+        f("schedulingFailures", JSONUtils.mapToJSON(schedulingUpdateFailures))
+      )).build();
+    }
+    return ok();
   }
 
   @PUT
