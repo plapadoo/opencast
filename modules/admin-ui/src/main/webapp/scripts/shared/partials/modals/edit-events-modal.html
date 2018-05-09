@@ -9,12 +9,11 @@
             <div class="modal-content active">
                 <div class="modal-body">
                     <div class="row">
-                        <div ng-show="editEventsForm.generalForm.$error.scheduledEvent" class="alert sticky warning">
+                        <div ng-show="nonScheduleSelected()" class="alert sticky warning">
                             <p translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.CANNOTSTART">
                                 <!-- Cannot start -->
                             </p>
                         </div>
-                        <div data-notifications="edit-events"/>
                     </div>
                     <div class="full-col">
                         <div class="obj tbl-list">
@@ -39,8 +38,8 @@
                                     </tr>
                                     </thead>
                                     <tbody >
-                                    <tr ng-repeat="row in rows" ng-form="rowsForm" ng-class="{error: rowsForm.selection.$error.scheduledEvent}">
-                                        <td><input name="selection" ng-required="!hasAnySelected()" type="checkbox" scheduled-event="{{row.source}}" ng-model="row.selected" ng-change="rowSelectionChanged($index)" class="child-cbox"></td>
+                                    <tr ng-repeat="row in rows" ng-form="rowsForm" ng-class="{error: nonSchedule(row)}">
+                                        <td><input name="selection" ng-required="!hasAnySelected()" type="checkbox" ng-model="row.selected" ng-change="rowSelectionChanged($index)" class="child-cbox"></td>
                                         <td>{{ row.title }}</td>
                                         <td>{{ row.series_name}}</td>
                                         <td>{{ row.source }}</td>
@@ -61,7 +60,7 @@
             <footer>
                 <a class="submit"
                    ng-click="clearFormAndContinue()"
-                   ng-class="{active: editEventsForm.generalForm.$valid, disabled: editEventsForm.generalForm.$invalid}">
+                   ng-class="{active: rowsValid(), disabled: !rowsValid()}">
                     {{ 'WIZARD.NEXT_STEP' | translate }}
                 </a>
             </footer>

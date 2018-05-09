@@ -215,6 +215,18 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return $scope.getSelectedIds().length > 0;
     };
 
+    $scope.nonSchedule = function(row) {
+        return row.source !== 'SCHEDULE';
+    };
+
+    $scope.nonScheduleSelected = function() {
+        return JsHelper.filter($scope.getSelected(),function (r) { return r.source !== 'SCHEDULE'; }).length > 0;
+    };
+
+    $scope.rowsValid = function() {
+        return !$scope.nonScheduleSelected() && $scope.hasAnySelected();
+    };
+
     var onSuccess = function () {
         $scope.submitButton = false;
         $scope.close();
