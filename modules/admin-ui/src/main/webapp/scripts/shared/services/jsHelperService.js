@@ -58,6 +58,23 @@ angular.module('adminNg.services')
                 }
             },
 
+            arrayContains: function(array, v) {
+                for(var i = 0; i < array.length; i++) {
+                    if (array[i] === v) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+
+            mapFunction: function(array, callback) {
+                var result = [];
+                angular.forEach(array, function(v) {
+                    result.push(callback(v));
+                });
+                return result;
+            },
+
             map: function (array, key) {
                 var i, result = [];
                 for (i = 0; i < array.length; i++) {

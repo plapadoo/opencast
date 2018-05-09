@@ -22,8 +22,8 @@
 
 // Controller for the "edit scheduled events" wizard
 angular.module('adminNg.controllers')
-    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'decorateWithTableRowSelection',
-                                   function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, decorateWithTableRowSelection) {
+    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'WizardHandler', 'decorateWithTableRowSelection',
+function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, WizardHandler, decorateWithTableRowSelection) {
     $scope.rows = Table.copySelected();
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
@@ -31,14 +31,6 @@ angular.module('adminNg.controllers')
     /* Get the current client timezone */
     var tzOffset = (new Date()).getTimezoneOffset() / -60;
     $scope.tz = 'UTC' + (tzOffset < 0 ? '-' : '+') + tzOffset;
-
-    var eventIds = function() {
-        var result = [];
-        angular.forEach($scope.rows, function(row) {
-            result.push(row.id);
-        });
-        return result;
-    };
 
     // Get available series
     $scope.seriesResults = {};
@@ -58,6 +50,9 @@ angular.module('adminNg.controllers')
         var result = null;
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
+            if (!row.selected) {
+                continue;
+            }
             var val = getter(row);
             if (result === null) {
                 result = val;
@@ -68,9 +63,16 @@ angular.module('adminNg.controllers')
         return result;
     }
 
+    function isSelected(id) {
+        return JsHelper.arrayContains($scope.getSelectedIds(), id);
+    }
+
     function getSchedulingPart(getter) {
         var result = { ambiguous: false, value: null };
-        angular.forEach($scope.schedulingSingle, function(value, key) {
+        angular.forEach($scope.schedulingSingle, function(value) {
+            if (!isSelected(value.eventId)) {
+                return;
+            }
             var val = getter(value);
             if (result.ambiguous === false) {
                 if (result.value === null) {
@@ -91,7 +93,7 @@ angular.module('adminNg.controllers')
     var fromJsWeekday = function(d) {
         // Javascript week days start at sunday (so 0=SU), so we have to roll over.
         return JsHelper.getWeekDays()[d + 1 % 7];
-    }
+    };
 
 
     $scope.hours = JsHelper.initArray(24);
@@ -100,9 +102,40 @@ angular.module('adminNg.controllers')
 
     // Get scheduling information for the events
     $scope.scheduling = {};
-    $scope.schedulingSingle = {};
-    EventsSchedulingResource.bulkGet(eventIds()).$promise.then(function (results) {
-        $scope.schedulingSingle = results;
+    $scope.schedulingSingle = EventsSchedulingResource.bulkGet(
+        JsHelper.mapFunction($scope.rows, function(v) { return v.id; }));
+
+    $scope.onTemporalValueChange = function(type) {
+        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, true);
+    };
+
+    $scope.saveScheduling = function() {
+    };
+
+    $scope.checkingConflicts = false;
+
+    // This is triggered after the user selected some events in the first wizard step
+    $scope.clearFormAndContinue = function() {
+        $scope.metadataRows = [
+            {
+                id: "title",
+                label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
+                readOnly: false,
+                required: true,
+                type: "text",
+                value: getMetadataPart(function(row) { return row.title; })
+            },
+            {
+                id: "isPartOf",
+                collection: $scope.seriesResults,
+                label: "EVENTS.EVENTS.DETAILS.METADATA.SERIES",
+                readOnly: false,
+                required: false,
+                translatable: false,
+                type: "text",
+                value: getMetadataPart(function(row) { return row.series_id; })
+            },
+        ];
         $scope.scheduling = {
             location: getMetadataPart(function(row) { return row.location; }),
             start: {
@@ -119,37 +152,10 @@ angular.module('adminNg.controllers')
             },
             weekday: getSchedulingPart(function(entry) { return fromJsWeekday(new Date(entry.start.date).getDay()).key; })
         };
-    });
-
-    $scope.onTemporalValueChange = function(type) {
-        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, true);
+        WizardHandler.wizard("editEventsWz").next();  
     };
 
-    $scope.saveScheduling = function() {
-    };
-
-    $scope.checkingConflicts = false;
-
-    $scope.metadataRows = [
-        {
-            id: "title",
-            label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
-            readOnly: false,
-            required: true,
-            type: "text",
-            value: getMetadataPart(function(row) { return row.title; })
-        },
-        {
-            id: "isPartOf",
-            collection: $scope.seriesResults,
-            label: "EVENTS.EVENTS.DETAILS.METADATA.SERIES",
-            readOnly: false,
-            required: false,
-            translatable: false,
-            type: "text",
-            value: getMetadataPart(function(row) { return row.series_id; })
-        },
-    ];
+    $scope.metadataRows = [];
 
     $scope.saveField = function(arg, callback) {
         // Müssen wir was machen wenn man das Editfeld verlässt? Merken obs dirty ist oder so?
