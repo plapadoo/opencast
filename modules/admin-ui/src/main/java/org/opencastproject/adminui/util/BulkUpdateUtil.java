@@ -40,7 +40,7 @@ import org.json.simple.parser.ParseException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -80,13 +80,16 @@ public final class BulkUpdateUtil {
       OffsetDateTime startDate = Instant.parse(event.getRecordingStartDate()).atOffset(ZoneOffset.UTC);
       OffsetDateTime endDate = Instant.parse(event.getRecordingEndDate()).atOffset(ZoneOffset.UTC);
       if (scheduling.containsKey(SCHEDULING_START_KEY)) {
-        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate);
+        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate.toLocalDate().atStartOfDay());
       }
       if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate);
+        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate.toLocalDate().atStartOfDay());
       }
       if (endDate.isBefore(startDate)) {
         endDate = endDate.plusDays(1);
+      }
+      if (scheduling.containsKey("duration")) {
+        endDate = adjustedSchedulingDate(scheduling, "duration", startDate.toLocalDateTime());
       }
       if (scheduling.containsKey("weekday")) {
         final String weekdayAbbrev = ((String) scheduling.get("weekday"));
@@ -150,9 +153,9 @@ public final class BulkUpdateUtil {
 
   @SuppressWarnings("unchecked")
   public static String mergeMetadataFields(String first, String second) {
-    if (first == null) return second;
-    if (second == null) return first;
     try {
+      if (first == null) return JSONArray.toJSONString(Collections.singletonList(JSON_PARSER.parse(second)));
+      if (second == null) return JSONArray.toJSONString(Collections.singletonList(JSON_PARSER.parse(first)));
       final JSONObject firstJson = (JSONObject) JSON_PARSER.parse(first);
       final JSONObject secondJson = (JSONObject) JSON_PARSER.parse(second);
       JSONArray fields = ((JSONArray) firstJson.get("fields"));
@@ -166,11 +169,11 @@ public final class BulkUpdateUtil {
   private static OffsetDateTime adjustedSchedulingDate(
     final JSONObject scheduling,
     final String dateKey,
-    final OffsetDateTime date) {
+    final LocalDateTime date) {
     final JSONObject time = (JSONObject) scheduling.get(dateKey);
     final int hour = Math.toIntExact((Long) time.get("hour"));
     final int minute = Math.toIntExact((Long) time.get("minute"));
-    return date.toLocalDate().atTime(LocalTime.of(hour, minute)).atOffset(ZoneOffset.UTC);
+    return date.plusHours(hour).plusMinutes(minute).atOffset(ZoneOffset.UTC);
   }
 
   public static class BulkUpdateInstructions {
