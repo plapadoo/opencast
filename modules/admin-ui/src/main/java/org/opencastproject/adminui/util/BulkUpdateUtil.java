@@ -46,14 +46,12 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 
 public final class BulkUpdateUtil {
-
-  private static final JSONParser JSON_PARSER = new JSONParser();
 
   private BulkUpdateUtil() {
   }
@@ -71,125 +69,107 @@ public final class BulkUpdateUtil {
   }
 
   @SuppressWarnings("unchecked")
-  public static String addSchedulingDates(
-    final Event event,
-    final String schedulingJson)
-    throws IllegalArgumentException {
-    try {
-      final JSONObject scheduling = (JSONObject) JSON_PARSER.parse(schedulingJson);
-      ZonedDateTime startDate = ZonedDateTime.parse(event.getRecordingStartDate());
-      ZonedDateTime endDate = ZonedDateTime.parse(event.getRecordingEndDate());
-      final InternalDuration oldDuration = InternalDuration.of(startDate.toInstant(), endDate.toInstant());
-      final ZoneId timezone = ZoneId.of((String) scheduling.get("timezone"));
+  public static JSONObject addSchedulingDates(final Event event, final JSONObject scheduling) {
+    ZonedDateTime startDate = ZonedDateTime.parse(event.getRecordingStartDate());
+    ZonedDateTime endDate = ZonedDateTime.parse(event.getRecordingEndDate());
+    final InternalDuration oldDuration = InternalDuration.of(startDate.toInstant(), endDate.toInstant());
+    final ZoneId timezone = ZoneId.of((String) scheduling.get("timezone"));
 
-      // The client only sends start time hours and/or minutes. We have to apply this to each event to get a full date.
-      if (scheduling.containsKey(SCHEDULING_START_KEY)) {
-        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate, timezone);
+    // The client only sends start time hours and/or minutes. We have to apply this to each event to get a full date.
+    if (scheduling.containsKey(SCHEDULING_START_KEY)) {
+      startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate, timezone);
+    }
+    // The client only sends end time hours and/or minutes. We have to apply this to each event to get a full date.
+    if (scheduling.containsKey(SCHEDULING_END_KEY)) {
+      endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate, timezone);
+    }
+    if (endDate.isBefore(startDate)) {
+      endDate = endDate.plusDays(1);
+    }
+
+    // If duration is set, we have to adjust the end or start date.
+    if (scheduling.containsKey("duration")) {
+      final JSONObject time = (JSONObject) scheduling.get("duration");
+      final InternalDuration newDuration = new InternalDuration(oldDuration);
+      if (time.containsKey("hour")) {
+        newDuration.hours = (Long) time.get("hour");
       }
-      // The client only sends end time hours and/or minutes. We have to apply this to each event to get a full date.
+      if (time.containsKey("minute")) {
+        newDuration.minutes = (Long) time.get("minute");
+      }
+      if (time.containsKey("second")) {
+        newDuration.seconds = (Long) time.get("second");
+      }
       if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate, timezone);
+        startDate = endDate.minusHours(newDuration.hours)
+          .minusMinutes(newDuration.minutes)
+          .minusSeconds(newDuration.seconds);
+      } else {
+        endDate = startDate.plusHours(newDuration.hours)
+          .plusMinutes(newDuration.minutes)
+          .plusSeconds(newDuration.seconds);
       }
-      if (endDate.isBefore(startDate)) {
-        endDate = endDate.plusDays(1);
-      }
-
-      // If duration is set, we have to adjust the end or start date.
-      if (scheduling.containsKey("duration")) {
-        final JSONObject time = (JSONObject) scheduling.get("duration");
-        final InternalDuration newDuration = new InternalDuration(oldDuration);
-        if (time.containsKey("hour")) {
-          newDuration.hours = (Long) time.get("hour");
-        }
-        if (time.containsKey("minute")) {
-          newDuration.minutes = (Long) time.get("minute");
-        }
-        if (time.containsKey("second")) {
-          newDuration.seconds = (Long) time.get("second");
-        }
-        if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-          startDate = endDate.minusHours(newDuration.hours)
-            .minusMinutes(newDuration.minutes)
-            .minusSeconds(newDuration.seconds);
-        } else {
-          endDate = startDate.plusHours(newDuration.hours)
-            .plusMinutes(newDuration.minutes)
-            .plusSeconds(newDuration.seconds);
-        }
-      }
-
-      // Setting the weekday means that the event should be moved to the new weekday within the same week
-      if (scheduling.containsKey("weekday")) {
-        final String weekdayAbbrev = ((String) scheduling.get("weekday"));
-        final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
-          .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
-          .findAny()
-          .orElseThrow(() -> new IllegalArgumentException("Cannot parse weekday: " + weekdayAbbrev));
-        final int daysDiff = newWeekDay.getValue() - startDate.getDayOfWeek().getValue();
-        startDate = startDate.plusDays(daysDiff);
-        endDate = endDate.plusDays(daysDiff);
-      }
-
-      scheduling.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
-      scheduling.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_INSTANT));
-      return scheduling.toJSONString();
-    } catch (ParseException e) {
-      throw new IllegalArgumentException(e);
     }
+
+    // Setting the weekday means that the event should be moved to the new weekday within the same week
+    if (scheduling.containsKey("weekday")) {
+      final String weekdayAbbrev = ((String) scheduling.get("weekday"));
+      final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
+        .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
+        .findAny()
+        .orElseThrow(() -> new IllegalArgumentException("Cannot parse weekday: " + weekdayAbbrev));
+      final int daysDiff = newWeekDay.getValue() - startDate.getDayOfWeek().getValue();
+      startDate = startDate.plusDays(daysDiff);
+      endDate = endDate.plusDays(daysDiff);
+    }
+
+    scheduling.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
+    scheduling.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_INSTANT));
+    return scheduling;
   }
 
   @SuppressWarnings("unchecked")
-  public static String toNonTechnicalMetadataJson(final String schedulingJson) throws IllegalArgumentException {
-    try {
-      final JSONObject scheduling = (JSONObject) JSON_PARSER.parse(schedulingJson);
-      final List<JSONObject> fields = new ArrayList<>();
-      if (scheduling.containsKey(SCHEDULING_AGENT_ID_KEY)) {
-        final JSONObject locationJson = new JSONObject();
-        locationJson.put("id", "location");
-        locationJson.put("value", scheduling.get(SCHEDULING_AGENT_ID_KEY));
-        fields.add(locationJson);
-      }
-      if (scheduling.containsKey(SCHEDULING_START_KEY) && scheduling.containsKey(SCHEDULING_END_KEY)) {
-        final JSONObject startDateJson = new JSONObject();
-        startDateJson.put("id", "startDate");
-        String startDate = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY))
-          .atOffset(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
-        startDateJson.put("value", startDate);
-        fields.add(startDateJson);
-
-        final JSONObject durationJson = new JSONObject();
-        durationJson.put("id", "duration");
-        final Instant start = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY));
-        final Instant end = Instant.parse((String) scheduling.get(SCHEDULING_END_KEY));
-        final InternalDuration duration = InternalDuration.of(start, end);
-        durationJson.put("value", duration.toString());
-        fields.add(durationJson);
-      }
-
-      final JSONObject result = new JSONObject();
-      result.put("flavor", MediaPackageElements.EPISODE.toString());
-      result.put("title", CommonEventCatalogUIAdapter.EPISODE_TITLE);
-      result.put("fields", fields);
-      return result.toJSONString();
-    } catch (ParseException e) {
-      throw new IllegalArgumentException(e);
+  public static JSONObject toNonTechnicalMetadataJson(final JSONObject scheduling) throws IllegalArgumentException {
+    final List<JSONObject> fields = new ArrayList<>();
+    if (scheduling.containsKey(SCHEDULING_AGENT_ID_KEY)) {
+      final JSONObject locationJson = new JSONObject();
+      locationJson.put("id", "location");
+      locationJson.put("value", scheduling.get(SCHEDULING_AGENT_ID_KEY));
+      fields.add(locationJson);
     }
+    if (scheduling.containsKey(SCHEDULING_START_KEY) && scheduling.containsKey(SCHEDULING_END_KEY)) {
+      final JSONObject startDateJson = new JSONObject();
+      startDateJson.put("id", "startDate");
+      String startDate = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY))
+        .atOffset(ZoneOffset.UTC)
+        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
+      startDateJson.put("value", startDate);
+      fields.add(startDateJson);
+
+      final JSONObject durationJson = new JSONObject();
+      durationJson.put("id", "duration");
+      final Instant start = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY));
+      final Instant end = Instant.parse((String) scheduling.get(SCHEDULING_END_KEY));
+      final InternalDuration duration = InternalDuration.of(start, end);
+      durationJson.put("value", duration.toString());
+      fields.add(durationJson);
+    }
+
+    final JSONObject result = new JSONObject();
+    result.put("flavor", MediaPackageElements.EPISODE.toString());
+    result.put("title", CommonEventCatalogUIAdapter.EPISODE_TITLE);
+    result.put("fields", fields);
+    return result;
   }
 
   @SuppressWarnings("unchecked")
-  public static String mergeMetadataFields(String first, String second) {
-    try {
-      if (first == null) return JSONArray.toJSONString(Collections.singletonList(JSON_PARSER.parse(second)));
-      if (second == null) return JSONArray.toJSONString(Collections.singletonList(JSON_PARSER.parse(first)));
-      final JSONObject firstJson = (JSONObject) JSON_PARSER.parse(first);
-      final JSONObject secondJson = (JSONObject) JSON_PARSER.parse(second);
-      JSONArray fields = ((JSONArray) firstJson.get("fields"));
-      fields.addAll((JSONArray) secondJson.get("fields"));
-      return JSONArray.toJSONString(Collections.singletonList(firstJson));
-    } catch (ParseException | ArrayIndexOutOfBoundsException e) {
-      throw new IllegalArgumentException(e);
-    }
+  public static JSONObject mergeMetadataFields(final JSONObject first, final JSONObject second) {
+    if (first == null) return second;
+    if (second == null) return first;
+    final JSONObject result = (JSONObject) first.clone();
+    final Collection fields = (Collection) result.get("fields");
+    fields.addAll((Collection) second.get("fields"));
+    return result;
   }
 
   private static class InternalDuration {
@@ -245,18 +225,16 @@ public final class BulkUpdateUtil {
     private static final String KEY_SCHEDULING = "scheduling";
 
     private final List<String> eventIds;
-    private final String metadata;
-    private final String scheduling;
+    private final JSONObject metadata;
+    private final JSONObject scheduling;
 
     @SuppressWarnings("unchecked")
     public BulkUpdateInstructions(final String json) throws IllegalArgumentException {
       try {
-        final JSONObject jsonObject = (JSONObject) JSON_PARSER.parse(json);
+        final JSONObject jsonObject = (JSONObject) new JSONParser().parse(json);
         eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
-        metadata = Optional.ofNullable(jsonObject.get(KEY_METADATA))
-          .map(o -> ((JSONObject) o).toJSONString()).orElse(null);
-        scheduling = Optional.ofNullable(jsonObject.get(KEY_SCHEDULING))
-          .map(o -> ((JSONObject) o).toJSONString()).orElse(null);
+        metadata = (JSONObject) jsonObject.get(KEY_METADATA);
+        scheduling = (JSONObject) jsonObject.get(KEY_SCHEDULING);
       } catch (ParseException e) {
         throw new IllegalArgumentException(e);
       }
@@ -266,11 +244,11 @@ public final class BulkUpdateUtil {
       return eventIds;
     }
 
-    public String getMetadata() {
+    public JSONObject getMetadata() {
       return metadata;
     }
 
-    public String getScheduling() {
+    public JSONObject getScheduling() {
       return scheduling;
     }
   }
