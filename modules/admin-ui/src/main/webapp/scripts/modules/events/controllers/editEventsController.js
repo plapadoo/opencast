@@ -29,6 +29,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
 
     $scope.rows = Table.copySelected();
+    $scope.eventSummaries = [];
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
     $scope.currentForm = 'generalForm';
@@ -161,6 +162,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     $scope.checkingConflicts = false;
 
+    var nextWizardStep = function() {
+        WizardHandler.wizard("editEventsWz").next();  
+    };
+
     // This is triggered after the user selected some events in the first wizard step
     $scope.clearFormAndContinue = function() {
         $scope.metadataRows = [
@@ -202,7 +207,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             },
             weekday: getSchedulingPart(function(entry) { return fromJsWeekday(new Date(entry.start.date).getDay()).key; })
         };
-        WizardHandler.wizard("editEventsWz").next();  
+        nextWizardStep();
     };
 
     $scope.metadataRows = [];
@@ -225,6 +230,48 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     $scope.rowsValid = function() {
         return !$scope.nonScheduleSelected() && $scope.hasAnySelected();
+    };
+
+    $scope.generateEventSummariesAndContinue = function() {
+        $scope.eventSummaries = [];
+        console.log('generating summaries');
+        angular.forEach($scope.schedulingSingle, function(value) {
+            if (!isSelected(value.eventId)) {
+                return;
+            }
+
+            var changes = [];
+
+            if ($scope.scheduling.location !== null && $scope.scheduling.location !== value.agentId) {
+                changes.push(['EVENTS.EVENTS.TABLE.LOCATION', value.agentId, $scope.scheduling.location]);
+            }
+
+            var formatPart = function(schedObj, valObj, translation) {
+                if (schedObj.hour !== null && schedObj.hour !== valObj.hour || schedObj.minute !== null && schedObj.minute !== valObj.minute) {
+                    var oldTime = JsHelper.humanizeTime(valObj.hour, valObj.minute);
+                    var newHour = valObj.hour;
+                    if (schedObj.hour !== null && schedObj.hour !== valObj.hour) {
+                        newHour = schedObj.hour;
+                    }
+                    var newMinute = valObj.minute;
+                    if (schedObj.minute !== null && schedObj.minute !== valObj.minute) {
+                        newMinute = schedObj.minute;
+                    }
+                    var newTime = JsHelper.humanizeTime(newHour, newMinute);
+                    changes.push(['EVENTS.EVENTS.TABLE.'+translation, oldTime, newTime]);
+                }
+            };
+
+            formatPart($scope.scheduling.start, value.start);
+            formatPart($scope.scheduling.end, value.end);
+
+            $scope.eventSummaries.push({
+                title: "foo",
+                changes: changes
+            });
+        });
+        console.log('done, next step');
+        nextWizardStep();
     };
 
     var onSuccess = function () {
@@ -260,7 +307,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             eventIds: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
-            EventBulkEditResource.save(payload, onSuccess, onFailure);
+            EventBulkEditResource.update(payload, onSuccess, onFailure);
         }
     };
     decorateWithTableRowSelection($scope);

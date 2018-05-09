@@ -259,7 +259,8 @@
                 </div><!-- modal-body -->
             </div><!-- modal-content [task] -->
             <footer>
-                <a wz-next class="submit"
+                <a class="submit"
+                   ng-click="generateEventSummariesAndContinue()"
                    ng-class="{active: editEventsForm.$valid, inactive: editEventsForm.$invalid}">
                     {{ 'WIZARD.NEXT_STEP' | translate }}
                 </a>
@@ -273,9 +274,25 @@
             <div class="modal-content active">
                 <div class="modal-body">
                     <div class="full-col">
-                        <div class="obj list-obj">
-                            <header translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION"><!-- Summary --></header>
+                        <div class="obj list-obj" ng-repeat="event in eventSummaries">
+                            <header translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION" translate-values='{ title: event.title}'><!-- Summary --></header>
                             <div class="obj-container">
+                                <table class="main-tbl">
+                                    <thead>
+                                    <tr>
+                                        <th class="full-width" translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.TYPE" />
+                                        <th class="full-width" translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.PREVIOUS" />
+                                        <th class="full-width" translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.NEXT" />
+                                    </tr>
+                                    </thead>
+                                    <tbody >
+                                    <tr ng-repeat="row in event.changes">
+                                        <td>{{ row.type | translate }}</td>
+                                        <td>{{ row.previous}}</td>
+                                        <td>{{ row.next }}</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
                             </div><!-- obj-container -->
                         </div>
                     </div>

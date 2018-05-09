@@ -62,19 +62,8 @@ angular.module('adminNg.resources')
     //     return data;
     // };
 
-    return $resource('/admin-ng/event/:ext', {}, {
-        checkConflicts: {
-            params: { ext: 'conflicts.json' },
-            method: 'POST',
-            responseType: 'json',
-            isArray: true,
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-            },
-            transformRequest: transformConflictRequest
-        },
+    return $resource('/admin-ng/event/scheduling.json', {}, {
         bulkGet: {
-            params: { ext: 'scheduling.json' },
             method: 'POST',
             responseType: 'json',
             isArray: true,

@@ -250,7 +250,10 @@
               "EDIT": "Edit metadata"
           },
           "SUMMARY": {
-              "CAPTION": "Summary"
+              "CAPTION": "Event “{{ title }}”",
+              "TYPE": "Type",
+              "PREVIOUS": "Previous value",
+              "NEXT": "Next value"
           },
           "EDIT": {
               "CAPTION": "Edit",
