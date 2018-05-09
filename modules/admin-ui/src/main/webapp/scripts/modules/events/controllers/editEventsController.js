@@ -137,6 +137,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             },
         ];
         $scope.scheduling = {
+            timezone: JsHelper.getTimeZoneName(),
             location: getMetadataPart(function(row) { return row.location; }),
             start: {
                 hour: getSchedulingPart(function(entry) { return entry.start.hour; }),

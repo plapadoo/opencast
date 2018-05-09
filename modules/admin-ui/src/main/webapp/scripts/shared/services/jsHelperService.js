@@ -67,6 +67,10 @@ angular.module('adminNg.services')
                 return false;
             },
 
+            getTimeZoneName: function() {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+            },
+
             mapFunction: function(array, callback) {
                 var result = [];
                 angular.forEach(array, function(v) {
