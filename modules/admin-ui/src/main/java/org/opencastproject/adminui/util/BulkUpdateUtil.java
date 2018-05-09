@@ -79,21 +79,46 @@ public final class BulkUpdateUtil {
       final JSONObject scheduling = (JSONObject) JSON_PARSER.parse(schedulingJson);
       ZonedDateTime startDate = ZonedDateTime.parse(event.getRecordingStartDate());
       ZonedDateTime endDate = ZonedDateTime.parse(event.getRecordingEndDate());
+      final InternalDuration oldDuration = InternalDuration.of(startDate.toInstant(), endDate.toInstant());
       final ZoneId timezone = ZoneId.of((String) scheduling.get("timezone"));
+
+      // The client only sends start time hours and/or minutes. We have to apply this to each event to get a full date.
       if (scheduling.containsKey(SCHEDULING_START_KEY)) {
-        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY,
-          startDate.withZoneSameInstant(timezone).withHour(0).withMinute(0));
+        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate, timezone);
       }
+      // The client only sends end time hours and/or minutes. We have to apply this to each event to get a full date.
       if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY,
-          endDate.withZoneSameInstant(timezone).withHour(0).withMinute(0));
+        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate, timezone);
       }
       if (endDate.isBefore(startDate)) {
         endDate = endDate.plusDays(1);
       }
+
+      // If duration is set, we have to adjust the end or start date.
       if (scheduling.containsKey("duration")) {
-        endDate = adjustedSchedulingDate(scheduling, "duration", startDate);
+        final JSONObject time = (JSONObject) scheduling.get("duration");
+        final InternalDuration newDuration = new InternalDuration(oldDuration);
+        if (time.containsKey("hour")) {
+          newDuration.hours = (Long) time.get("hour");
+        }
+        if (time.containsKey("minute")) {
+          newDuration.minutes = (Long) time.get("minute");
+        }
+        if (time.containsKey("second")) {
+          newDuration.seconds = (Long) time.get("second");
+        }
+        if (scheduling.containsKey(SCHEDULING_END_KEY)) {
+          startDate = endDate.minusHours(newDuration.hours)
+            .minusMinutes(newDuration.minutes)
+            .minusSeconds(newDuration.seconds);
+        } else {
+          endDate = startDate.plusHours(newDuration.hours)
+            .plusMinutes(newDuration.minutes)
+            .plusSeconds(newDuration.seconds);
+        }
       }
+
+      // Setting the weekday means that the event should be moved to the new weekday within the same week
       if (scheduling.containsKey("weekday")) {
         final String weekdayAbbrev = ((String) scheduling.get("weekday"));
         final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
@@ -104,6 +129,7 @@ public final class BulkUpdateUtil {
         startDate = startDate.plusDays(daysDiff);
         endDate = endDate.plusDays(daysDiff);
       }
+
       scheduling.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
       scheduling.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_INSTANT));
       return scheduling.toJSONString();
@@ -136,11 +162,8 @@ public final class BulkUpdateUtil {
         durationJson.put("id", "duration");
         final Instant start = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY));
         final Instant end = Instant.parse((String) scheduling.get(SCHEDULING_END_KEY));
-        final Duration duration = Duration.between(start, end);
-        final long hours = duration.toHours();
-        final long minutes = duration.minusHours(hours).toMinutes();
-        final long seconds = duration.minusHours(hours).minusMinutes(minutes).getSeconds();
-        durationJson.put("value", String.format("%02d:%02d:%02d", hours, minutes, seconds));
+        final InternalDuration duration = InternalDuration.of(start, end);
+        durationJson.put("value", duration.toString());
         fields.add(durationJson);
       }
 
@@ -169,14 +192,51 @@ public final class BulkUpdateUtil {
     }
   }
 
+  private static class InternalDuration {
+    private long hours;
+    private long minutes;
+    private long seconds;
+
+    InternalDuration() {
+    }
+
+    InternalDuration(InternalDuration other) {
+      this.hours = other.hours;
+      this.minutes = other.minutes;
+      this.seconds = other.seconds;
+    }
+
+    public static InternalDuration of(Instant start, Instant end) {
+      final InternalDuration result = new InternalDuration();
+      final Duration duration = Duration.between(start, end);
+      result.hours = duration.toHours();
+      result.minutes = duration.minusHours(result.hours).toMinutes();
+      result.seconds = duration.minusHours(result.hours).minusMinutes(result.minutes).getSeconds();
+      return result;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+  }
+
   private static ZonedDateTime adjustedSchedulingDate(
     final JSONObject scheduling,
     final String dateKey,
-    final ZonedDateTime date) {
+    final ZonedDateTime date,
+    final ZoneId timezone) {
     final JSONObject time = (JSONObject) scheduling.get(dateKey);
-    final int hour = Math.toIntExact((Long) time.get("hour"));
-    final int minute = Math.toIntExact((Long) time.get("minute"));
-    return date.plusHours(hour).plusMinutes(minute).withZoneSameInstant(ZoneOffset.UTC);
+    ZonedDateTime result = date.withZoneSameInstant(timezone);
+    if (time.containsKey("hour")) {
+      final int hour = Math.toIntExact((Long) time.get("hour"));
+      result = result.withHour(hour);
+    }
+    if (time.containsKey("minute")) {
+      final int minute = Math.toIntExact((Long) time.get("minute"));
+      result = result.withMinute(minute);
+    }
+    return result.withZoneSameInstant(ZoneOffset.UTC);
   }
 
   public static class BulkUpdateInstructions {
