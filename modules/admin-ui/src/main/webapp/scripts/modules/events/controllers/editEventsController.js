@@ -71,8 +71,6 @@ angular.module('adminNg.controllers')
     function getSchedulingPart(getter) {
         var result = { ambiguous: false, value: null };
         angular.forEach($scope.schedulingSingle, function(value, key) {
-            console.log(JSON.stringify(value));
-            console.log(JSON.stringify(value.start));
             var val = getter(value);
             if (result.ambiguous === false) {
                 if (result.value === null) {
@@ -177,6 +175,19 @@ angular.module('adminNg.controllers')
     $scope.submitButton = false;
     $scope.submit = function () {
         $scope.submitButton = true;
+        // Deep copy scheduling, we need to change it for the request
+        // var scheduling = $.extend(true, {}, $scope.scheduling);
+        // if (scheduling.location === null)
+
+        var payload = {
+            metadata: {
+                flavor: "dublincore/episode",
+                title: "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE",
+                fields: JsHelper.filter($scope.metadataRows, function(row) { return angular.isDefined(row.value) && row.value !== null; })
+            },
+            scheduling: $scope.scheduling,
+            eventIds: $scope.getSelectedIds()
+        };
         if ($scope.valid()) {
             EventBulkEditResource.save(payload, onSuccess, onFailure);
         }

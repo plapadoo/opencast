@@ -22,17 +22,14 @@
 'use strict';
 
 angular.module('adminNg.resources')
-.factory('EventBulkEditResource', ['$resource', function ($resource) {
-    return $resource('/admin-ng/event/bulkEdit', {}, {
+    .factory('EventBulkEditResource', ['$resource', '$httpParamSerializerJQLike', function ($resource, $httpParamSerializerJQLike) {
+    return $resource('/admin-ng/event/bulkupdate', {}, {
         save: {
-            method: 'POST',
+            method: 'PUT',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             transformRequest: function (data) {
-                return $.param({
-                    metadata: JSON.stringify(data)
-                });
+                return $httpParamSerializerJQLike({update: JSON.stringify(data)});
             },
-            isArray: true
         }
     });
 }]);

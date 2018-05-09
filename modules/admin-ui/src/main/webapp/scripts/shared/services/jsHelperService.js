@@ -38,6 +38,16 @@ angular.module('adminNg.services')
                 ];
             },
 
+            filter: function(array, callback) {
+                var result = [];
+                angular.forEach(array, function(v) {
+                    if (callback(v)) {
+                        result.push(v);
+                    }
+                });
+                return result;
+            },
+
             map: function (array, key) {
                 var i, result = [];
                 for (i = 0; i < array.length; i++) {
