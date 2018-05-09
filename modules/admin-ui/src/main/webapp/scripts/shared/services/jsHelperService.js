@@ -48,6 +48,16 @@ angular.module('adminNg.services')
                 return result;
             },
 
+            removeNulls: function(obj) {
+                var propNames = Object.getOwnPropertyNames(obj);
+                for (var i = 0; i < propNames.length; i++) {
+                    var propName = propNames[i];
+                    if (obj[propName] === null || obj[propName] === undefined) {
+                        delete obj[propName];
+                    }
+                }
+            },
+
             map: function (array, key) {
                 var i, result = [];
                 for (i = 0; i < array.length; i++) {

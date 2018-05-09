@@ -176,8 +176,11 @@ angular.module('adminNg.controllers')
     $scope.submit = function () {
         $scope.submitButton = true;
         // Deep copy scheduling, we need to change it for the request
-        // var scheduling = $.extend(true, {}, $scope.scheduling);
-        // if (scheduling.location === null)
+        var scheduling = $.extend(true, {}, $scope.scheduling);
+        JsHelper.removeNulls(scheduling);
+        JsHelper.removeNulls(scheduling.start);
+        JsHelper.removeNulls(scheduling.end);
+        JsHelper.removeNulls(scheduling.duration);
 
         var payload = {
             metadata: {
@@ -185,7 +188,7 @@ angular.module('adminNg.controllers')
                 title: "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE",
                 fields: JsHelper.filter($scope.metadataRows, function(row) { return angular.isDefined(row.value) && row.value !== null; })
             },
-            scheduling: $scope.scheduling,
+            scheduling: scheduling,
             eventIds: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
