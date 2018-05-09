@@ -22,8 +22,12 @@
 
 // Controller for the "edit scheduled events" wizard
 angular.module('adminNg.controllers')
-    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'WizardHandler', 'decorateWithTableRowSelection',
-function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, WizardHandler, decorateWithTableRowSelection) {
+    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'WizardHandler', 'Language', 'decorateWithTableRowSelection',
+function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, WizardHandler, Language, decorateWithTableRowSelection) {
+    var me = this;
+    var SCHEDULING_CONTEXT = 'event-scheduling';
+
+
     $scope.rows = Table.copySelected();
     $scope.allSelected = true; // by default, all rows are selected
     $scope.test = false;
@@ -106,10 +110,53 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.mapFunction($scope.rows, function(v) { return v.id; }));
 
     $scope.onTemporalValueChange = function(type) {
+        console.log(JSON.stringify($scope.scheduling));
         SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, true);
     };
 
-    $scope.saveScheduling = function() {
+    this.clearConflicts = function () {
+        $scope.conflicts = [];
+        if (me.notificationConflict) {
+            Notifications.remove(me.notificationConflict, SCHEDULING_CONTEXT);
+            me.notifictationConflict = undefined;
+        }
+    };
+
+    this.conflictsDetected = function (response) {
+        me.clearConflicts();
+        if (response.status === 409) {
+            me.notificationConflict = Notifications.add('error', 'CONFLICT_DETECTED', SCHEDULING_CONTEXT);
+            angular.forEach(response.data, function (data) {
+                $scope.conflicts.push({
+                    title: data.title,
+                    start: Language.formatDateTime('medium', data.start),
+                    end: Language.formatDateTime('medium', data.end)
+                });
+            });
+        }
+        $scope.checkingConflicts = false;
+    };
+
+    this.noConflictsDetected = function () {
+        me.clearConflicts();
+        $scope.checkingConflicts = false;
+    };
+
+    $scope.checkConflicts = function () {
+        return new Promise(function(resolve, reject) {
+            $scope.checkingConflicts = true;
+            var payload = {
+                eventIds: $scope.getSelectedIds(),
+                scheduling: $scope.scheduling
+            };
+            EventsSchedulingResource.checkConflicts(payload, me.noConflictsDetected, me.conflictsDetected)
+                .$promise.then(function() {
+                    resolve();
+                })
+                .catch(function(err) {
+                    reject();
+                });
+        });
     };
 
     $scope.checkingConflicts = false;
@@ -140,10 +187,12 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             timezone: JsHelper.getTimeZoneName(),
             location: getMetadataPart(function(row) { return row.location; }),
             start: {
+                date: getSchedulingPart(function(entry) { return entry.start.date; }),
                 hour: getSchedulingPart(function(entry) { return entry.start.hour; }),
                 minute: getSchedulingPart(function(entry) { return entry.start.minute; })
             },
             end: {
+                date: getSchedulingPart(function(entry) { return entry.end.date; }),
                 hour: getSchedulingPart(function(entry) { return entry.end.hour; }),
                 minute: getSchedulingPart(function(entry) { return entry.end.minute; })
             },

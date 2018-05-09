@@ -55,9 +55,26 @@ angular.module('adminNg.resources')
         });
         return result;
     };
+    var transformConflictRequest = function(data) {
+        return $httpParamSerializerJQLike({formData: JSON.stringify(data)});
+    };
+    // var transformConflictResponse = function(data) {
+    //     return data;
+    // };
 
-    return $resource('/admin-ng/event/scheduling.json', {}, {
+    return $resource('/admin-ng/event/:ext', {}, {
+        checkConflicts: {
+            params: { ext: 'conflicts.json' },
+            method: 'POST',
+            responseType: 'json',
+            isArray: true,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            transformRequest: transformConflictRequest
+        },
         bulkGet: {
+            params: { ext: 'scheduling.json' },
             method: 'POST',
             responseType: 'json',
             isArray: true,

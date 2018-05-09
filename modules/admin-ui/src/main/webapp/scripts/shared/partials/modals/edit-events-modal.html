@@ -73,6 +73,14 @@
 
                 <div class="modal-body">
                     <div class="full-col">
+                      <div data-admin-ng-notifications="" context="event-scheduling"></div>
+                      <table ng-show="conflicts.length > 0" class="main-tbl scheduling-conflict">
+                        <tr ng-repeat="conflict in conflicts">
+                          <td>{{ conflict.title }}</td>
+                          <td>{{ conflict.start }}</td>
+                          <td>{{ conflict.end }}</td>
+                        </tr>
+                      </table>
 
                         <div class="obj list-obj">
                             <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.METADATA"><!-- Edit Metadata --></header>
@@ -120,7 +128,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.start.hour" ng-change="onTemporalValueChange('start')"
+                                                ng-model="scheduling.start.hour"
+                                                ng-change="onTemporalValueChange('start'); checkConflicts();"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -128,7 +137,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.start.minute" ng-change="onTemporalValueChange('start')"
+                                                ng-model="scheduling.start.minute"
+                                                ng-change="onTemporalValueChange('start'); checkConflicts();"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
@@ -144,7 +154,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.duration.hour" ng-change="onTemporalValueChange('duration')"
+                                                ng-model="scheduling.duration.hour"
+                                                ng-change="onTemporalValueChange('duration'); checkConflicts();"
                                                 data-placeholder="{{ 'WIZARD.DURATION.HOURS' | translate }}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -153,7 +164,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.duration.minute" ng-change="onTemporalValueChange('duration')"
+                                                ng-model="scheduling.duration.minute"
+                                                ng-change="onTemporalValueChange('duration'); checkConflicts();"
                                                 data-placeholder="{{ 'WIZARD.DURATION.MINUTES' | translate }}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
@@ -169,7 +181,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.end.hour" ng-change="onTemporalValueChange('end')"
+                                                ng-model="scheduling.end.hour"
+                                                ng-change="onTemporalValueChange('end'); checkConflicts();"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.HOUR' | translate}}"
                                                 ng-options="h.index as h.value for h in hours"
                                                 />
@@ -177,7 +190,8 @@
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'100px'"
                                                 data-disable-search-threshold="8"
-                                                ng-model="scheduling.end.minute" ng-change="onTemporalValueChange('end')"
+                                                ng-model="scheduling.end.minute"
+                                                ng-change="onTemporalValueChange('end'); checkConflicts();"
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
@@ -198,7 +212,7 @@
                                         <select chosen pre-select-from="captureAgents"
                                                 ng-disabled="checkingConflicts"
                                                 data-width="'200px'"
-                                                ng-change="roomChanged(); saveScheduling()"
+                                                ng-change="roomChanged(); checkConflicts()"
                                                 data-disable-search-threshold="8"
                                                 ng-model="scheduling.location"
                                                 ng-options="value.name for (id, value) in captureAgents"
@@ -214,7 +228,7 @@
                                       <td>
                                         <label ng-repeat="inputMethod in source.device.inputs">
                                           <input type="checkbox"
-                                                 ng-change="saveScheduling()"
+                                                 ng-change="checkConflicts()"
                                                  ng-model="source.device.inputMethods[inputMethod.id]"
                                                  ng-disabled="checkingConflicts || !$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')"> {{ inputMethod.value | translate }}
                                           <br>
@@ -226,7 +240,7 @@
                                       <td>
                                         <label ng-repeat="weekday in weekdays">
                                           <input type="radio"
-                                                 ng-change="saveScheduling()"
+                                                 ng-change="checkConflicts()"
                                                  ng-model="scheduling.weekday"
                                                  name="weekdays"
                                                  value="{{weekday.key}}"
