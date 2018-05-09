@@ -40,9 +40,9 @@ import org.json.simple.parser.ParseException;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,19 +77,22 @@ public final class BulkUpdateUtil {
     throws IllegalArgumentException {
     try {
       final JSONObject scheduling = (JSONObject) JSON_PARSER.parse(schedulingJson);
-      OffsetDateTime startDate = Instant.parse(event.getRecordingStartDate()).atOffset(ZoneOffset.UTC);
-      OffsetDateTime endDate = Instant.parse(event.getRecordingEndDate()).atOffset(ZoneOffset.UTC);
+      ZonedDateTime startDate = ZonedDateTime.parse(event.getRecordingStartDate());
+      ZonedDateTime endDate = ZonedDateTime.parse(event.getRecordingEndDate());
+      final ZoneId timezone = ZoneId.of((String) scheduling.get("timezone"));
       if (scheduling.containsKey(SCHEDULING_START_KEY)) {
-        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate.toLocalDate().atStartOfDay());
+        startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY,
+          startDate.withZoneSameInstant(timezone).withHour(0).withMinute(0));
       }
       if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate.toLocalDate().atStartOfDay());
+        endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY,
+          endDate.withZoneSameInstant(timezone).withHour(0).withMinute(0));
       }
       if (endDate.isBefore(startDate)) {
         endDate = endDate.plusDays(1);
       }
       if (scheduling.containsKey("duration")) {
-        endDate = adjustedSchedulingDate(scheduling, "duration", startDate.toLocalDateTime());
+        endDate = adjustedSchedulingDate(scheduling, "duration", startDate);
       }
       if (scheduling.containsKey("weekday")) {
         final String weekdayAbbrev = ((String) scheduling.get("weekday"));
@@ -166,14 +169,14 @@ public final class BulkUpdateUtil {
     }
   }
 
-  private static OffsetDateTime adjustedSchedulingDate(
+  private static ZonedDateTime adjustedSchedulingDate(
     final JSONObject scheduling,
     final String dateKey,
-    final LocalDateTime date) {
+    final ZonedDateTime date) {
     final JSONObject time = (JSONObject) scheduling.get(dateKey);
     final int hour = Math.toIntExact((Long) time.get("hour"));
     final int minute = Math.toIntExact((Long) time.get("minute"));
-    return date.plusHours(hour).plusMinutes(minute).atOffset(ZoneOffset.UTC);
+    return date.plusHours(hour).plusMinutes(minute).withZoneSameInstant(ZoneOffset.UTC);
   }
 
   public static class BulkUpdateInstructions {
