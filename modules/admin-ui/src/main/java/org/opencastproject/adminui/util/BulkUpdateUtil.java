@@ -53,6 +53,8 @@ import java.util.Optional;
 
 public final class BulkUpdateUtil {
 
+  private static final JSONParser parser = new JSONParser();
+
   private BulkUpdateUtil() {
   }
 
@@ -70,26 +72,27 @@ public final class BulkUpdateUtil {
 
   @SuppressWarnings("unchecked")
   public static JSONObject addSchedulingDates(final Event event, final JSONObject scheduling) {
+    final JSONObject result = deepCopy(scheduling);
     ZonedDateTime startDate = ZonedDateTime.parse(event.getRecordingStartDate());
     ZonedDateTime endDate = ZonedDateTime.parse(event.getRecordingEndDate());
     final InternalDuration oldDuration = InternalDuration.of(startDate.toInstant(), endDate.toInstant());
-    final ZoneId timezone = ZoneId.of((String) scheduling.get("timezone"));
+    final ZoneId timezone = ZoneId.of((String) result.get("timezone"));
 
     // The client only sends start time hours and/or minutes. We have to apply this to each event to get a full date.
-    if (scheduling.containsKey(SCHEDULING_START_KEY)) {
-      startDate = adjustedSchedulingDate(scheduling, SCHEDULING_START_KEY, startDate, timezone);
+    if (result.containsKey(SCHEDULING_START_KEY)) {
+      startDate = adjustedSchedulingDate(result, SCHEDULING_START_KEY, startDate, timezone);
     }
     // The client only sends end time hours and/or minutes. We have to apply this to each event to get a full date.
-    if (scheduling.containsKey(SCHEDULING_END_KEY)) {
-      endDate = adjustedSchedulingDate(scheduling, SCHEDULING_END_KEY, endDate, timezone);
+    if (result.containsKey(SCHEDULING_END_KEY)) {
+      endDate = adjustedSchedulingDate(result, SCHEDULING_END_KEY, endDate, timezone);
     }
     if (endDate.isBefore(startDate)) {
       endDate = endDate.plusDays(1);
     }
 
     // If duration is set, we have to adjust the end or start date.
-    if (scheduling.containsKey("duration")) {
-      final JSONObject time = (JSONObject) scheduling.get("duration");
+    if (result.containsKey("duration")) {
+      final JSONObject time = (JSONObject) result.get("duration");
       final InternalDuration newDuration = new InternalDuration(oldDuration);
       if (time.containsKey("hour")) {
         newDuration.hours = (Long) time.get("hour");
@@ -100,7 +103,7 @@ public final class BulkUpdateUtil {
       if (time.containsKey("second")) {
         newDuration.seconds = (Long) time.get("second");
       }
-      if (scheduling.containsKey(SCHEDULING_END_KEY)) {
+      if (result.containsKey(SCHEDULING_END_KEY)) {
         startDate = endDate.minusHours(newDuration.hours)
           .minusMinutes(newDuration.minutes)
           .minusSeconds(newDuration.seconds);
@@ -112,8 +115,8 @@ public final class BulkUpdateUtil {
     }
 
     // Setting the weekday means that the event should be moved to the new weekday within the same week
-    if (scheduling.containsKey("weekday")) {
-      final String weekdayAbbrev = ((String) scheduling.get("weekday"));
+    if (result.containsKey("weekday")) {
+      final String weekdayAbbrev = ((String) result.get("weekday"));
       final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
         .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
         .findAny()
@@ -123,9 +126,9 @@ public final class BulkUpdateUtil {
       endDate = endDate.plusDays(daysDiff);
     }
 
-    scheduling.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
-    scheduling.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_INSTANT));
-    return scheduling;
+    result.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
+    result.put(SCHEDULING_END_KEY, endDate.format(DateTimeFormatter.ISO_INSTANT));
+    return result;
   }
 
   @SuppressWarnings("unchecked")
@@ -166,10 +169,18 @@ public final class BulkUpdateUtil {
   public static JSONObject mergeMetadataFields(final JSONObject first, final JSONObject second) {
     if (first == null) return second;
     if (second == null) return first;
-    final JSONObject result = (JSONObject) first.clone();
+    final JSONObject result = deepCopy(first);
     final Collection fields = (Collection) result.get("fields");
     fields.addAll((Collection) second.get("fields"));
     return result;
+  }
+
+  private static JSONObject deepCopy(JSONObject o) {
+    try {
+      return (JSONObject) parser.parse(o.toJSONString());
+    } catch (ParseException e) {
+      throw new IllegalArgumentException(e);
+    }
   }
 
   private static class InternalDuration {
