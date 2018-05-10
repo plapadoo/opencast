@@ -307,7 +307,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
             var changes = [];
 
-            if ($scope.scheduling.location !== null && $scope.scheduling.location !== value.agentId) {
+            if ($scope.scheduling.location.i !== null && $scope.scheduling.location.id !== value.agentId) {
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.LOCATION',
                     previous: value.agentId,
