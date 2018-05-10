@@ -265,12 +265,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             timezone: JsHelper.getTimeZoneName(),
             location: getCaById(getMetadataPart(function(row) { return row.agent_id; })),
             start: {
-                date: getSchedulingPart(function(entry) { return entry.start.date; }),
                 hour: getSchedulingPart(function(entry) { return entry.start.hour; }),
                 minute: getSchedulingPart(function(entry) { return entry.start.minute; })
             },
             end: {
-                date: getSchedulingPart(function(entry) { return entry.end.date; }),
                 hour: getSchedulingPart(function(entry) { return entry.end.hour; }),
                 minute: getSchedulingPart(function(entry) { return entry.end.minute; })
             },
@@ -426,10 +424,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.removeNulls(scheduling);
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
-        JsHelper.removeNulls(scheduling.duration);
         scheduling.location = scheduling.location.id;
-        delete scheduling.start.date;
-        delete scheduling.end.date;
+        delete scheduling.duration;
 
         var payload = {
             metadata: {

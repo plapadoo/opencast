@@ -148,33 +148,6 @@
                                       </td>
                                     </tr>
                                     <tr>
-                                      <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.DURATION' | translate }}</td>
-                                      <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        <select chosen
-                                                ng-disabled="checkingConflicts"
-                                                data-width="'100px'"
-                                                data-disable-search-threshold="8"
-                                                ng-model="scheduling.duration.hour"
-                                                ng-change="onTemporalValueChange('duration'); checkConflicts();"
-                                                data-placeholder="{{ 'WIZARD.DURATION.HOURS' | translate }}"
-                                                ng-options="h.index as h.value for h in hours"
-                                                />
-
-                                        <select chosen
-                                                ng-disabled="checkingConflicts"
-                                                data-width="'100px'"
-                                                data-disable-search-threshold="8"
-                                                ng-model="scheduling.duration.minute"
-                                                ng-change="onTemporalValueChange('duration'); checkConflicts();"
-                                                data-placeholder="{{ 'WIZARD.DURATION.MINUTES' | translate }}"
-                                                ng-options="m.index as m.value for m in minutes"
-                                                />
-                                      </td>
-                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        {{ scheduling.duration.hour | addLeadingZeros : 2 }} : {{ scheduling.duration.minute | addLeadingZeros : 2}}
-                                      </td>
-                                    </tr>
-                                    <tr>
                                       <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.END_TIME' | translate }}</td>
                                       <td ng-if="$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
                                         <select chosen
