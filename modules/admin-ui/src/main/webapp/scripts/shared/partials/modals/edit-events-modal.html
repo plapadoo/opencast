@@ -274,6 +274,13 @@
         <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION' | translate }}" novalidate canexit="true">
             <div class="modal-content active">
                 <div class="modal-body">
+                    <div class="row">
+                        <div ng-show="noChanges()" class="alert sticky warning">
+                            <p translate="BULK_ACTIONS.EDIT_EVENTS.GENERAL.NOCHANGES">
+                                <!-- No actual changes -->
+                            </p>
+                        </div>
+                    </div>
                     <div class="full-col">
                         <div class="obj tbl-list" ng-repeat="event in eventSummaries">
                             <header translate="BULK_ACTIONS.EDIT_EVENTS.SUMMARY.SINGLE_EVENT_CAPTION" translate-values='{ title: event.title}'><!-- Summary --></header>
@@ -302,7 +309,7 @@
             </div><!-- modal-content [summary] -->
             <footer>
                 <a wz-next class="submit"
-                   ng-class="{active: editEventsForm.$valid, inactive: editEventsForm.$invalid, disabled: submitButton}">
+                   ng-class="{active: editEventsForm.$valid, inactive: noChanges(), disabled: submitButton}">
                     {{ 'WIZARD.CREATE' | translate }}
                 </a>
                 <a wz-previous translate="WIZARD.BACK" class="cancel">

@@ -401,6 +401,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         nextWizardStep();
     };
 
+    $scope.noChanges = function() {
+        return $scope.eventSummaries.length === 0;
+    };
+
     var onSuccess = function () {
         $scope.submitButton = false;
         $scope.close();
