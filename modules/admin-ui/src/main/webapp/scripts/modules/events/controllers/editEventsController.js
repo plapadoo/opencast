@@ -155,7 +155,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     $scope.onTemporalValueChange = function(type) {
         console.log(JSON.stringify($scope.scheduling));
-        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, true);
+        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, false);
     };
 
     this.clearConflicts = function () {

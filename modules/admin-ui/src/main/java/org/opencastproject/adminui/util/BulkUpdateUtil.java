@@ -117,13 +117,15 @@ public final class BulkUpdateUtil {
     // Setting the weekday means that the event should be moved to the new weekday within the same week
     if (result.containsKey("weekday")) {
       final String weekdayAbbrev = ((String) result.get("weekday"));
-      final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
-        .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
-        .findAny()
-        .orElseThrow(() -> new IllegalArgumentException("Cannot parse weekday: " + weekdayAbbrev));
-      final int daysDiff = newWeekDay.getValue() - startDate.getDayOfWeek().getValue();
-      startDate = startDate.plusDays(daysDiff);
-      endDate = endDate.plusDays(daysDiff);
+      if (weekdayAbbrev != null) {
+        final DayOfWeek newWeekDay = Arrays.stream(DayOfWeek.values())
+          .filter(d -> d.name().startsWith(weekdayAbbrev.toUpperCase()))
+          .findAny()
+          .orElseThrow(() -> new IllegalArgumentException("Cannot parse weekday: " + weekdayAbbrev));
+        final int daysDiff = newWeekDay.getValue() - startDate.getDayOfWeek().getValue();
+        startDate = startDate.plusDays(daysDiff);
+        endDate = endDate.plusDays(daysDiff);
+      }
     }
 
     result.put(SCHEDULING_START_KEY, startDate.format(DateTimeFormatter.ISO_INSTANT));
