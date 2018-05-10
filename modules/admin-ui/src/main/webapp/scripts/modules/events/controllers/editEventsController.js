@@ -95,13 +95,20 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 continue;
             }
             var val = getter(row);
+            if (!angular.isDefined(val)) {
+                val = null;
+            }
             if (result === null) {
                 result = val;
             } else if (result !== val) {
-                return null;
+                return "";
             }
         }
-        return result;
+        if (result === null) {
+            return "";
+        } else {
+            return result;
+        }
     };
 
     var isSelected = function(id) {
