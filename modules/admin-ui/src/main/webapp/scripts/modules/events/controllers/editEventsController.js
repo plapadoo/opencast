@@ -323,7 +323,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             }
 
             var valueWeekDay = fromJsWeekday(new Date(value.start.date).getDay());
-            if (valueWeekDay.key !== $scope.scheduling.weekday) {
+            if ($scope.scheduling.weekday !== null && valueWeekDay.key !== $scope.scheduling.weekday) {
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
                     // Might be better to actually use the promise rather than using instant,
@@ -351,13 +351,13 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 // itself a whole object, with label and id. This we can test and then assume the value is
                 // just "null". If you then change the drop-down, we'll get a string and not an object.
                 // Phew...
-                var realMetaValue = metadata.value;
-                if (typeof realMetaValue === 'object') {
-                    realMetaValue = "";
+                // Better leave this as a separate "if" as a reminder and for easy removal later.
+                if (typeof metadata.value === 'object') {
+                    return;
                 }
-                if (realMetaValue !== null && realMetaValue !== rowValue) {
+                if (metadata.value !== "" && metadata.value !== rowValue) {
                     var prettyRow = prettifyMetadata(metadata.id, rowValue);
-                    var prettyMeta = prettifyMetadata(metadata.id, realMetaValue);
+                    var prettyMeta = prettifyMetadata(metadata.id, metadata.value);
                     changes.push({
                         type: metadata.label,
                         previous: prettyRow,
