@@ -195,6 +195,19 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         me.clearConflicts();
         $scope.checkingConflicts = false;
     };
+    
+    // What we send to the server is slightly different than what we
+    // internally use for the forms. This function returns the
+    // "cleaned up" result.
+    var postprocessScheduling = function() {
+        var scheduling = $.extend(true, {}, $scope.scheduling);
+        JsHelper.removeNulls(scheduling);
+        JsHelper.removeNulls(scheduling.start);
+        JsHelper.removeNulls(scheduling.end);
+        scheduling.location = scheduling.location.id;
+        delete scheduling.duration;
+        return scheduling;
+    };
 
     $scope.checkConflicts = function () {
         if ($scope.conflictCheckingEnabled === false) {
@@ -343,19 +356,28 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 if (!angular.isDefined(rowValue)) {
                     rowValue = "";
                 }
-                // This is an extremely dirty hack, so I'll have to explain: Normally, we could just test if
-                // "metadata.value" is equal to "rowValue", and if so, there's no difference for that field.
+                // This is an extremely dirty hack, so I'll have to
+                // explain: Normally, we could just test if
+                // "metadata.value" is equal to "rowValue", and if so,
+                // there's no difference for that field.
                 // Done...
                 //
-                // ...However, there are drop-downs. "Series" is a drop-down, for example. And an event might
-                // have no series assigned to it, so the drop-down is "unselected". Now, when the form with
-                // the unselected series drop-down (i.e. its value set to the empty string) is constructed,
-                // it automatically resets its value to the first series available. And here's the hack:
-                // This first "mis-assignment" doesn't set the value to the series ID. Instead, it assigns
-                // itself a whole object, with label and id. This we can test and then assume the value is
-                // just "null". If you then change the drop-down, we'll get a string and not an object.
+                // ...However, there are drop-downs. "Series" is a
+                // drop-down, for example. And an event might have no
+                // series assigned to it, so the drop-down is
+                // "unselected". Now, when the form with the
+                // unselected series drop-down (i.e. its value set to
+                // the empty string) is constructed, it automatically
+                // resets its value to the first series available. And
+                // here's the hack: This first "mis-assignment"
+                // doesn't set the value to the series ID. Instead, it
+                // assigns itself a whole object, with label and
+                // id. This we can test and then assume the value is
+                // just "null". If you then change the drop-down,
+                // we'll get a string and not an object.
                 // Phew...
-                // Better leave this as a separate "if" as a reminder and for easy removal later.
+                // Better leave this as a separate "if" as a reminder
+                // and for easy removal later.
                 if (typeof metadata.value === 'object') {
                     return;
                 }
@@ -421,16 +443,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         // Notifications.add('error', 'TASK_NOT_CREATED', 'global', -1);
     };
 
-    var postprocessScheduling = function() {
-        var scheduling = $.extend(true, {}, $scope.scheduling);
-        JsHelper.removeNulls(scheduling);
-        JsHelper.removeNulls(scheduling.start);
-        JsHelper.removeNulls(scheduling.end);
-        scheduling.location = scheduling.location.id;
-        delete scheduling.duration;
-        return scheduling;
-    };
-
     $scope.submitButton = false;
     $scope.submit = function () {
         $scope.submitButton = true;
@@ -449,7 +461,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             eventIds: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
-            // EventBulkEditResource.update(payload, onSuccess, onFailure);
+            EventBulkEditResource.update(payload, onSuccess, onFailure);
         }
     };
     decorateWithTableRowSelection($scope);
