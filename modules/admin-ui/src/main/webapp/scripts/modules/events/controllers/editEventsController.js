@@ -27,7 +27,15 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     var me = this;
     var SCHEDULING_CONTEXT = 'event-scheduling';
 
-
+    // Conflict checking should only be done and be enabled once we
+    // get to the second wizard stage.
+    // However, since we're checking conflicts "on change" for the
+    // input fields in the form, we are inadvertantly checking them
+    // once the list of capture agent arrives as well (since that
+    // apparently constitutes a "change"). This happens way earlier
+    // than the second wizard step, so we protect against early checks
+    // here.
+    $scope.conflictCheckingEnabled = false;
     $scope.rows = Table.copySelected();
     $scope.eventSummaries = [];
     $scope.allSelected = true; // by default, all rows are selected
@@ -154,7 +162,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.mapFunction($scope.rows, function(v) { return v.id; }));
 
     $scope.onTemporalValueChange = function(type) {
-        console.log(JSON.stringify($scope.scheduling));
         SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, false);
     };
 
@@ -190,16 +197,14 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     };
 
     $scope.checkConflicts = function () {
+        if ($scope.conflictCheckingEnabled === false) {
+            return;
+        }
         return new Promise(function(resolve, reject) {
             $scope.checkingConflicts = true;
-            var scheduling = $.extend(true, {}, $scope.scheduling);
-            scheduling.agentId = scheduling.location.id;
-            delete scheduling.start.date;
-            delete scheduling.end.date;
-            delete scheduling.location;
             var payload = {
                 events: $scope.getSelectedIds(),
-                scheduling: scheduling
+                scheduling: postprocessScheduling()
             };
             EventBulkEditResource.conflicts(payload, me.noConflictsDetected, me.conflictsDetected)
                 .$promise.then(function() {
@@ -241,6 +246,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     // This is triggered after the user selected some events in the first wizard step
     $scope.clearFormAndContinue = function() {
+        $scope.conflictCheckingEnabled = true;
         $scope.metadataRows = [
             {
                 id: "title",
@@ -395,7 +401,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 });
             }
         });
-        console.log('summaries: '+JSON.stringify($scope.eventSummaries));
         nextWizardStep();
     };
 
@@ -416,17 +421,19 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         // Notifications.add('error', 'TASK_NOT_CREATED', 'global', -1);
     };
 
-    $scope.submitButton = false;
-    $scope.submit = function () {
-        $scope.submitButton = true;
-        // Deep copy scheduling, we need to change it for the request
+    var postprocessScheduling = function() {
         var scheduling = $.extend(true, {}, $scope.scheduling);
         JsHelper.removeNulls(scheduling);
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
         scheduling.location = scheduling.location.id;
         delete scheduling.duration;
+        return scheduling;
+    };
 
+    $scope.submitButton = false;
+    $scope.submit = function () {
+        $scope.submitButton = true;
         var payload = {
             metadata: {
                 flavor: "dublincore/episode",
@@ -438,11 +445,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                         return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object';
                     })
             },
-            scheduling: scheduling,
+            scheduling: postprocessScheduling(),
             eventIds: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
-            console.log('sending: '+JSON.stringify(payload));
             // EventBulkEditResource.update(payload, onSuccess, onFailure);
         }
     };

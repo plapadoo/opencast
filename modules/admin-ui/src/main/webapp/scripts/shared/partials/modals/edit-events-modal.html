@@ -143,9 +143,6 @@
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
                                       </td>
-                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        {{ source.start.hour | addLeadingZeros : 2 }} : {{ source.start.minute | addLeadingZeros : 2}}
-                                      </td>
                                     </tr>
                                     <tr>
                                       <td>{{ 'EVENTS.EVENTS.DETAILS.SOURCE.DATE_TIME.END_TIME' | translate }}</td>
@@ -168,12 +165,6 @@
                                                 data-placeholder="{{ 'EVENTS.EVENTS.DETAILS.SOURCE.PLACEHOLDER.MINUTE' | translate}}"
                                                 ng-options="m.index as m.value for m in minutes"
                                                 />
-                                        <span ng-bind="scheduling.end.date"
-                                              ng-show="scheduling.end.date !== scheduling.start.date"
-                                              />
-                                      </td>
-                                      <td ng-if="!$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')">
-                                        {{ scheduling.end.hour | addLeadingZeros : 2 }} : {{ scheduling.end.minute | addLeadingZeros : 2}}
                                         <span ng-bind="scheduling.end.date"
                                               ng-show="scheduling.end.date !== scheduling.start.date"
                                               />
