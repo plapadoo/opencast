@@ -1183,8 +1183,6 @@ public abstract class AbstractEventEndpoint {
 
     final Map<String, List<MediaPackage>> conflicts = new HashMap<>();
     events.values().forEach(e -> e.ifPresent(event -> {
-
-      // Update the scheduling information
       try {
         if (instructions.getScheduling() != null) {
           // Since we only have the start/end time, we have to add the correct date(s) for this event.
