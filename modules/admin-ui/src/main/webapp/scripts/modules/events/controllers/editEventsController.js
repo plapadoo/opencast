@@ -22,8 +22,8 @@
 
 // Controller for the "edit scheduled events" wizard
 angular.module('adminNg.controllers')
-    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'WizardHandler', 'Language', 'decorateWithTableRowSelection',
-function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, WizardHandler, Language, decorateWithTableRowSelection) {
+    .controller('EditEventsCtrl', ['$scope', 'Table', 'Notifications', 'EventBulkEditResource', 'SeriesResource', 'CaptureAgentsResource', 'EventsSchedulingResource', 'JsHelper', 'SchedulingHelperService', 'WizardHandler', 'Language', '$translate', 'decorateWithTableRowSelection',
+function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, CaptureAgentsResource, EventsSchedulingResource, JsHelper, SchedulingHelperService, WizardHandler, Language, $translate, decorateWithTableRowSelection) {
     var me = this;
     var SCHEDULING_CONTEXT = 'event-scheduling';
 
@@ -314,7 +314,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
             var changes = [];
 
-            if ($scope.scheduling.location.i !== null && $scope.scheduling.location.id !== value.agentId) {
+            if ($scope.scheduling.location.id !== null && $scope.scheduling.location.id !== value.agentId) {
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.LOCATION',
                     previous: value.agentId,
@@ -322,12 +322,42 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 });
             }
 
+            var valueWeekDay = fromJsWeekday(new Date(value.start.date).getDay());
+            if (valueWeekDay.key !== $scope.scheduling.weekday) {
+                changes.push({
+                    type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
+                    // Might be better to actually use the promise rather than using instant,
+                    // but it's difficult with the two-way binding here.
+                    previous: $translate.instant(valueWeekDay.translation),
+                    next: $translate.instant(JsHelper.weekdayTranslation($scope.scheduling.weekday))
+                });
+            }
+
             var row = getRowForId(value.eventId);
             angular.forEach($scope.metadataRows, function(metadata) {
                 var rowValue = getterForMetadata(metadata.id)(row);
-                if (metadata.value !== null && metadata.value !== rowValue) {
+                if (!angular.isDefined(rowValue)) {
+                    rowValue = "";
+                }
+                // This is an extremely dirty hack, so I'll have to explain: Normally, we could just test if
+                // "metadata.value" is equal to "rowValue", and if so, there's no difference for that field.
+                // Done...
+                //
+                // ...However, there are drop-downs. "Series" is a drop-down, for example. And an event might
+                // have no series assigned to it, so the drop-down is "unselected". Now, when the form with
+                // the unselected series drop-down (i.e. its value set to the empty string) is constructed,
+                // it automatically resets its value to the first series available. And here's the hack:
+                // This first "mis-assignment" doesn't set the value to the series ID. Instead, it assigns
+                // itself a whole object, with label and id. This we can test and then assume the value is
+                // just "null". If you then change the drop-down, we'll get a string and not an object.
+                // Phew...
+                var realMetaValue = metadata.value;
+                if (typeof realMetaValue === 'object') {
+                    realMetaValue = "";
+                }
+                if (realMetaValue !== null && realMetaValue !== rowValue) {
                     var prettyRow = prettifyMetadata(metadata.id, rowValue);
-                    var prettyMeta = prettifyMetadata(metadata.id, metadata.value);
+                    var prettyMeta = prettifyMetadata(metadata.id, realMetaValue);
                     changes.push({
                         type: metadata.label,
                         previous: prettyRow,
@@ -362,8 +392,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
             if (changes.length > 0) {
                 $scope.eventSummaries.push({
-                    // TODO: Take title from corresponding row?
-                    title: "foo",
+                    title: row.title,
                     changes: changes
                 });
             }
@@ -394,18 +423,27 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
         JsHelper.removeNulls(scheduling.duration);
+        scheduling.location = scheduling.location.id;
+        delete scheduling.start.date;
+        delete scheduling.end.date;
 
         var payload = {
             metadata: {
                 flavor: "dublincore/episode",
                 title: "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE",
-                fields: JsHelper.filter($scope.metadataRows, function(row) { return angular.isDefined(row.value) && row.value !== null; })
+                fields: JsHelper.filter(
+                    $scope.metadataRows,
+                    function(row) {
+                        // Search for "hack" in this file for an explanation of this typeof magic.
+                        return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object';
+                    })
             },
             scheduling: scheduling,
             eventIds: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
-            EventBulkEditResource.update(payload, onSuccess, onFailure);
+            console.log('sending: '+JSON.stringify(payload));
+            // EventBulkEditResource.update(payload, onSuccess, onFailure);
         }
     };
     decorateWithTableRowSelection($scope);

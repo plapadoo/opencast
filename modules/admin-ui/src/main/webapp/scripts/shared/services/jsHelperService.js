@@ -25,9 +25,7 @@
 angular.module('adminNg.services')
 .factory('JsHelper', [
     function () {
-        return {
-            getWeekDays: function () {
-                return [
+        var weekdaysArray = [
                     { key: 'MO', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.MO' },
                     { key: 'TU', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.TU' },
                     { key: 'WE', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.WE' },
@@ -35,7 +33,19 @@ angular.module('adminNg.services')
                     { key: 'FR', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.FR' },
                     { key: 'SA', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.SA' },
                     { key: 'SU', translation: 'EVENTS.EVENTS.NEW.WEEKDAYS.SU' }
-                ];
+        ];
+        return {
+            getWeekDays: function () {
+                return weekdaysArray;
+            },
+
+            weekdayTranslation: function(d) {
+                for (var i = 0; i < weekdaysArray.length; i++) {
+                    if (weekdaysArray[i].key === d) {
+                        return weekdaysArray[i].translation;
+                    }
+                }
+                return null;
             },
 
             filter: function(array, callback) {

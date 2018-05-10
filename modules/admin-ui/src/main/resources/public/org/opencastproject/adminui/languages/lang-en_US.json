@@ -259,7 +259,8 @@
           },
           "EDIT": {
               "CAPTION": "Edit",
-              "METADATA": "Metadata"
+              "METADATA": "Metadata",
+              "SCHEDULING": "Scheduling"
           }
       }
    },
@@ -492,6 +493,7 @@
          "PREVIOUS": "Previous",
          "NOCONTENT": "No data available",
          "PUBLISHED": "Published",
+         "WEEKDAY": "Weekday",
          "TOOLTIP": {
            "START": "Filter for this start date",
            "SERIES": "Filter for this series",
