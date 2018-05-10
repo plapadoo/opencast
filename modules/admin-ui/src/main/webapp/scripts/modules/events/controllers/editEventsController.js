@@ -133,7 +133,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     var fromJsWeekday = function(d) {
         // Javascript week days start at sunday (so 0=SU), so we have to roll over.
-        return JsHelper.getWeekDays()[d + 1 % 7];
+        return JsHelper.getWeekDays()[(d + 6) % 7];
     };
 
 
@@ -187,6 +187,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             $scope.checkingConflicts = true;
             var scheduling = $.extend(true, {}, $scope.scheduling);
             scheduling.agentId = scheduling.location.id;
+            delete scheduling.start.date;
+            delete scheduling.end.date;
             delete scheduling.location;
             var payload = {
                 events: $scope.getSelectedIds(),
