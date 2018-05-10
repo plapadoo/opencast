@@ -45,13 +45,33 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         });
     });
 
+    var seriesTitleForId = function(id) {
+        var result = null;
+        angular.forEach($scope.seriesResults, function(value, key) {
+            if (value === id) {
+                result = key;
+            }
+        });
+        return result;
+    };
+
     // Get available capture agents
     $scope.captureAgents = [];
     CaptureAgentsResource.query({inputs: true}).$promise.then(function (data) {
         $scope.captureAgents = data.rows;
     });
 
-    function getMetadataPart(getter) {
+    var getRowForId = function(eventId) {
+        for (var i = 0; i < $scope.rows.length; i++) {
+            var row = $scope.rows[i];
+            if (row.id === eventId) {
+                return row;
+            }
+        }
+        return null;
+    };
+
+    var getMetadataPart = function(getter) {
         var result = null;
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
@@ -66,13 +86,13 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             }
         }
         return result;
-    }
+    };
 
-    function isSelected(id) {
+    var isSelected = function(id) {
         return JsHelper.arrayContains($scope.getSelectedIds(), id);
-    }
+    };
 
-    function getSchedulingPart(getter) {
+    var getSchedulingPart = function(getter) {
         var result = { ambiguous: false, value: null };
         angular.forEach($scope.schedulingSingle, function(value) {
             if (!isSelected(value.eventId)) {
@@ -93,7 +113,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         } else {
             return result.value;
         }
-    }
+    };
 
     var fromJsWeekday = function(d) {
         // Javascript week days start at sunday (so 0=SU), so we have to roll over.
@@ -144,6 +164,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     };
 
     $scope.checkConflicts = function () {
+        return;
         return new Promise(function(resolve, reject) {
             $scope.checkingConflicts = true;
             var payload = {
@@ -166,6 +187,28 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         WizardHandler.wizard("editEventsWz").next();  
     };
 
+    var getterForMetadata = function(metadataId) {
+        switch (metadataId) {
+        case 'title':
+            return function(row) { return row.title; };
+        case 'isPartOf':
+            return function(row) { return row.series_id; };
+        default:
+            console.log('There is no getter for metadata item "'+metadataId+'"');
+        }
+    };
+
+    var prettifyMetadata = function(metadataId, value) {
+        if (value === null) {
+            return value;
+        } else if (metadataId === 'isPartOf') {
+            return seriesTitleForId(value);
+        } else {
+            return value;
+        }
+    };
+
+
     // This is triggered after the user selected some events in the first wizard step
     $scope.clearFormAndContinue = function() {
         $scope.metadataRows = [
@@ -175,7 +218,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 readOnly: false,
                 required: true,
                 type: "text",
-                value: getMetadataPart(function(row) { return row.title; })
+                value: getMetadataPart(getterForMetadata('title'))
             },
             {
                 id: "isPartOf",
@@ -185,7 +228,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 required: false,
                 translatable: false,
                 type: "text",
-                value: getMetadataPart(function(row) { return row.series_id; })
+                value: getMetadataPart(getterForMetadata('isPartOf'))
             },
         ];
         $scope.scheduling = {
@@ -234,7 +277,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     $scope.generateEventSummariesAndContinue = function() {
         $scope.eventSummaries = [];
-        console.log('generating summaries');
         angular.forEach($scope.schedulingSingle, function(value) {
             if (!isSelected(value.eventId)) {
                 return;
@@ -243,9 +285,20 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             var changes = [];
 
             if ($scope.scheduling.location !== null && $scope.scheduling.location !== value.agentId) {
-                changes.push(['EVENTS.EVENTS.TABLE.LOCATION', value.agentId, $scope.scheduling.location]);
+                changes.push(['EVENTS.EVENTS.TABLE.LOCATION', value.agentId, $scope.scheduling.location.id]);
             }
 
+            var row = getRowForId(value.eventId);
+            angular.forEach($scope.metadataRows, function(metadata) {
+                var rowValue = getterForMetadata(metadata.id)(row);
+                if (metadata.value !== null && metadata.value !== rowValue) {
+                    var prettyRow = prettifyMetadata(metadata.id, rowValue);
+                    var prettyMeta = prettifyMetadata(metadata.id, metadata.value);
+                    changes.push([metadata.label, prettyRow, prettyMeta]);
+                }
+            });
+
+            // Little helper function so we can treat "start" and "end" the same.
             var formatPart = function(schedObj, valObj, translation) {
                 if (schedObj.hour !== null && schedObj.hour !== valObj.hour || schedObj.minute !== null && schedObj.minute !== valObj.minute) {
                     var oldTime = JsHelper.humanizeTime(valObj.hour, valObj.minute);
@@ -262,15 +315,18 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 }
             };
 
-            formatPart($scope.scheduling.start, value.start);
-            formatPart($scope.scheduling.end, value.end);
+            formatPart($scope.scheduling.start, value.start, 'START');
+            formatPart($scope.scheduling.end, value.end, 'END');
 
-            $scope.eventSummaries.push({
-                title: "foo",
-                changes: changes
-            });
+            if (changes.length > 0) {
+                $scope.eventSummaries.push({
+                    // TODO: Take title from corresponding row?
+                    title: "foo",
+                    changes: changes
+                });
+            }
         });
-        console.log('done, next step');
+        console.log('summaries: '+JSON.stringify($scope.eventSummaries));
         nextWizardStep();
     };
 
