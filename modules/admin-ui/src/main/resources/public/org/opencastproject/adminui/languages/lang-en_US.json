@@ -245,7 +245,8 @@
           "GENERAL": {
               "CAPTION": "General",
               "SUMMARY": "({{ count }} events selected)",
-              "CANNOTSTART": "Highlighted event(s) cannot be processed, only scheduled events are supported."
+              "CANNOTSTART": "Highlighted event(s) cannot be processed, only scheduled events are supported.",
+              "NOCHANGES": "No changes to the events detected!"
           },
           "METADATA": {
               "EDIT": "Edit metadata"
@@ -479,6 +480,7 @@
          "SERIES":   "Series",
          "DATE":     "Date",
          "START":    "Start",
+         "END":      "End",
          "STOP":     "Stop",
          "STATUS":   "Status",
          "LOCATION": "Location",
