@@ -242,7 +242,7 @@ public final class BulkUpdateUtil {
     @SuppressWarnings("unchecked")
     public BulkUpdateInstructions(final String json) throws IllegalArgumentException {
       try {
-        final JSONObject jsonObject = (JSONObject) new JSONParser().parse(json);
+        final JSONObject jsonObject = (JSONObject) parser.parse(json);
         eventIds = (JSONArray) jsonObject.get(KEY_EVENTS);
         metadata = (JSONObject) jsonObject.get(KEY_METADATA);
         scheduling = (JSONObject) jsonObject.get(KEY_SCHEDULING);
