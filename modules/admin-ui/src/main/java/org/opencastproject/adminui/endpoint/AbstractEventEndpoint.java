@@ -1208,7 +1208,7 @@ public abstract class AbstractEventEndpoint {
         try {
           final List<JValue> eventsJSON = convertToConflictObjects(eventId, conflictingEvents);
           if (!eventsJSON.isEmpty()) {
-            responseJson.add(obj(f(eventId, arr(eventsJSON))));
+            responseJson.add(obj(f("eventId", eventId), f("conflicts", arr(eventsJSON))));
           }
         } catch (SearchIndexException e) {
           throw new RuntimeException(e);
