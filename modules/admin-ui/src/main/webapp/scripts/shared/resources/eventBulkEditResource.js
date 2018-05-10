@@ -32,8 +32,8 @@ angular.module('adminNg.resources')
                 return $httpParamSerializerJQLike({update: JSON.stringify(data)});
             },
         },
-        update: {
-            method: 'PUT',
+        conflicts: {
+            method: 'POST',
             params: { ext: 'conflicts' },
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             transformRequest: function (data) {

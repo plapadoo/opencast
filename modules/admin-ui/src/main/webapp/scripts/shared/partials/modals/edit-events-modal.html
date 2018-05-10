@@ -75,6 +75,7 @@
                       <div data-admin-ng-notifications="" context="event-scheduling"></div>
                       <table ng-show="conflicts.length > 0" class="main-tbl scheduling-conflict">
                         <tr ng-repeat="conflict in conflicts">
+                          <td>{{ conflict.eventId }}</td>
                           <td>{{ conflict.title }}</td>
                           <td>{{ conflict.start }}</td>
                           <td>{{ conflict.end }}</td>

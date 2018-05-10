@@ -61,6 +61,18 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         $scope.captureAgents = data.rows;
     });
 
+    var getCaById = function(agentId) {
+        if (agentId === null) {
+            return null;
+        }
+        for (var i = 0; i < $scope.captureAgents.length; i++) {
+            if ($scope.captureAgents[i].id === agentId) {
+                return $scope.captureAgents[i];
+            }
+        }
+        return null;
+    };
+
     var getRowForId = function(eventId) {
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
@@ -69,6 +81,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             }
         }
         return null;
+    };
+
+    var eventTitleForId = function(id) {
+        return getRowForId(id).title;
     };
 
     var getMetadataPart = function(getter) {
@@ -146,12 +162,15 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     this.conflictsDetected = function (response) {
         me.clearConflicts();
         if (response.status === 409) {
-            me.notificationConflict = Notifications.add('error', 'CONFLICT_DETECTED', SCHEDULING_CONTEXT);
+            me.notificationConflict = Notifications.add('error', 'CONFLICT_BULK_DETECTED', SCHEDULING_CONTEXT);
             angular.forEach(response.data, function (data) {
-                $scope.conflicts.push({
-                    title: data.title,
-                    start: Language.formatDateTime('medium', data.start),
-                    end: Language.formatDateTime('medium', data.end)
+                angular.forEach(data.conflicts, function(conflict) {
+                    $scope.conflicts.push({
+                        eventId: eventTitleForId(data.eventId),
+                        title: conflict.title,
+                        start: Language.formatDateTime('medium', conflict.start),
+                        end: Language.formatDateTime('medium', conflict.end)
+                    });
                 });
             });
         }
@@ -164,14 +183,16 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     };
 
     $scope.checkConflicts = function () {
-        return;
         return new Promise(function(resolve, reject) {
             $scope.checkingConflicts = true;
+            var scheduling = $.extend(true, {}, $scope.scheduling);
+            scheduling.agentId = scheduling.location.id;
+            delete scheduling.location;
             var payload = {
-                eventIds: $scope.getSelectedIds(),
-                scheduling: $scope.scheduling
+                events: $scope.getSelectedIds(),
+                scheduling: scheduling
             };
-            EventsSchedulingResource.checkConflicts(payload, me.noConflictsDetected, me.conflictsDetected)
+            EventBulkEditResource.conflicts(payload, me.noConflictsDetected, me.conflictsDetected)
                 .$promise.then(function() {
                     resolve();
                 })
@@ -233,7 +254,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         ];
         $scope.scheduling = {
             timezone: JsHelper.getTimeZoneName(),
-            location: getMetadataPart(function(row) { return row.location; }),
+            location: getCaById(getMetadataPart(function(row) { return row.agent_id; })),
             start: {
                 date: getSchedulingPart(function(entry) { return entry.start.date; }),
                 hour: getSchedulingPart(function(entry) { return entry.start.hour; }),
