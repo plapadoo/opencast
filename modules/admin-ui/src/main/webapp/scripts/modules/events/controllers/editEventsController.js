@@ -285,7 +285,11 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             var changes = [];
 
             if ($scope.scheduling.location !== null && $scope.scheduling.location !== value.agentId) {
-                changes.push(['EVENTS.EVENTS.TABLE.LOCATION', value.agentId, $scope.scheduling.location.id]);
+                changes.push({
+                    type: 'EVENTS.EVENTS.TABLE.LOCATION',
+                    previous: value.agentId,
+                    next: $scope.scheduling.location.id
+                });
             }
 
             var row = getRowForId(value.eventId);
@@ -294,7 +298,11 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 if (metadata.value !== null && metadata.value !== rowValue) {
                     var prettyRow = prettifyMetadata(metadata.id, rowValue);
                     var prettyMeta = prettifyMetadata(metadata.id, metadata.value);
-                    changes.push([metadata.label, prettyRow, prettyMeta]);
+                    changes.push({
+                        type: metadata.label,
+                        previous: prettyRow,
+                        next: prettyMeta
+                    });
                 }
             });
 
@@ -311,7 +319,11 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                         newMinute = schedObj.minute;
                     }
                     var newTime = JsHelper.humanizeTime(newHour, newMinute);
-                    changes.push(['EVENTS.EVENTS.TABLE.'+translation, oldTime, newTime]);
+                    changes.push({
+                        type: 'EVENTS.EVENTS.TABLE.'+translation,
+                        previous: oldTime,
+                        next: newTime
+                    });
                 }
             };
 
