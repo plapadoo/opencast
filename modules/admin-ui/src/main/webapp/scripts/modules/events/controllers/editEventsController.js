@@ -376,10 +376,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 if (!angular.isDefined(rowValue)) {
                     rowValue = "";
                 }
-                // This is an extremely dirty hack, so I'll have to
-                // explain: Normally, we could just test if
-                // "metadata.value" is equal to "rowValue", and if so,
-                // there's no difference for that field.
+                // This is an very subtle hack to circumvent MH-12876,
+                // so I'll have to explain: Normally, we could just
+                // test if "metadata.value" is equal to "rowValue",
+                // and if so, there's no difference for that field.
                 // Done...
                 //
                 // ...However, there are drop-downs. "Series" is a
