@@ -204,8 +204,15 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.removeNulls(scheduling);
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
+        if ($.isEmptyObject(scheduling.start)) {
+            delete scheduling.start;
+        }
+        if ($.isEmptyObject(scheduling.end)) {
+            delete scheduling.end;
+        }
         if (angular.isDefined(scheduling.location)) {
-            scheduling.location = scheduling.location.id;
+            scheduling.agentId = scheduling.location.id;
+            delete scheduling.location;
         }
         delete scheduling.duration;
         return scheduling;
@@ -430,6 +437,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
     $scope.noChanges = function() {
         return $scope.eventSummaries.length === 0;
+    };
+
+    $scope.hasConflicts = function() {
+        return $scope.conflicts.length > 0;
     };
 
     var onSuccess = function () {

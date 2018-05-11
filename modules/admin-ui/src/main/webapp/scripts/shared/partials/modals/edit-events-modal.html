@@ -73,14 +73,16 @@
                 <div class="modal-body">
                     <div class="full-col">
                       <div data-admin-ng-notifications="" context="event-scheduling"></div>
-                      <table ng-show="conflicts.length > 0" class="main-tbl scheduling-conflict">
-                        <tr ng-repeat="conflict in conflicts">
-                          <td>{{ conflict.eventId }}</td>
-                          <td>{{ conflict.title }}</td>
-                          <td>{{ conflict.start }}</td>
-                          <td>{{ conflict.end }}</td>
-                        </tr>
-                      </table>
+                      <div class="obj list-obj" ng-show="conflicts.length > 0">
+                        <table class="main-tbl scheduling-conflict">
+                          <tr ng-repeat="conflict in conflicts">
+                            <td>{{ conflict.eventId }}</td>
+                            <td>{{ conflict.title }}</td>
+                            <td>{{ conflict.start }}</td>
+                            <td>{{ conflict.end }}</td>
+                          </tr>
+                        </table>
+                      </div>
 
                         <div class="obj list-obj">
                             <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.METADATA"><!-- Edit Metadata --></header>
@@ -226,7 +228,7 @@
             <footer>
                 <a class="submit"
                    ng-click="generateEventSummariesAndContinue()"
-                   ng-class="{active: editEventsForm.$valid, inactive: editEventsForm.$invalid}">
+                   ng-class="{active: !hasConflicts(), disabled: hasConflicts()}">
                     {{ 'WIZARD.NEXT_STEP' | translate }}
                 </a>
                 <a wz-previous translate="WIZARD.BACK" class="cancel">
@@ -273,7 +275,7 @@
             </div><!-- modal-content [summary] -->
             <footer>
                 <a wz-next class="submit"
-                   ng-class="{active: editEventsForm.$valid, inactive: noChanges(), disabled: submitButton}">
+                   ng-class="{active: editEventsForm.$valid, disabled: noChanges() || submitButton}">
                     {{ 'WIZARD.CREATE' | translate }}
                 </a>
                 <a wz-previous translate="WIZARD.BACK" class="cancel">
