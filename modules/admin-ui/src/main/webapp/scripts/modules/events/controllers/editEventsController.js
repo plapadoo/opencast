@@ -204,7 +204,9 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         JsHelper.removeNulls(scheduling);
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
-        scheduling.location = scheduling.location.id;
+        if (angular.isDefined(scheduling.location)) {
+            scheduling.location = scheduling.location.id;
+        }
         delete scheduling.duration;
         return scheduling;
     };
@@ -331,7 +333,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
             var changes = [];
 
-            if ($scope.scheduling.location.id !== null && $scope.scheduling.location.id !== value.agentId) {
+            if ($scope.scheduling.location !== null && $scope.scheduling.location.id !== null && $scope.scheduling.location.id !== value.agentId) {
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.LOCATION',
                     previous: value.agentId,
@@ -454,11 +456,11 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                     $scope.metadataRows,
                     function(row) {
                         // Search for "hack" in this file for an explanation of this typeof magic.
-                        return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object';
+                        return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object' && row.value !== '';
                     })
             },
             scheduling: postprocessScheduling(),
-            eventIds: $scope.getSelectedIds()
+            events: $scope.getSelectedIds()
         };
         if ($scope.valid()) {
             EventBulkEditResource.update(payload, onSuccess, onFailure);
