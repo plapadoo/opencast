@@ -55,12 +55,6 @@ angular.module('adminNg.resources')
         });
         return result;
     };
-    var transformConflictRequest = function(data) {
-        return $httpParamSerializerJQLike({formData: JSON.stringify(data)});
-    };
-    // var transformConflictResponse = function(data) {
-    //     return data;
-    // };
 
     return $resource('/admin-ng/event/scheduling.json', {}, {
         bulkGet: {

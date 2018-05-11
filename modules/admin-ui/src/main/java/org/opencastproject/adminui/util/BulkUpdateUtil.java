@@ -145,7 +145,7 @@ public final class BulkUpdateUtil {
     if (scheduling.containsKey(SCHEDULING_START_KEY) && scheduling.containsKey(SCHEDULING_END_KEY)) {
       final JSONObject startDateJson = new JSONObject();
       startDateJson.put("id", "startDate");
-      String startDate = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY))
+      final String startDate = Instant.parse((String) scheduling.get(SCHEDULING_START_KEY))
         .atOffset(ZoneOffset.UTC)
         .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) + ".000Z";
       startDateJson.put("value", startDate);
@@ -169,15 +169,19 @@ public final class BulkUpdateUtil {
 
   @SuppressWarnings("unchecked")
   public static JSONObject mergeMetadataFields(final JSONObject first, final JSONObject second) {
-    if (first == null) return second;
-    if (second == null) return first;
+    if (first == null) {
+      return second;
+    }
+    if (second == null) {
+      return first;
+    }
     final JSONObject result = deepCopy(first);
     final Collection fields = (Collection) result.get("fields");
     fields.addAll((Collection) second.get("fields"));
     return result;
   }
 
-  private static JSONObject deepCopy(JSONObject o) {
+  private static JSONObject deepCopy(final JSONObject o) {
     try {
       return (JSONObject) parser.parse(o.toJSONString());
     } catch (ParseException e) {
@@ -193,13 +197,13 @@ public final class BulkUpdateUtil {
     InternalDuration() {
     }
 
-    InternalDuration(InternalDuration other) {
+    InternalDuration(final InternalDuration other) {
       this.hours = other.hours;
       this.minutes = other.minutes;
       this.seconds = other.seconds;
     }
 
-    public static InternalDuration of(Instant start, Instant end) {
+    public static InternalDuration of(final Instant start, final Instant end) {
       final InternalDuration result = new InternalDuration();
       final Duration duration = Duration.between(start, end);
       result.hours = duration.toHours();

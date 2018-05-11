@@ -38,7 +38,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     $scope.conflictCheckingEnabled = false;
     $scope.rows = Table.copySelected();
     $scope.eventSummaries = [];
-    $scope.allSelected = true; // by default, all rows are selected
+     // by default, all rows are selected
+    $scope.allSelected = true;
     $scope.test = false;
     $scope.currentForm = 'generalForm';
     /* Get the current client timezone */
@@ -53,6 +54,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         });
     });
 
+    // Given a series id, get me the title (we need this for the summary prettification)
     var seriesTitleForId = function(id) {
         var result = null;
         angular.forEach($scope.seriesResults, function(value, key) {
@@ -69,6 +71,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         $scope.captureAgents = data.rows;
     });
 
+    // Given a capture agent id, get me the whole capture agent from the list
     var getCaById = function(agentId) {
         if (agentId === null) {
             return null;
@@ -81,6 +84,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return null;
     };
 
+    // Given an event id, get me the row
     var getRowForId = function(eventId) {
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
@@ -91,10 +95,14 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return null;
     };
 
+    // Given an event id, get me the title
     var eventTitleForId = function(id) {
         return getRowForId(id).title;
     };
 
+    // Iterate over all (selected) events (via the rows) and get the
+    // specific metadata element. Returns the empty string if the
+    // value is ambiguous between the rows.
     var getMetadataPart = function(getter) {
         var result = null;
         for (var i = 0; i < $scope.rows.length; i++) {
@@ -119,10 +127,12 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         }
     };
 
+    // Return if the event with the given ID is selected
     var isSelected = function(id) {
         return JsHelper.arrayContains($scope.getSelectedIds(), id);
     };
 
+    // see "getMetadataPart", but this one is for scheduling information
     var getSchedulingPart = function(getter) {
         var result = { ambiguous: false, value: null };
         angular.forEach($scope.schedulingSingle, function(value) {
@@ -146,11 +156,12 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         }
     };
 
+    // Convert a Javascript, sunday-based weekday to the corresponding
+    // OC weekday object
     var fromJsWeekday = function(d) {
         // Javascript week days start at sunday (so 0=SU), so we have to roll over.
         return JsHelper.getWeekDays()[(d + 6) % 7];
     };
-
 
     $scope.hours = JsHelper.initArray(24);
     $scope.minutes = JsHelper.initArray(60);
@@ -312,7 +323,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     $scope.metadataRows = [];
 
     $scope.saveField = function(arg, callback) {
-        // Müssen wir was machen wenn man das Editfeld verlässt? Merken obs dirty ist oder so?
+        // Nothing to do here yet, but the "save" attribute is non-optional.
     };
 
     $scope.valid = function () {
@@ -446,14 +457,14 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     var onSuccess = function () {
         $scope.submitButton = false;
         $scope.close();
-        // Notifications.add('success', 'TASK_CREATED');
+        Notifications.add('success', 'EVENTS_UPDATED_ALL');
         Table.deselectAll();
     };
 
     var onFailure = function () {
         $scope.submitButton = false;
         $scope.close();
-        // Notifications.add('error', 'TASK_NOT_CREATED', 'global', -1);
+        Notifications.add('error', 'EVENTS_NOT_UPDATED', 'global', -1);
     };
 
     $scope.submitButton = false;
