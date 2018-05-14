@@ -254,8 +254,8 @@
               "CAPTION": "Summary",
               "SINGLE_EVENT_CAPTION": "Event “{{ title }}”",
               "TYPE": "Type",
-              "PREVIOUS": "Previous value",
-              "NEXT": "Next value"
+              "PREVIOUS": "Old value",
+              "NEXT": "New value"
           },
           "EDIT": {
               "CAPTION": "Edit",
