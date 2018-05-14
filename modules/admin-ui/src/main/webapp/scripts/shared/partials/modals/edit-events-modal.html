@@ -64,7 +64,7 @@
         </wz-step>
 
         <!-- Second Step: The actual Editing -->
-        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.EDIT.CAPTION' | translate }}" ng-form="editEventsForm" novalidate canexit="editEventsForm.$valid">
+        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.EDIT.CAPTION' | translate }}" ng-form="editEventsForm" novalidate canenter="rowsValid()" canexit="editEventsForm.$valid">
             <div class="modal-content active">
 
                 <div class="modal-body">
@@ -225,7 +225,7 @@
         </wz-step>
 
         <!-- Third step: Summary -->
-        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION' | translate }}" novalidate canexit="true">
+        <wz-step wz-title="{{ 'BULK_ACTIONS.EDIT_EVENTS.SUMMARY.CAPTION' | translate }}" novalidate canenter="rowsValid() && !hasConflicts()">
             <div class="modal-content active">
                 <div class="modal-body">
                     <div class="row">

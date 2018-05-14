@@ -37,6 +37,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     // here.
     $scope.conflictCheckingEnabled = false;
     $scope.rows = Table.copySelected();
+    $scope.conflicts = [];
     $scope.eventSummaries = [];
      // by default, all rows are selected
     $scope.allSelected = true;
@@ -412,10 +413,24 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 }
             });
 
+            var formatTimeHourMinute = function (hour, minute) {
+                var hourString = hour;
+                if (hour < 10) {
+                    hourString = '0'+hourString;
+                }
+                var minuteString = minute;
+                if (minute < 10) {
+                    minuteString = '0'+minuteString;
+                }
+                var isoTime = "1970-01-01T"+hourString+":"+minuteString+":00.000Z";
+                // formatTime takes an ISO string, we only have an hour and a minute.
+                return Language.formatTime('short', isoTime);
+            };
+
             // Little helper function so we can treat "start" and "end" the same.
             var formatPart = function(schedObj, valObj, translation) {
                 if (schedObj.hour !== null && schedObj.hour !== valObj.hour || schedObj.minute !== null && schedObj.minute !== valObj.minute) {
-                    var oldTime = JsHelper.humanizeTime(valObj.hour, valObj.minute);
+                    var oldTime = formatTimeHourMinute(valObj.hour, valObj.minute);
                     var newHour = valObj.hour;
                     if (schedObj.hour !== null && schedObj.hour !== valObj.hour) {
                         newHour = schedObj.hour;
@@ -424,7 +439,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                     if (schedObj.minute !== null && schedObj.minute !== valObj.minute) {
                         newMinute = schedObj.minute;
                     }
-                    var newTime = JsHelper.humanizeTime(newHour, newMinute);
+                    var newTime = formatTimeHourMinute(newHour, newMinute);
                     changes.push({
                         type: 'EVENTS.EVENTS.TABLE.'+translation,
                         previous: oldTime,
