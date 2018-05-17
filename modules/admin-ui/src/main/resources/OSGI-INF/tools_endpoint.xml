@@ -35,11 +35,6 @@
              interface="org.opencastproject.index.service.api.IndexService"
              name="IndexService"
              policy="static" />
-  <reference bind="setServiceRegistry"
-             cardinality="1..1"
-             name="serviceRegistry"
-             interface="org.opencastproject.serviceregistry.api.ServiceRegistry"
-             policy="static"/>
   <reference bind="setSmilService"
              cardinality="1..1"
              interface="org.opencastproject.smil.api.SmilService"
