@@ -75,7 +75,6 @@ import org.opencastproject.security.api.SecurityService;
 import org.opencastproject.security.urlsigning.exception.UrlSigningException;
 import org.opencastproject.security.urlsigning.service.UrlSigningService;
 import org.opencastproject.security.urlsigning.utils.UrlSigningServiceOsgiUtil;
-import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.smil.api.SmilException;
 import org.opencastproject.smil.api.SmilResponse;
 import org.opencastproject.smil.api.SmilService;
@@ -200,7 +199,6 @@ public class ToolsEndpoint implements ManagedService {
   private IndexService index;
   private OaiPmhPublicationService oaiPmhPublicationService;
   private ConfigurablePublicationService configurablePublicationService;
-  private ServiceRegistry serviceRegistry;
   private SecurityService securityService;
   private SmilService smilService;
   private UrlSigningService urlSigningService;
@@ -234,11 +232,6 @@ public class ToolsEndpoint implements ManagedService {
   /** OSGi DI */
   void setOaiPmhPublicationService(OaiPmhPublicationService oaiPmhPublicationService) {
     this.oaiPmhPublicationService = oaiPmhPublicationService;
-  }
-
-  /** OSGi DI */
-  void setServiceRegistry(ServiceRegistry serviceRegistry) {
-    this.serviceRegistry = serviceRegistry;
   }
 
   /** OSGi DI */
@@ -453,8 +446,8 @@ public class ToolsEndpoint implements ManagedService {
   }
 
   private ThumbnailImpl newThumbnailImpl() {
-    return new ThumbnailImpl(adminUIConfiguration, workspace,
-      serviceRegistry, oaiPmhPublicationService, configurablePublicationService, assetManager, composerService);
+    return new ThumbnailImpl(adminUIConfiguration, workspace, oaiPmhPublicationService, configurablePublicationService,
+      assetManager, composerService);
   }
 
   @POST

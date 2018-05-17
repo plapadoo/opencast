@@ -34,13 +34,10 @@ import org.opencastproject.assetmanager.api.query.AResult;
 import org.opencastproject.composer.api.ComposerService;
 import org.opencastproject.composer.api.EncoderException;
 import org.opencastproject.distribution.api.DistributionException;
-import org.opencastproject.job.api.Job;
-import org.opencastproject.job.api.JobBarrier;
 import org.opencastproject.mediapackage.Attachment;
 import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageElementFlavor;
-import org.opencastproject.mediapackage.MediaPackageElementParser;
 import org.opencastproject.mediapackage.MediaPackageException;
 import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.mediapackage.Track;
@@ -50,7 +47,6 @@ import org.opencastproject.publication.api.OaiPmhPublicationService;
 import org.opencastproject.publication.api.PublicationException;
 import org.opencastproject.security.urlsigning.exception.UrlSigningException;
 import org.opencastproject.security.urlsigning.service.UrlSigningService;
-import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.util.MimeType;
 import org.opencastproject.util.MimeTypes;
 import org.opencastproject.util.NotFoundException;
@@ -152,7 +148,6 @@ public final class ThumbnailImpl {
   private final MediaPackageElementFlavor publishFlavor;
   private final List<String> publishTags;
   private final Workspace workspace;
-  private final ServiceRegistry serviceRegistry;
   private final OaiPmhPublicationService oaiPmhPublicationService;
   private final AssetManager assetManager;
   private final ConfigurablePublicationService configurablePublicationService;
@@ -168,7 +163,7 @@ public final class ThumbnailImpl {
   private MimeType tempThumbnailMimeType;
 
   public ThumbnailImpl(final AdminUIConfiguration config, final Workspace workspace,
-    final ServiceRegistry serviceRegistry, final OaiPmhPublicationService oaiPmhPublicationService,
+    final OaiPmhPublicationService oaiPmhPublicationService,
     final ConfigurablePublicationService configurablePublicationService, final AssetManager assetManager,
     final ComposerService composerService) {
     this.sourceFlavor = flavor(config.getThumbnailSourceFlavorType(), config.getThumbnailSourceFlavorSubtype());
@@ -181,7 +176,6 @@ public final class ThumbnailImpl {
     this.defaultTrackPrimary = flavor(config.getThumbnailDefaultTrackPrimary(), config.getThumbnailSourceFlavorSubtype());
     this.defaultTrackSecondary = flavor(config.getThumbnailDefaultTrackSecondary(), config.getThumbnailSourceFlavorSubtype());
     this.workspace = workspace;
-    this.serviceRegistry = serviceRegistry;
     this.oaiPmhPublicationService = oaiPmhPublicationService;
     this.assetManager = assetManager;
     this.composerService = composerService;
@@ -390,13 +384,9 @@ public final class ThumbnailImpl {
 
   private void downscaleAttachment(final String conversionProfile, final Attachment attachment)
     throws EncoderException, MediaPackageException, DistributionException {
-    final Job conversionJob = composerService.convertImage(attachment, conversionProfile);
-    if (!waitForJob(serviceRegistry, conversionJob).isSuccess()) {
-      throw new DistributionException("Image downscaling did not work");
-    }
     // What the composer returns is not our original attachment, modified, but a new one, basically containing just
     // a URI.
-    final Attachment downscaled = (Attachment) MediaPackageElementParser.getFromXml(conversionJob.getPayload());
+    final Attachment downscaled = composerService.convertImageSync(attachment, conversionProfile);
     attachment.setURI(downscaled.getURI());
   }
 
@@ -433,25 +423,6 @@ public final class ThumbnailImpl {
     return Arrays.stream(mp.getPublications()).filter(p -> p.getChannel().equalsIgnoreCase(channelId)).findAny();
   }
 
-  private static JobBarrier.Result waitForJob(final ServiceRegistry reg, final Job job) {
-    final Job.Status status = job.getStatus();
-    // only create a barrier if the job is not done yet
-    switch (status) {
-      case CANCELED:
-      case DELETED:
-      case FAILED:
-      case FINISHED:
-        return new JobBarrier.Result(Collections.singletonMap(job, status));
-      default:
-        return waitForJobs(reg, Collections.singleton(job));
-    }
-  }
-
-  private static JobBarrier.Result waitForJobs(final ServiceRegistry reg, final Collection<Job> jobs) {
-    final JobBarrier barrier = new JobBarrier(null, reg, 100, jobs.toArray(new Job[jobs.size()]));
-    return barrier.waitForJobs();
-  }
-
   private Publication replaceIgnoreExceptions(final MediaPackage mp, final String channelId,
     final Collection<? extends MediaPackageElement> addElements, final Set<String> retractElementIds)
     throws MediaPackageException, PublicationException {
@@ -462,12 +433,7 @@ public final class ThumbnailImpl {
   private MediaPackageElement chooseThumbnail(final MediaPackage mp, final Track track, final double position)
     throws PublicationException, MediaPackageException, EncoderException, IOException, NotFoundException,
     DistributionException, UnknownFileTypeException {
-    final Job job = composerService.image(track, encodingProfile, position);
-    if (!waitForJob(serviceRegistry, job).isSuccess()) {
-      throw new EncoderException("Could not create thumbnail.");
-    }
-
-    tempThumbnail = MediaPackageElementParser.getArrayFromXml(job.getPayload()).get(0).getURI();
+    tempThumbnail = composerService.imageSync(track, encodingProfile, position).get(0).getURI();
     tempThumbnailMimeType = MimeTypes.fromURI(tempThumbnail);
     tempThumbnailFileName = tempThumbnail.getPath().substring(tempThumbnail.getPath().lastIndexOf('/') + 1);
 
