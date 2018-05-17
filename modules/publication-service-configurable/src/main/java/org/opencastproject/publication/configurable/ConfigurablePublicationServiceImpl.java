@@ -144,6 +144,17 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
   }
 
   @Override
+  public Publication replaceSync(
+      MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
+      Set<String> retractElementIds) throws PublicationException, MediaPackageException {
+    try {
+      return doReplaceSync(mediaPackage, channelId, addElements, retractElementIds);
+    } catch (DistributionException e) {
+      throw new PublicationException(e);
+    }
+  }
+
+  @Override
   protected String process(final Job job) throws Exception {
     final List<String> arguments = job.getArguments();
     final MediaPackage mediaPackage = MediaPackageParser.getFromXml(arguments.get(0));
@@ -202,6 +213,36 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
     }
   }
 
+  private void distributeManySync(final MediaPackage mp, final String channelId,
+          final Collection<? extends MediaPackageElement> elements) throws DistributionException {
+
+    final Optional<Publication> publicationOpt = getPublication(mp, channelId);
+
+    if (publicationOpt.isPresent()) {
+
+      final Publication publication = publicationOpt.get();
+
+      // Add all the elements top-level so the distribution service knows what to do
+      elements.forEach(mp::add);
+
+      Set<String> elementIds = new HashSet<>();
+      for (final MediaPackageElement mpe : elements) {
+        elementIds.add(mpe.getIdentifier());
+      }
+
+      try {
+        List<? extends MediaPackageElement> distributedElements = distributionService.distributeSync(channelId, mp,
+            elementIds, false);
+        for (MediaPackageElement mpe : distributedElements) {
+          PublicationImpl.addElementToPublication(publication, mpe);
+        }
+      } finally {
+        // Remove our changes
+        elements.stream().map(MediaPackageElement::getIdentifier).forEach(mp::removeElementById);
+      }
+    }
+  }
+
   private Publication doReplace(final MediaPackage mp, final String channelId,
           final Collection<? extends MediaPackageElement> addElementIds, final Set<String> retractElementIds)
           throws DistributionException, MediaPackageException {
@@ -227,6 +268,31 @@ public class ConfigurablePublicationServiceImpl extends AbstractJobProducer impl
     retractElementIds.forEach(publication::removeAttachmentById);
 
     distributeMany(mp, channelId, addElementIds);
+
+    return publication;
+  }
+
+  private Publication doReplaceSync(final MediaPackage mp, final String channelId,
+          final Collection<? extends MediaPackageElement> addElementIds, final Set<String> retractElementIds)
+          throws DistributionException {
+    // Retract old elements
+    distributionService.retractSync(channelId, mp, retractElementIds);
+
+    final Optional<Publication> priorPublication = getPublication(mp, channelId);
+
+    final Publication publication;
+
+    if (priorPublication.isPresent()) {
+      publication = priorPublication.get();
+    } else {
+      final String publicationUUID = UUID.randomUUID().toString();
+      publication = PublicationImpl.publication(publicationUUID, channelId, null, null);
+      mp.add(publication);
+    }
+
+    retractElementIds.forEach(publication::removeAttachmentById);
+
+    distributeManySync(mp, channelId, addElementIds);
 
     return publication;
   }

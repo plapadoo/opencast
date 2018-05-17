@@ -25,6 +25,7 @@ import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.MediaPackageException;
+import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.util.NotFoundException;
 
 import java.util.Set;
@@ -96,6 +97,37 @@ public interface OaiPmhPublicationService {
   Job replace(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
       Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
       Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException;
+
+  /**
+   * Synchronously updates the given media package in the Oai-Pmh storage incrementally, i.e. without retracting the whole media
+   * package.
+   *
+   * @param mediaPackage
+   *          The media package to publish the element for
+   * @param repository
+   *          The OAI-PMH repository
+   * @param downloadElements
+   *          the download elements to publish
+   * @param streamingElements
+   *          the streaming elements to publish
+   * @param retractDownloadFlavors
+   *          flavors to use to search for download elements to retract.
+   * @param retractStreamingFlavors
+   *          flavors to use to search for streaming elements to retract.
+   * @param checkAvailability
+   *          whether to check the distributed download artifacts are available at their URLs
+   *
+   * @return The publication with the updated media package.
+   *
+   * @throws PublicationException
+   *           if the job could not be created.
+   * @throws MediaPackageException
+   *           if distribution failed.
+   */
+  Publication replaceSync(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
+              Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
+              Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException,
+              MediaPackageException;
 
   /**
    * Retract a media package from the publication channel.

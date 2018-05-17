@@ -27,6 +27,7 @@ import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageElementParser;
 import org.opencastproject.mediapackage.MediaPackageParser;
+import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.ConfigurablePublicationService;
 import org.opencastproject.rest.AbstractJobProducerEndpoint;
 import org.opencastproject.serviceregistry.api.ServiceRegistry;
@@ -106,7 +107,7 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
           @RestResponse(responseCode = HttpServletResponse.SC_OK, description = "An XML representation of the publication job") })
   public Response replace(@FormParam("mediapackage") final String mediaPackageXml,
           @FormParam("channel") final String channel, @FormParam("addElements") final String addElementsXml,
-          @FormParam("retractElements") final String retractElements) throws Exception {
+          @FormParam("retractElements") final String retractElements) {
     Response response;
     final Job job;
     try {
@@ -120,7 +121,37 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
       logger.warn("Unable to create a publication job", e);
       response = Response.status(Response.Status.BAD_REQUEST).build();
     } catch (Exception e) {
-      logger.warn("Error publishing element", e);
+      logger.warn("Error publishing or retracting element", e);
+      response = Response.serverError().build();
+    }
+    return response;
+  }
+
+  @POST
+  @Path("/replacesync")
+  @Produces(MediaType.TEXT_XML)
+  @RestQuery(name = "replacesync", description = "Synchronously replace a media package in this publication channel", returnDescription = "The publication", restParameters = {
+      @RestParameter(name = "mediapackage", isRequired = true, description = "The media package", type = RestParameter.Type.TEXT),
+      @RestParameter(name = "channel", isRequired = true, description = "The channel name", type = RestParameter.Type.STRING),
+      @RestParameter(name = "addElements", isRequired = true, description =
+          "The media package elements to published", type = RestParameter.Type.STRING),
+      @RestParameter(name = "retractElements", isRequired = true, description =
+          "The identifiers of the media package elements to be retracted from the media package", type = RestParameter.Type.STRING) }, reponses = {
+      @RestResponse(responseCode = HttpServletResponse.SC_OK, description = "An XML representation of the publication") })
+  public Response replaceSync(@FormParam("mediapackage") final String mediaPackageXml,
+                          @FormParam("channel") final String channel, @FormParam("addElements") final String addElementsXml,
+                          @FormParam("retractElements") final String retractElements) {
+    Response response;
+    final Publication publication;
+    try {
+      final MediaPackage mediaPackage = MediaPackageParser.getFromXml(mediaPackageXml);
+      final Collection<? extends MediaPackageElement> addElements = new HashSet<>(
+          MediaPackageElementParser.getArrayFromXml(addElementsXml));
+      Set<String> retractElementsIds = gson.fromJson(retractElements, new TypeToken<Set<String>>() { }.getType());
+      publication = service.replaceSync(mediaPackage, channel, addElements, retractElementsIds);
+      response = Response.ok(MediaPackageElementParser.getAsXml(publication)).build();
+    } catch (Exception e) {
+      logger.warn("Error publishing or retracting element", e);
       response = Response.serverError().build();
     }
     return response;

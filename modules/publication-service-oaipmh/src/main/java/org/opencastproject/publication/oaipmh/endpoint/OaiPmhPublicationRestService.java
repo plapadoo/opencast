@@ -29,7 +29,9 @@ import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.MediaPackageElementParser;
+import org.opencastproject.mediapackage.MediaPackageException;
 import org.opencastproject.mediapackage.MediaPackageParser;
+import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.OaiPmhPublicationService;
 import org.opencastproject.rest.AbstractJobProducerEndpoint;
 import org.opencastproject.serviceregistry.api.ServiceRegistry;
@@ -148,7 +150,7 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
           @FormParam("streamingElements") final String streamingElementsXml,
           @FormParam("retractDownloadFlavors") final String retractDownloadFlavorsString,
           @FormParam("retractStreamingFlavors") final String retractStreamingFlavorsString,
-          @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) throws Exception {
+          @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) {
     final Job job;
     try {
       final MediaPackage mediaPackage = MediaPackageParser.getFromXml(mediaPackageXml);
@@ -170,10 +172,53 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
       logger.warn("Unable to create a publication job", e);
       return Response.status(Status.BAD_REQUEST).build();
     } catch (Exception e) {
-      logger.warn("Error publishing element", e);
+      logger.warn("Error publishing or retracting element", e);
       return Response.serverError().build();
     }
     return Response.ok(new JaxbJob(job)).build();
+  }
+
+  @POST
+  @Path("/replacesync")
+  @Produces(MediaType.TEXT_XML)
+  @RestQuery(name = "replacesync", description = "Synchronously Replace a media package in this publication channel", returnDescription = "The publication", restParameters = {
+      @RestParameter(name = "mediapackage", isRequired = true, description = "The media package", type = Type.TEXT),
+      @RestParameter(name = "channel", isRequired = true, description = "The channel name", type = Type.STRING),
+      @RestParameter(name = "downloadElements", isRequired = true, description = "The additional elements to publish to download", type = Type.STRING),
+      @RestParameter(name = "streamingElements", isRequired = true, description = "The additional elements to publish to streaming", type = Type.STRING),
+      @RestParameter(name = "retractDownloadFlavors", isRequired = true, description = "The flavors of the elements to retract from download separated by  '" + SEPARATOR + "'", type = Type.STRING),
+      @RestParameter(name = "retractStreamingFlavors", isRequired = true, description = "The flavors of the elements to retract from streaming separated by  '" + SEPARATOR + "'", type = Type.STRING),
+      @RestParameter(name = "checkAvailability", isRequired = false, description = "Whether to check for availability", type = Type.BOOLEAN, defaultValue = "true") }, reponses = { @RestResponse(responseCode = SC_OK, description = "An XML representation of the publication") })
+  public Response replaceSync(
+      @FormParam("mediapackage") final String mediaPackageXml,
+      @FormParam("channel") final String channel,
+      @FormParam("downloadElements") final String downloadElementsXml,
+      @FormParam("streamingElements") final String streamingElementsXml,
+      @FormParam("retractDownloadFlavors") final String retractDownloadFlavorsString,
+      @FormParam("retractStreamingFlavors") final String retractStreamingFlavorsString,
+      @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) throws MediaPackageException {
+    final Publication publication;
+    try {
+      final MediaPackage mediaPackage = MediaPackageParser.getFromXml(mediaPackageXml);
+      final Set<? extends MediaPackageElement> downloadElements = new HashSet<MediaPackageElement>(
+          MediaPackageElementParser.getArrayFromXml(downloadElementsXml));
+      final Set<? extends MediaPackageElement> streamingElements = new HashSet<MediaPackageElement>(
+          MediaPackageElementParser.getArrayFromXml(streamingElementsXml));
+      final Set<MediaPackageElementFlavor> retractDownloadFlavors = split(retractDownloadFlavorsString).stream()
+          .filter(s -> !s.isEmpty())
+          .map(MediaPackageElementFlavor::parseFlavor)
+          .collect(Collectors.toSet());
+      final Set<MediaPackageElementFlavor> retractStreamingFlavors = split(retractStreamingFlavorsString).stream()
+          .filter(s -> !s.isEmpty())
+          .map(MediaPackageElementFlavor::parseFlavor)
+          .collect(Collectors.toSet());
+      publication = service.replaceSync(mediaPackage, channel, downloadElements, streamingElements, retractDownloadFlavors,
+          retractStreamingFlavors, checkAvailability);
+    } catch (Exception e) {
+      logger.warn("Error publishing or retracting element", e);
+      return Response.serverError().build();
+    }
+    return Response.ok(MediaPackageElementParser.getAsXml(publication)).build();
   }
 
   @POST

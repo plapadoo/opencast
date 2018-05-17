@@ -25,6 +25,7 @@ import org.opencastproject.job.api.Job;
 import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageException;
+import org.opencastproject.mediapackage.Publication;
 
 import java.util.Collection;
 import java.util.Set;
@@ -52,4 +53,24 @@ public interface ConfigurablePublicationService {
    */
   Job replace(MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
           Set<String> retractElementIds) throws PublicationException, MediaPackageException;
+
+  /**
+   * Synchronously replaces media package elements.
+   *
+   * @param mediaPackage
+   *          the media package
+   * @param channelId
+   *          the id of the publication channel
+   * @param addElements
+   *          the media package elements to be added
+   * @param retractElementIds
+   *          the ids of the media package elements to be removed
+   * @return The publication with the updated media package.
+   * @throws PublicationException
+   *           if there was a problem publishing the media
+   * @throws MediaPackageException
+   *           if there was a problem with the mediapackage element
+   */
+  Publication replaceSync(MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
+                  Set<String> retractElementIds) throws PublicationException, MediaPackageException;
 }
