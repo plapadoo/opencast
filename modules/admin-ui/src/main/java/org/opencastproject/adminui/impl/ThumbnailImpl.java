@@ -345,14 +345,8 @@ public final class ThumbnailImpl {
     publicationsToUpdate.add(publishAttachment);
 
     flavorsToRetract.add(publishFlavor);
-    final long replaceStart = System.currentTimeMillis();
-    final Job publishJob = oaiPmhPublicationService.replace(mp, oaiPmhChannel, publicationsToUpdate,
+    final Publication oaiPmhPub = oaiPmhPublicationService.replaceSync(mp, oaiPmhChannel, publicationsToUpdate,
       Collections.emptySet(), flavorsToRetract, Collections.emptySet(), false);
-    logger.info("Replace for OAIPMH took {}ms", (System.currentTimeMillis() - replaceStart));
-    if (!waitForJob(this.serviceRegistry, publishJob).isSuccess()) {
-      throw new PublicationException("Wait for OAIPMH publish job failed");
-    }
-    final Publication oaiPmhPub = (Publication) MediaPackageElementParser.getFromXml(publishJob.getPayload());
     mp.remove(oldOaiPmhPub.get());
     mp.add(oaiPmhPub);
     return publishThumbnailUri;
@@ -460,15 +454,9 @@ public final class ThumbnailImpl {
 
   private Publication replaceIgnoreExceptions(final MediaPackage mp, final String channelId,
     final Collection<? extends MediaPackageElement> addElements, final Set<String> retractElementIds)
-    throws DistributionException, MediaPackageException, PublicationException {
+    throws MediaPackageException, PublicationException {
 
-    final Job job = this.configurablePublicationService.replace(mp, channelId, addElements, retractElementIds);
-
-    if (!waitForJob(serviceRegistry, job).isSuccess()) {
-      throw new DistributionException("At least one of the retraction jobs did not complete successfully");
-    }
-
-    return (Publication) MediaPackageElementParser.getFromXml(job.getPayload());
+    return this.configurablePublicationService.replaceSync(mp, channelId, addElements, retractElementIds);
   }
 
   private MediaPackageElement chooseThumbnail(final MediaPackage mp, final Track track, final double position)

@@ -29,12 +29,14 @@ import org.opencastproject.mediapackage.MediaPackageElement;
 import org.opencastproject.mediapackage.MediaPackageElementParser;
 import org.opencastproject.mediapackage.MediaPackageException;
 import org.opencastproject.mediapackage.MediaPackageParser;
+import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.ConfigurablePublicationService;
 import org.opencastproject.publication.api.PublicationException;
 import org.opencastproject.serviceregistry.api.RemoteBase;
 
 import com.google.gson.Gson;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -42,6 +44,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -96,5 +99,41 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
     }
     throw new PublicationException(
             "Unable to publish mediapackage " + mediaPackage + " using a remote publication service.");
+  }
+
+  @Override
+  public Publication replaceSync(
+      MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
+      Set<String> retractElementIds) throws PublicationException, MediaPackageException {
+    final List<BasicNameValuePair> params = new ArrayList<>();
+    params.add(new BasicNameValuePair("mediapackage", MediaPackageParser.getAsXml(mediaPackage)));
+    params.add(new BasicNameValuePair("channel", channelId));
+    params.add(new BasicNameValuePair("addElements", MediaPackageElementParser.getArrayAsXml(addElements)));
+    params.add(new BasicNameValuePair("retractElements", gson.toJson(retractElementIds)));
+
+    final HttpPost post = new HttpPost("/replacesync");
+    HttpResponse response = null;
+    try {
+      post.setEntity(new UrlEncodedFormEntity(params, UTF_8));
+      response = getResponse(post);
+      if (response != null) {
+        logger.info("Publishing media package {} to channel {} using a remote publication service",
+            mediaPackage, channelId);
+        try {
+          final String xml = IOUtils.toString(response.getEntity().getContent(), Charset.forName("utf-8"));
+          return (Publication) MediaPackageElementParser.getFromXml(xml);
+        } catch (final Exception e) {
+          throw new PublicationException(
+              "Unable to publish media package '" + mediaPackage + "' using a remote publication service", e);
+        }
+      }
+    } catch (final Exception e) {
+      throw new PublicationException(
+          "Unable to publish media package " + mediaPackage + " using a remote publication service.", e);
+    } finally {
+      closeConnection(response);
+    }
+    throw new PublicationException(
+        "Unable to publish mediapackage " + mediaPackage + " using a remote publication service.");
   }
 }

@@ -181,6 +181,16 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
   }
 
   @Override
+  public Publication replaceSync(
+      MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
+      Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException,
+      MediaPackageException {
+    return replace(null, mediaPackage, repository, downloadElements, streamingElements, retractDownloadFlavors,
+        retractStreamingFlavors, checkAvailability);
+  }
+
+  @Override
   public Job publish(MediaPackage mediaPackage, String repository, Set<String> downloadElementIds,
           Set<String> streamingElementIds, boolean checkAvailability)
           throws PublicationException, MediaPackageException {
@@ -338,9 +348,6 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
           Set<? extends MediaPackageElement> downloadElements, Set<? extends MediaPackageElement> streamingElements,
           Set<MediaPackageElementFlavor> retractDownloadFlavors, Set<MediaPackageElementFlavor> retractStreamingFlavors,
           boolean checkAvailable) throws MediaPackageException, PublicationException {
-
-    final List<Job> retractJobs = new ArrayList<>(2);
-    final List<Job> distributeJobs = new ArrayList<>(2);
     final String mpId = mediaPackage.getIdentifier().compact();
     final String channel = getPublicationChannelName(repository);
 
@@ -396,42 +403,21 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
       removeDownloadElements.forEach(temporaryMediaPackage::add);
       removeStreamingElements.forEach(temporaryMediaPackage::add);
 
-      if (!removeDownloadElementIds.isEmpty()) {
-        retractJobs.add(downloadDistributionService.retract(channel, temporaryMediaPackage, removeDownloadElementIds));
+      final List<MediaPackageElement> retractedElements = new ArrayList<>();
+      final List<MediaPackageElement> distributedElements = new ArrayList<>();
+      if (job != null) {
+        retractedElements
+            .addAll(retract(job, channel, temporaryMediaPackage, removeDownloadElementIds, removeStreamingElementIds));
+        distributedElements
+            .addAll(distribute(job, channel, temporaryMediaPackage, addDownloadElementIds, addStreamingElementIds,
+                checkAvailable));
+      } else {
+        retractedElements
+            .addAll(retractSync(channel, temporaryMediaPackage, removeDownloadElementIds, removeStreamingElementIds));
+        distributedElements
+            .addAll(distributeSync(channel, temporaryMediaPackage, addDownloadElementIds, addStreamingElementIds,
+                checkAvailable));
       }
-      if (!removeStreamingElementIds.isEmpty()) {
-        retractJobs.add(streamingDistributionService.retract(channel, temporaryMediaPackage, removeStreamingElementIds));
-      }
-
-      // wait for retract jobs
-      if (!waitForJobs(job, serviceRegistry, retractJobs).isSuccess()) {
-        throw new PublicationException(format("Unable to retract OAI-PMH distributions of media package %s", mpId));
-      }
-
-      if (!addDownloadElementIds.isEmpty()) {
-        distributeJobs.add(downloadDistributionService.distribute(channel, temporaryMediaPackage, addDownloadElementIds,
-            checkAvailable));
-      }
-      if (!addStreamingElementIds.isEmpty()) {
-        distributeJobs.add(streamingDistributionService.distribute(channel, temporaryMediaPackage, addStreamingElementIds));
-      }
-
-      // wait for distribute jobs
-      if (!waitForJobs(job, serviceRegistry, distributeJobs).isSuccess()) {
-        throw new PublicationException(format("Unable to distribute OAI-PMH distributions of media package %s", mpId));
-      }
-
-      final List<MediaPackageElement> distributedElements = distributeJobs.stream()
-           .filter(j -> StringUtils.isNotBlank(j.getPayload()))
-          .map(Job::getPayload)
-          .flatMap(p -> MediaPackageElementParser.getArrayFromXmlUnchecked(p).stream())
-          .collect(Collectors.toList());
-
-      final List<MediaPackageElement> retractedElements = retractJobs.stream()
-          .filter(j -> StringUtils.isNotBlank(j.getPayload()))
-          .map(Job::getPayload)
-          .flatMap(p -> MediaPackageElementParser.getArrayFromXmlUnchecked(p).stream())
-          .collect(Collectors.toList());
 
       final MediaPackage oaiPmhDistMp = (MediaPackage) existingMp.orElse(mediaPackage).clone();
 
@@ -463,6 +449,83 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
       throw e.getWrappedException();
     }
   }
+
+  private List<MediaPackageElement> retract(
+          Job job, String channel, MediaPackage mp, Set<String> removeDownloadElementIds,
+          Set<String> removeStreamingElementIds) throws PublicationException, DistributionException {
+    final List<Job> retractJobs = new ArrayList<>(2);
+    if (!removeDownloadElementIds.isEmpty()) {
+      retractJobs.add(downloadDistributionService.retract(channel, mp, removeDownloadElementIds));
+    }
+    if (!removeStreamingElementIds.isEmpty()) {
+      retractJobs.add(streamingDistributionService.retract(channel, mp, removeStreamingElementIds));
+    }
+
+    // wait for retract jobs
+    if (!waitForJobs(job, serviceRegistry, retractJobs).isSuccess()) {
+      throw new PublicationException(format("Unable to retract OAI-PMH distributions of media package %s",
+          mp.getIdentifier().toString()));
+    }
+
+    return retractJobs.stream()
+        .filter(j -> StringUtils.isNotBlank(j.getPayload()))
+        .map(Job::getPayload)
+        .flatMap(p -> MediaPackageElementParser.getArrayFromXmlUnchecked(p).stream())
+        .collect(Collectors.toList());
+  }
+
+  private List<MediaPackageElement> retractSync(String channel, MediaPackage mp, Set<String> removeDownloadElementIds,
+      Set<String> removeStreamingElementIds) throws DistributionException {
+    final List<MediaPackageElement> retracted = new ArrayList<>();
+    if (!removeDownloadElementIds.isEmpty()) {
+      retracted.addAll(downloadDistributionService.retractSync(channel, mp, removeDownloadElementIds));
+    }
+    if (!removeStreamingElementIds.isEmpty()) {
+      retracted.addAll(streamingDistributionService.retractSync(channel, mp, removeStreamingElementIds));
+    }
+    return retracted;
+  }
+
+  private List<MediaPackageElement> distribute(
+      Job job, String channel, MediaPackage mp, Set<String> addDownloadElementIds,
+      Set<String> addStreamingElementIds, boolean checkAvailable) throws PublicationException, MediaPackageException,
+      DistributionException {
+    final List<Job> distributeJobs = new ArrayList<>(2);
+    if (!addDownloadElementIds.isEmpty()) {
+      distributeJobs.add(downloadDistributionService.distribute(channel, mp, addDownloadElementIds,
+          checkAvailable));
+    }
+    if (!addStreamingElementIds.isEmpty()) {
+      distributeJobs.add(streamingDistributionService.distribute(channel, mp, addStreamingElementIds));
+    }
+
+    // wait for distribute jobs
+    if (!waitForJobs(job, serviceRegistry, distributeJobs).isSuccess()) {
+      throw new PublicationException(format("Unable to distribute OAI-PMH distributions of media package %s",
+          mp.getIdentifier().toString()));
+    }
+
+    return distributeJobs.stream()
+        .filter(j -> StringUtils.isNotBlank(j.getPayload()))
+        .map(Job::getPayload)
+        .flatMap(p -> MediaPackageElementParser.getArrayFromXmlUnchecked(p).stream())
+        .collect(Collectors.toList());
+  }
+
+  private List<MediaPackageElement> distributeSync(
+      String channel, MediaPackage mp, Set<String> addDownloadElementIds, Set<String> addStreamingElementIds,
+      boolean checkAvailable) throws DistributionException {
+    final List<MediaPackageElement> distributed = new ArrayList<>();
+    if (!addDownloadElementIds.isEmpty()) {
+      distributed.addAll(downloadDistributionService.distributeSync(channel, mp, addDownloadElementIds,
+          checkAvailable));
+    }
+    if (!addStreamingElementIds.isEmpty()) {
+      distributed.addAll(streamingDistributionService.distributeSync(channel, mp, addStreamingElementIds));
+    }
+    return distributed;
+  }
+
 
   protected Publication retract(Job job, MediaPackage mediaPackage, String repository)
           throws PublicationException, NotFoundException {

@@ -31,10 +31,12 @@ import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.MediaPackageElementParser;
 import org.opencastproject.mediapackage.MediaPackageException;
 import org.opencastproject.mediapackage.MediaPackageParser;
+import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.OaiPmhPublicationService;
 import org.opencastproject.publication.api.PublicationException;
 import org.opencastproject.serviceregistry.api.RemoteBase;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -43,6 +45,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -136,6 +139,46 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
     }
     throw new PublicationException(
             "Unable to replace media package " + mediaPackage + " using a remote OAI-PMH publication service.");
+  }
+
+  @Override
+  public Publication replaceSync(
+      MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
+      Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException {
+    HttpResponse response = null;
+    try {
+      final String mediapackageXml = MediaPackageParser.getAsXml(mediaPackage);
+      final String downloadElementsXml = MediaPackageElementParser.getArrayAsXml(downloadElements);
+      final String streamingElementsXml = MediaPackageElementParser.getArrayAsXml(streamingElements);
+      final String retractDownloadFlavorsString = StringUtils.join(retractDownloadFlavors, SEPARATOR);
+      final String retractStreamingFlavorsString = StringUtils.join(retractStreamingFlavors, SEPARATOR);
+      final List<BasicNameValuePair> params = Arrays.asList(
+          new BasicNameValuePair("mediapackage", mediapackageXml),
+          new BasicNameValuePair("channel", repository),
+          new BasicNameValuePair("downloadElements", downloadElementsXml),
+          new BasicNameValuePair("streamingElements", streamingElementsXml),
+          new BasicNameValuePair("retractDownloadFlavors", retractDownloadFlavorsString),
+          new BasicNameValuePair("retractStreamingFlavors", retractStreamingFlavorsString),
+          new BasicNameValuePair("checkAvailability", Boolean.toString(checkAvailability)));
+      final HttpPost post = new HttpPost("replacesync");
+      post.setEntity(new UrlEncodedFormEntity(params, UTF_8));
+      response = getResponse(post);
+      if (response != null) {
+        logger.info("Replace media package {} in OAI-PMH channel {} using a remote publication service", mediaPackage,
+            repository);
+
+        final String xml = IOUtils.toString(response.getEntity().getContent(), Charset.forName("utf-8"));
+        return (Publication) MediaPackageElementParser.getFromXml(xml);
+      }
+    } catch (final Exception e) {
+      throw new PublicationException(
+          "Unable to replace media package " + mediaPackage + " using a remote OAI-PMH publication service.", e);
+    } finally {
+      closeConnection(response);
+    }
+    throw new PublicationException(
+        "Unable to replace media package " + mediaPackage + " using a remote OAI-PMH publication service.");
   }
 
   @Override
