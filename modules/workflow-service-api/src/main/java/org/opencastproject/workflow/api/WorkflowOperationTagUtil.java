@@ -19,7 +19,7 @@
  *
  */
 
-package org.opencastproject.workflow.handler.composer.util;
+package org.opencastproject.workflow.api;
 
 import org.opencastproject.mediapackage.Track;
 
@@ -30,9 +30,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class TagUtil {
+public final class WorkflowOperationTagUtil {
   /** The logging facility */
-  private static final Logger logger = LoggerFactory.getLogger(TagUtil.class);
+  private static final Logger logger = LoggerFactory.getLogger(WorkflowOperationTagUtil.class);
 
   public static class TagDiff {
     private final List<String> removeTags;
@@ -46,7 +46,7 @@ public final class TagUtil {
     }
   }
 
-  private TagUtil() {
+  private WorkflowOperationTagUtil() {
 
   }
 

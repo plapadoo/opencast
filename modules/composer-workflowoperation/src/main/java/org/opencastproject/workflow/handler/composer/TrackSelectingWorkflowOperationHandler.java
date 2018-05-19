@@ -36,7 +36,7 @@ import org.opencastproject.workflow.api.AbstractWorkflowOperationHandler;
 import org.opencastproject.workflow.api.WorkflowInstance;
 import org.opencastproject.workflow.api.WorkflowOperationException;
 import org.opencastproject.workflow.api.WorkflowOperationResult;
-import org.opencastproject.workflow.handler.composer.util.TagUtil;
+import org.opencastproject.workflow.api.WorkflowOperationTagUtil;
 import org.opencastproject.workspace.api.Workspace;
 
 import org.apache.commons.lang3.StringUtils;
@@ -232,8 +232,8 @@ public class TrackSelectingWorkflowOperationHandler extends AbstractWorkflowOper
 
     // Update Tags here
     getConfiguration(workflowInstance, "target-tags").ifPresent(tags -> {
-      final TagUtil.TagDiff tagDiff = TagUtil.createTagDiff(tags);
-      augmentedTracks.forEach(t -> TagUtil.applyTagDiff(tagDiff, t.track));
+      final WorkflowOperationTagUtil.TagDiff tagDiff = WorkflowOperationTagUtil.createTagDiff(tags);
+      augmentedTracks.forEach(t -> WorkflowOperationTagUtil.applyTagDiff(tagDiff, t.track));
     });
 
     return createResult(mediaPackage, WorkflowOperationResult.Action.CONTINUE, queueTime);

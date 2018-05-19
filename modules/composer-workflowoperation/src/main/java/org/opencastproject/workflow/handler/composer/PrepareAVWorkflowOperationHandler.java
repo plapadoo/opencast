@@ -38,7 +38,7 @@ import org.opencastproject.workflow.api.WorkflowOperationException;
 import org.opencastproject.workflow.api.WorkflowOperationInstance;
 import org.opencastproject.workflow.api.WorkflowOperationResult;
 import org.opencastproject.workflow.api.WorkflowOperationResult.Action;
-import org.opencastproject.workflow.handler.composer.util.TagUtil;
+import org.opencastproject.workflow.api.WorkflowOperationTagUtil;
 import org.opencastproject.workspace.api.Workspace;
 
 import org.apache.commons.lang3.StringUtils;
@@ -172,7 +172,7 @@ public class PrepareAVWorkflowOperationHandler extends AbstractWorkflowOperation
     String videoOnlyEncodingProfileName = StringUtils.trimToNull(operation.getConfiguration("video-encoding-profile"));
     String audioOnlyEncodingProfileName = StringUtils.trimToNull(operation.getConfiguration("audio-encoding-profile"));
 
-    final TagUtil.TagDiff tagDiff = TagUtil.createTagDiff(targetTrackTags);
+    final WorkflowOperationTagUtil.TagDiff tagDiff = WorkflowOperationTagUtil.createTagDiff(targetTrackTags);
 
     // Make sure the source flavor is properly set
     if (sourceFlavorName == null)
@@ -314,7 +314,7 @@ public class PrepareAVWorkflowOperationHandler extends AbstractWorkflowOperation
     composedTrack.setFlavor(targetFlavor);
     logger.debug("Composed track has flavor '{}'", composedTrack.getFlavor());
 
-    TagUtil.applyTagDiff(tagDiff, composedTrack);
+    WorkflowOperationTagUtil.applyTagDiff(tagDiff, composedTrack);
     return createResult(mediaPackage, Action.CONTINUE, timeInQueue);
   }
 
