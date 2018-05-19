@@ -9,7 +9,7 @@ The SelectTracksWorkflowOperationHandler can be used in case not all source trac
 given a recording with a presenter and presentation track, the final recording to be publish may should only include
 the video stream of the presenter track and the audio stream of the presentation track.
 
-The workflow operation will use event properties set by the Opencast video editor to determine which tracks should be
+The workflow operation will use workflow properties set by the Opencast video editor to determine which tracks should be
 selected for further processing and add them to the media package based on `target-flavor` and `target-tags`.
 
 

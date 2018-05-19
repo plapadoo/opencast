@@ -48,10 +48,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-public class TrackSelectingWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
-  private static final Logger logger = LoggerFactory.getLogger(TrackSelectingWorkflowOperationHandler.class);
+public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
+  private static final Logger logger = LoggerFactory.getLogger(SelectTracksWorkflowOperationHandler.class);
 
   /** Name of the 'encode to video only work copy' encoding profile */
   private static final String PREPARE_VIDEO_ONLY_PROFILE = "video-only.work";
@@ -64,6 +66,26 @@ public class TrackSelectingWorkflowOperationHandler extends AbstractWorkflowOper
 
   /** The local workspace */
   private Workspace workspace = null;
+
+  /** The configuration options for this handler */
+  private static final SortedMap<String, String> CONFIG_OPTIONS;
+
+  static {
+    CONFIG_OPTIONS = new TreeMap<String, String>();
+    CONFIG_OPTIONS.put("source-flavor", "The \"flavor\" of the track to use as a video source input");
+    CONFIG_OPTIONS.put("target-flavor", "The flavor to apply to the encoded file");
+    CONFIG_OPTIONS.put("target-tags", "The tags to apply to the encoded file");
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * @see org.opencastproject.workflow.api.WorkflowOperationHandler#getConfigurationOptions()
+   */
+  @Override
+  public SortedMap<String, String> getConfigurationOptions() {
+    return CONFIG_OPTIONS;
+  }
 
   /**
    * Callback for the OSGi declarative services configuration.
