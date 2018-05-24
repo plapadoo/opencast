@@ -19,7 +19,7 @@
     <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
     <operation
-      id="track-select"
+      id="select-tracks"
       exception-handler-workflow="partial-error"
       description="Preparing presenter (camera) audio and video work versions">
       <configurations>
