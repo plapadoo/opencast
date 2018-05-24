@@ -97,26 +97,18 @@
         <configuration key="time">50%</configuration>
       </configurations>
     </operation>
+
+    <!-- Once WOH waveform supports setting the image size of the waveform image,
+         those preview images should be way smaller than the preview image used for the timeline
+         as those previews cannot be zoomed -->
     <operation
-      id="tag"
-      description="Create audio preview images (waveforms) for presenter"
-      exception-handler-workflow="partial-error">
+      id="waveform"
+      fail-on-error="false"
+      description="Generating waveform">
       <configurations>
-        <configuration key="source-flavors">presenter/waveform</configuration>
-        <configuration key="target-flavor">presenter/audio+preview</configuration>
-        <configuration key="target-tags">+preview</configuration>
-        <configuration key="copy">true</configuration>
-      </configurations>
-    </operation>
-    <operation
-      id="tag"
-      description="Create audio preview images (waveforms) for presentation"
-      exception-handler-workflow="partial-error">
-      <configurations>
-        <configuration key="source-flavors">presentation/waveform</configuration>
-        <configuration key="target-flavor">presentation/audio+preview</configuration>
-        <configuration key="target-tags">+preview</configuration>
-        <configuration key="copy">true</configuration>
+        <configuration key="source-flavor">*/work</configuration>
+        <configuration key="target-flavor">*/audio+preview</configuration>
+        <configuration key="target-tags">preview</configuration>
       </configurations>
     </operation>
 
