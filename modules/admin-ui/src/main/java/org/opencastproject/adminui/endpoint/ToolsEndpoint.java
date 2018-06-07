@@ -428,7 +428,10 @@ public class ToolsEndpoint implements ManagedService {
       throw new WebApplicationException(e, SC_INTERNAL_SERVER_ERROR);
     }
 
-    final List<JValue> sourceTracks = Arrays.stream(mp.getTracks())
+    final MediaPackageElementFlavor sourceTracksFlavor = new MediaPackageElementFlavor("*",
+      adminUIConfiguration.getThumbnailSourceFlavorSubtype());
+
+    final List<JValue> sourceTracks = Arrays.stream(mp.getTracks(sourceTracksFlavor))
           .map(MediaPackageElement::getFlavor)
           .map(e -> obj(f("type" ,e.getType()), f("subtype", e.getSubtype())))
           .map(e -> f("flavor", e))
