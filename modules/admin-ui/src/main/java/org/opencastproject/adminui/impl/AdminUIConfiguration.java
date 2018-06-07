@@ -64,8 +64,8 @@ public class AdminUIConfiguration implements ManagedService {
   private String thumbnailPublishTags = "engage-download";
   private String thumbnailEncodingProfile = "search-cover.http";
   private Double thumbnailDefaultPosition = 1.0;
-  private String thumbnailDefaultTrackPrimary = "presenter/source";
-  private String thumbnailDefaultTrackSecondary = "presentation/source";
+  private String thumbnailDefaultTrackPrimary = "presenter";
+  private String thumbnailDefaultTrackSecondary = "presentation";
   private String oaipmhChannel = "default";
   private Set<String> smilCatalogTagSet = new HashSet<>();
   private MediaPackageElementFlavor smilCatalogFlavor = new MediaPackageElementFlavor("smil", "cutting");
