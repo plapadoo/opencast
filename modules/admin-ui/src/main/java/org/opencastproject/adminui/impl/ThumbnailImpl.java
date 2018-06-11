@@ -198,6 +198,10 @@ public final class ThumbnailImpl {
     }
   }
 
+  public double getDefaultPosition() {
+    return defaultPosition;
+  }
+
   public Optional<Thumbnail> getThumbnail(final MediaPackage mp, final UrlSigningService urlSigningService,
         final Long expireSeconds) throws UrlSigningException, URISyntaxException {
 
@@ -228,7 +232,7 @@ public final class ThumbnailImpl {
       .filter(p -> ThumbnailImpl.THUMBNAIL_PROPERTY_POSITION.equals(p.getId().getName()))
       .map(e -> e.getValue().get(Value.STRING))
       .map(Double::parseDouble)
-      .findAny().orElse(null);
+      .findAny().orElse(defaultPosition);
     final String track = ps.stream()
       .filter(p -> ThumbnailImpl.THUMBNAIL_PROPERTY_TRACK.equals(p.getId().getName()))
       .map(e -> e.getValue().get(Value.STRING))
@@ -301,7 +305,7 @@ public final class ThumbnailImpl {
     final Predicate<Attachment> priorFilter = attachment -> previewFlavor.matches(attachment.getFlavor());
     final String conversionProfile;
     if (downscale) {
-       conversionProfile = "editor.thumbnail.preview.downscale";
+      conversionProfile = "editor.thumbnail.preview.downscale";
     } else {
       conversionProfile = null;
     }
@@ -460,16 +464,21 @@ public final class ThumbnailImpl {
     }
   }
 
-  public MediaPackageElement chooseDefaultThumbnail(final MediaPackage mp)
+  public MediaPackageElement chooseDefaultThumbnail(final MediaPackage mp, double position)
     throws PublicationException, MediaPackageException, EncoderException, IOException, NotFoundException,
     DistributionException, UnknownFileTypeException {
 
-    final MediaPackageElement result = chooseThumbnail(mp, getPrimaryOrSecondaryTrack(mp), defaultPosition);
+    final MediaPackageElement result = chooseThumbnail(mp, getPrimaryOrSecondaryTrack(mp), position);
 
     // Set workflow settings: type = DEFAULT
     assetManager.setProperty(Property
       .mk(PropertyId.mk(mp.getIdentifier().compact(), WORKFLOW_PROPERTIES_NAMESPACE, THUMBNAIL_PROPERTY_TYPE),
         org.opencastproject.assetmanager.api.Value.mk(Long.toString(ThumbnailSource.DEFAULT.getNumber()))));
+    // We switch from double to string here because the AssetManager cannot store doubles, and we need a double value
+    // in the workflow (properties)
+    assetManager.setProperty(Property
+      .mk(PropertyId.mk(mp.getIdentifier().compact(), WORKFLOW_PROPERTIES_NAMESPACE, THUMBNAIL_PROPERTY_POSITION),
+        org.opencastproject.assetmanager.api.Value.mk(Double.toString(position))));
 
     return result;
   }
@@ -485,7 +494,7 @@ public final class ThumbnailImpl {
       throw new MediaPackageException("Cannot find stream with flavor " + trackFlavor + " to extract thumbnail.");
     }
 
-    final MediaPackageElement result =  chooseThumbnail(mp, track.get(), position);
+    final MediaPackageElement result = chooseThumbnail(mp, track.get(), position);
 
     // Set workflow settings: type = SNAPSHOT, position, track
     assetManager.setProperty(Property

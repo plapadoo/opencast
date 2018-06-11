@@ -1688,7 +1688,8 @@
          }
        },
        "PREVIEW" : {
-         "NOT_AVAILABLE": "No preview available"
+         "NOT_AVAILABLE": "No preview available",
+         "OUTDATED": "The preview is outdated since segments were changed. It will be updated as soon as you save your changes."
        },
        "CURRENT": {
          "DEFAULT": "You are currently using the default thumbnail.",

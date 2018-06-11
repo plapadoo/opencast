@@ -45,6 +45,10 @@ angular.module('adminNg.controllers')
             $scope.unsavedChanges = changed;
         };
 
+        $scope.calculateDefaultThumbnailPosition = function () {
+            return $scope.$root.calculateDefaultThumbnailPosition($scope.video.segments, $scope.video.thumbnail);
+        }
+
         $scope.changeThumbnail = function (file, track, position) {
             $scope.video.thumbnail.loading = true;
             ToolsResource.thumbnail(
@@ -52,6 +56,10 @@ angular.module('adminNg.controllers')
               { file: file, track: track, position: position },
               function(response) {
                 $scope.video.thumbnail = response.thumbnail;
+                $scope.video.thumbnail.defaultThumbnailPositionChanged = false;
+                if (response.thumbnail && response.thumbnail.type === 'DEFAULT') {
+                    $scope.$root.originalDefaultThumbnailPosition = response.thumbnail.position;
+                }
                 $scope.video.thumbnail.loading = false;
               }, function() {
                 Notifications.add('error', 'THUMBNAIL_CHANGE_FAILED', 'video-tools');
@@ -88,7 +96,8 @@ angular.module('adminNg.controllers')
         $scope.submitButton = false;
         $scope.submit = function () {
             $scope.submitButton = true;
-            $scope.video.$save({ id: $scope.id, tool: $scope.tab }, function () {
+            $scope.video.thumbnail.loading = $scope.video.thumbnail.type === 'DEFAULT';
+            $scope.video.$save({ id: $scope.id, tool: $scope.tab }, function (response) {
                 $scope.submitButton = false;
                 if ($scope.video.workflow) {
                     Notifications.add('success', 'VIDEO_CUT_PROCESSING');
@@ -97,8 +106,17 @@ angular.module('adminNg.controllers')
                     Notifications.add('success', 'VIDEO_CUT_SAVED');
                 }
                 $scope.unsavedChanges = false;
+                if (response.segments) {
+                    $scope.$root.originalSegments = angular.copy(response.segments);
+                }
+                $scope.video.thumbnail.defaultThumbnailPositionChanged = false;
+                if (response.thumbnail && response.thumbnail.type === 'DEFAULT') {
+                    $scope.$root.originalDefaultThumbnailPosition = response.thumbnail.position;
+                }
+                $scope.video.thumbnail.loading = false;
             }, function () {
                 $scope.submitButton = false;
+                $scope.video.thumbnail.loading = false;
                 Notifications.add('error', 'VIDEO_CUT_NOT_SAVED', 'video-tools');
             });
         };

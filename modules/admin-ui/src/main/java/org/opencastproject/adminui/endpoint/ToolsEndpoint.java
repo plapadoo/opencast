@@ -414,12 +414,14 @@ public class ToolsEndpoint implements ManagedService {
     // Get thumbnail
     final List<Field> thumbnailFields = new ArrayList<>();
     try {
-      final Optional<ThumbnailImpl.Thumbnail> optThumbnail = newThumbnailImpl()
+      final ThumbnailImpl thumbnailImpl = newThumbnailImpl();
+      final Optional<ThumbnailImpl.Thumbnail> optThumbnail = thumbnailImpl
         .getThumbnail(mp, urlSigningService, expireSeconds);
 
       optThumbnail.ifPresent(thumbnail -> {
         thumbnailFields.add(f("type", thumbnail.getType().name()));
         thumbnailFields.add(f("url", thumbnail.getUrl().toString()));
+        thumbnailFields.add(f("defaultPosition",  thumbnailImpl.getDefaultPosition()));
         thumbnail.getPosition().ifPresent(p -> thumbnailFields.add(f("position", p)));
         thumbnail.getTrack().ifPresent(t -> thumbnailFields.add(f("track", t)));
       });
@@ -479,7 +481,11 @@ public class ToolsEndpoint implements ManagedService {
         if (!current.isFormField() && "FILE".equalsIgnoreCase(current.getFieldName())) {
           final MediaPackageElement distElement = thumbnail.upload(mp, current.openStream(), current.getContentType());
           return RestUtils.okJson(obj(f("thumbnail",
-            obj(f("type", ThumbnailImpl.ThumbnailSource.UPLOAD.name()), f("url", distElement.getURI().toString())))));
+            obj(
+              f("position", thumbnail.getDefaultPosition()),
+              f("defaultPosition", thumbnail.getDefaultPosition()),
+              f("type", ThumbnailImpl.ThumbnailSource.UPLOAD.name()),
+              f("url", distElement.getURI().toString())))));
         } else if (current.isFormField() && "TRACK".equalsIgnoreCase(current.getFieldName())) {
           final String value = Streams.asString(current.openStream());
           if (!"DEFAULT".equalsIgnoreCase(value)) {
@@ -487,22 +493,29 @@ public class ToolsEndpoint implements ManagedService {
           }
         } else if (current.isFormField() && "POSITION".equalsIgnoreCase(current.getFieldName())) {
           final String value = Streams.asString(current.openStream());
-          if (!"DEFAULT".equalsIgnoreCase(value)) {
-            position = OptionalDouble.of(Double.parseDouble(value));
-          }
+          position = OptionalDouble.of(Double.parseDouble(value));
         }
+      }
+
+      if (!position.isPresent()) {
+        return R.badRequest("Missing thumbnail position");
       }
 
       final MediaPackageElement distributedElement;
       final ThumbnailImpl.ThumbnailSource thumbnailSource;
-      if (track.isPresent() && position.isPresent()) {
+      if (track.isPresent()) {
         distributedElement = thumbnail.chooseThumbnail(mp, track.get(), position.getAsDouble());
         thumbnailSource = ThumbnailImpl.ThumbnailSource.SNAPSHOT;
       } else {
-        distributedElement = thumbnail.chooseDefaultThumbnail(mp);
+        distributedElement = thumbnail.chooseDefaultThumbnail(mp, position.getAsDouble());
         thumbnailSource = ThumbnailImpl.ThumbnailSource.DEFAULT;
       }
-      return RestUtils.okJson(obj(f("thumbnail", obj(f("type", thumbnailSource.name()), f("url", distributedElement.getURI().toString())))));
+      return RestUtils.okJson(obj(f("thumbnail", obj(
+        f("type", thumbnailSource.name()),
+        f("position", position.getAsDouble()),
+        f("defaultPosition", thumbnail.getDefaultPosition()),
+        f("url", distributedElement.getURI().toString())
+      ))));
     } catch (IOException | FileUploadException e) {
       logger.error("Error reading request body: {}", getStackTrace(e));
       return R.serverError();
@@ -543,22 +556,44 @@ public class ToolsEndpoint implements ManagedService {
     final Opt<Event> optEvent = getEvent(mediaPackageId);
     if (optEvent.isNone()) {
       return R.notFound();
-    } else {
-      MediaPackage mediaPackage = index.getEventMediapackage(optEvent.get());
-      Smil smil;
-      try {
-        smil = createSmilCuttingCatalog(editingInfo, mediaPackage);
-      } catch (Exception e) {
-        logger.warn("Unable to create a SMIL cutting catalog ({}): {}", details, getStackTrace(e));
-        return R.badRequest("Unable to create SMIL cutting catalog");
-      }
+    }
 
+    MediaPackage mediaPackage = index.getEventMediapackage(optEvent.get());
+    Smil smil;
+    try {
+      smil = createSmilCuttingCatalog(editingInfo, mediaPackage);
+    } catch (Exception e) {
+      logger.warn("Unable to create a SMIL cutting catalog ({}): {}", details, getStackTrace(e));
+      return R.badRequest("Unable to create SMIL cutting catalog");
+    }
+
+    try {
+      addSmilToArchive(mediaPackage, smil);
+    } catch (IOException e) {
+      logger.warn("Unable to add SMIL cutting catalog to archive: {}", getStackTrace(e));
+      return R.serverError();
+    }
+
+    // Update default thumbnail (if used) since position may change due to cutting
+    MediaPackageElement distributedThumbnail = null;
+    if (editingInfo.getDefaultThumbnailPosition().isPresent()) {
       try {
-        addSmilToArchive(mediaPackage, smil);
-      } catch (IOException e) {
-        logger.warn("Unable to add SMIL cutting catalog to archive: {}", getStackTrace(e));
+        final ThumbnailImpl thumbnailImpl = newThumbnailImpl();
+        final Optional<ThumbnailImpl.Thumbnail> optThumbnail = thumbnailImpl
+          .getThumbnail(mediaPackage, urlSigningService, expireSeconds);
+        if (optThumbnail.isPresent() && optThumbnail.get().getType().equals(ThumbnailImpl.ThumbnailSource.DEFAULT)) {
+          distributedThumbnail = thumbnailImpl.chooseDefaultThumbnail(mediaPackage,
+            editingInfo.getDefaultThumbnailPosition().getAsDouble());
+        }
+      } catch (UrlSigningException | URISyntaxException e) {
+        logger.error("Error while trying to serialize the thumbnail url because: {}", getStackTrace(e));
+        return R.serverError();
+      } catch (IOException | EncoderException | DistributionException | PublicationException | UnknownFileTypeException
+        | MediaPackageException e) {
+        logger.error("Error while updating default thumbnail because: {}", getStackTrace(e));
         return R.serverError();
       }
+    }
 
       if (editingInfo.getPostProcessingWorkflow().isSome()) {
         final String workflowId = editingInfo.getPostProcessingWorkflow().get();
@@ -588,7 +623,10 @@ public class ToolsEndpoint implements ManagedService {
           return R.badRequest("Workflow not found");
         }
       }
+    }
 
+    if (distributedThumbnail != null) {
+      return getVideoEditor(mediaPackageId);
     }
 
     return R.ok();
@@ -929,12 +967,15 @@ public class ToolsEndpoint implements ManagedService {
 
     private final List<Tuple<Long, Long>> segments;
     private final List<String> tracks;
-    private final Opt<String> workflow;
+    private final Optional<String> workflow;
+    private final OptionalDouble defaultThumbnailPosition;
 
-    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, Opt<String> workflow) {
+    private EditingInfo(List<Tuple<Long, Long>> segments, List<String> tracks, Optional<String> workflow,
+        OptionalDouble defaultThumbnailPosition) {
       this.segments = segments;
       this.tracks = tracks;
       this.workflow = workflow;
+      this.defaultThumbnailPosition = defaultThumbnailPosition;
     }
 
     /**
@@ -965,7 +1006,17 @@ public class ToolsEndpoint implements ManagedService {
         tracks.add((String) track);
       }
 
-      return new EditingInfo(segments, tracks, Opt.nul((String) obj.get("workflow")));
+      OptionalDouble defaultThumbnailPosition = OptionalDouble.empty();
+      final Object defaultThumbnailPositionObj = obj.get("defaultThumbnailPosition");
+      if (defaultThumbnailPositionObj != null) {
+        defaultThumbnailPosition = OptionalDouble.of(Double.parseDouble(defaultThumbnailPositionObj.toString()));
+      }
+
+      return new EditingInfo(
+        segments,
+        tracks,
+        Optional.ofNullable((String) obj.get("workflow")),
+        defaultThumbnailPosition);
     }
 
     /**
@@ -982,8 +1033,13 @@ public class ToolsEndpoint implements ManagedService {
     }
 
     /** Returns the optional workflow to start */
-    Opt<String> getPostProcessingWorkflow() {
+    Optional<String> getPostProcessingWorkflow() {
       return workflow;
+    }
+
+    /** Returns the optional default thumbnail position. */
+    OptionalDouble getDefaultThumbnailPosition() {
+      return defaultThumbnailPosition;
     }
   }
 

@@ -802,7 +802,10 @@ $segment-deleted-selected: saturate(darken($segment-deleted, 25%), 5%);
 
   .thumbnail-canvas>div {
     background-color: rgba( $black, .4 );
-    line-height: 180px;
+    width: 320px;
+    height: 180px;
+    display: table-cell;
+    vertical-align: middle;
     color: $off-white;
   }
 

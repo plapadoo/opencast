@@ -113,6 +113,10 @@
                                translate="VIDEO_TOOL.THUMBNAIL.PREVIEW.NOT_AVAILABLE">
                             <!-- No preview available -->
                           </div>
+                          <div ng-show="video.thumbnail && !video.thumbnail.loading && video.thumbnail.type === 'DEFAULT' && video.thumbnail.defaultThumbnailPositionChanged"
+                               translate="VIDEO_TOOL.THUMBNAIL.PREVIEW.OUTDATED">
+                            <!-- preview outdated -->
+                          </div>
                           <div ng-show="!video || !video.thumbnail">
                             <i class="fa fa-exclamation-circle error"></i>
                           </div>
@@ -167,7 +171,7 @@
                             <a class="use-default-thumbnail"
                                translate="VIDEO_TOOL.THUMBNAIL.ACTIONS.USE_DEFAULT.LABEL"
                                title="{{ 'VIDEO_TOOL.THUMBNAIL.ACTIONS.USE_DEFAULT.TOOLTIP' | translate }}"
-                               ng-click="changeThumbnail(undefined, 'DEFAULT', 'DEFAULT')"
+                               ng-click="changeThumbnail(undefined, 'DEFAULT', calculateDefaultThumbnailPosition())"
                                ng-if="video.thumbnail.url && video.thumbnail.type !== 'DEFAULT'">
                                <!-- Use default thumbnail -->
                             </a>
