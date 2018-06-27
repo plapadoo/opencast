@@ -182,7 +182,7 @@ Field      | Required | Type                                 | Description
 \* When creating a single scheduled event, either `end` or `duration` must be specified. When creating multiple
 scheduled events, the fields `end`, `duration` and `rrule` are required 
 
-To create a single scheduled event, omitt the field `rrule`. You can specify the start and end of the recording by
+To create a single scheduled event, omit the field `rrule`. You can specify the start and end of the recording by
 using either the fields `start` and `end` or the fields `start` and `duration`.
 Please note that specifying both `end` and `duration` is not valid.
 
