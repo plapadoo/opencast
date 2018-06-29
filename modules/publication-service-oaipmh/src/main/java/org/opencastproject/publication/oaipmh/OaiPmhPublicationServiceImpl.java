@@ -139,9 +139,11 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
             .filter(s -> !s.isEmpty())
             .map(MediaPackageElementFlavor::parseFlavor)
             .collect(Collectors.toSet());
-        checkAvailability = BooleanUtils.toBoolean(job.getArguments().get(6));
+        final Set<? extends MediaPackageElement> publications =
+            Collections.toSet(MediaPackageElementParser.getArrayFromXml(job.getArguments().get(6)));
+        checkAvailability = BooleanUtils.toBoolean(job.getArguments().get(7));
         publication = replace(job, mediaPackage, repository, downloadElements, streamingElements,
-            retractDownloadFlavors, retractStreamingFlavors, checkAvailability);
+            retractDownloadFlavors, retractStreamingFlavors, publications, checkAvailability);
         break;
       case Retract:
         publication = retract(job, mediaPackage, repository);
@@ -162,7 +164,8 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
   @Override
   public Job replace(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
          Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-         Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException {
+         Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+         boolean checkAvailability) throws PublicationException {
     checkInputArguments(mediaPackage, repository);
     try {
       return serviceRegistry.createJob(JOB_TYPE, Operation.Replace.name(),
@@ -172,7 +175,8 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
               MediaPackageElementParser.getArrayAsXml(Collections.toList(streamingElements)), // 3
               StringUtils.join(retractDownloadFlavors, SEPARATOR), // 4
               StringUtils.join(retractStreamingFlavors, SEPARATOR), // 5
-              Boolean.toString(checkAvailability))); // 6
+              MediaPackageElementParser.getArrayAsXml(Collections.toList(publications)), // 6
+              Boolean.toString(checkAvailability))); // 7
     } catch (ServiceRegistryException e) {
       throw new PublicationException("Unable to create job", e);
     } catch (MediaPackageException e) {
@@ -184,10 +188,10 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
   public Publication replaceSync(
       MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
       Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException,
-      MediaPackageException {
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+      boolean checkAvailability) throws PublicationException, MediaPackageException {
     return replace(null, mediaPackage, repository, downloadElements, streamingElements, retractDownloadFlavors,
-        retractStreamingFlavors, checkAvailability);
+        retractStreamingFlavors, publications, checkAvailability);
   }
 
   @Override
@@ -347,7 +351,8 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
   private Publication replace(Job job, MediaPackage mediaPackage, String repository,
           Set<? extends MediaPackageElement> downloadElements, Set<? extends MediaPackageElement> streamingElements,
           Set<MediaPackageElementFlavor> retractDownloadFlavors, Set<MediaPackageElementFlavor> retractStreamingFlavors,
-          boolean checkAvailable) throws MediaPackageException, PublicationException {
+          Set<? extends MediaPackageElement> publications, boolean checkAvailable) throws MediaPackageException,
+      PublicationException {
     final String mpId = mediaPackage.getIdentifier().compact();
     final String channel = getPublicationChannelName(repository);
 
@@ -432,6 +437,16 @@ public class OaiPmhPublicationServiceImpl extends AbstractJobProducer implements
           .forEach(oaiPmhDistMp::removeElementById);
       // Add new distributed elements
       distributedElements.forEach(oaiPmhDistMp::add);
+
+      // Remove old publications
+      publications.stream()
+          .map(p -> ((Publication) p).getChannel())
+          .forEach(c -> Arrays.stream(oaiPmhDistMp.getPublications())
+              .filter(p -> c.equals(p.getChannel()))
+              .forEach(oaiPmhDistMp::remove));
+
+      // Add updated publications
+      publications.forEach(oaiPmhDistMp::add);
 
       // publish to oai-pmh
       oaiPmhDatabase.store(oaiPmhDistMp, repository);

@@ -142,6 +142,7 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
           @RestParameter(name = "streamingElements", isRequired = true, description = "The additional elements to publish to streaming", type = Type.STRING),
           @RestParameter(name = "retractDownloadFlavors", isRequired = true, description = "The flavors of the elements to retract from download separated by  '" + SEPARATOR + "'", type = Type.STRING),
           @RestParameter(name = "retractStreamingFlavors", isRequired = true, description = "The flavors of the elements to retract from streaming separated by  '" + SEPARATOR + "'", type = Type.STRING),
+          @RestParameter(name = "publications", isRequired = true, description = "The publications to update", type = Type.STRING),
           @RestParameter(name = "checkAvailability", isRequired = false, description = "Whether to check for availability", type = Type.BOOLEAN, defaultValue = "true") }, reponses = { @RestResponse(responseCode = SC_OK, description = "An XML representation of the publication job") })
   public Response replace(
           @FormParam("mediapackage") final String mediaPackageXml,
@@ -150,6 +151,7 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
           @FormParam("streamingElements") final String streamingElementsXml,
           @FormParam("retractDownloadFlavors") final String retractDownloadFlavorsString,
           @FormParam("retractStreamingFlavors") final String retractStreamingFlavorsString,
+          @FormParam("publications") final String publicationsXml,
           @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) {
     final Job job;
     try {
@@ -166,8 +168,10 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
           .filter(s -> !s.isEmpty())
           .map(MediaPackageElementFlavor::parseFlavor)
           .collect(Collectors.toSet());
+      final Set<? extends Publication> publications = MediaPackageElementParser.getArrayFromXml(publicationsXml)
+          .stream().map(p -> (Publication) p).collect(Collectors.toSet());
       job = service.replace(mediaPackage, channel, downloadElements, streamingElements, retractDownloadFlavors,
-          retractStreamingFlavors, checkAvailability);
+          retractStreamingFlavors, publications, checkAvailability);
     } catch (IllegalArgumentException e) {
       logger.warn("Unable to create a publication job", e);
       return Response.status(Status.BAD_REQUEST).build();
@@ -188,6 +192,7 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
       @RestParameter(name = "streamingElements", isRequired = true, description = "The additional elements to publish to streaming", type = Type.STRING),
       @RestParameter(name = "retractDownloadFlavors", isRequired = true, description = "The flavors of the elements to retract from download separated by  '" + SEPARATOR + "'", type = Type.STRING),
       @RestParameter(name = "retractStreamingFlavors", isRequired = true, description = "The flavors of the elements to retract from streaming separated by  '" + SEPARATOR + "'", type = Type.STRING),
+      @RestParameter(name = "publications", isRequired = true, description = "The publications to update", type = Type.STRING),
       @RestParameter(name = "checkAvailability", isRequired = false, description = "Whether to check for availability", type = Type.BOOLEAN, defaultValue = "true") }, reponses = { @RestResponse(responseCode = SC_OK, description = "An XML representation of the publication") })
   public Response replaceSync(
       @FormParam("mediapackage") final String mediaPackageXml,
@@ -196,6 +201,7 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
       @FormParam("streamingElements") final String streamingElementsXml,
       @FormParam("retractDownloadFlavors") final String retractDownloadFlavorsString,
       @FormParam("retractStreamingFlavors") final String retractStreamingFlavorsString,
+      @FormParam("publications") final String publicationsXml,
       @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) throws MediaPackageException {
     final Publication publication;
     try {
@@ -212,8 +218,10 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
           .filter(s -> !s.isEmpty())
           .map(MediaPackageElementFlavor::parseFlavor)
           .collect(Collectors.toSet());
+      final Set<? extends Publication> publications = MediaPackageElementParser.getArrayFromXml(publicationsXml)
+          .stream().map(p -> (Publication) p).collect(Collectors.toSet());
       publication = service.replaceSync(mediaPackage, channel, downloadElements, streamingElements, retractDownloadFlavors,
-          retractStreamingFlavors, checkAvailability);
+          retractStreamingFlavors, publications, checkAvailability);
     } catch (Exception e) {
       logger.warn("Error publishing or retracting element", e);
       return Response.serverError().build();

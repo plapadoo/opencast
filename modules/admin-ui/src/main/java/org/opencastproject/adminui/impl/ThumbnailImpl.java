@@ -322,13 +322,11 @@ public final class ThumbnailImpl {
       return null;
     }
 
-    // We also have to update the external api publication in OAI-PMH...
+    // We have to update the external publication to contain the new thumbnail as an attachment
     final Optional<Publication> externalPublicationOpt = getPublication(mp, "api");
-
-    final Set<MediaPackageElement> publicationsToUpdate = new HashSet<>();
-    final Set<MediaPackageElementFlavor> flavorsToRetract = new HashSet<>();
+    final Set<Publication> publicationsToUpdate = new HashSet<>();
     externalPublicationOpt.ifPresent(publicationsToUpdate::add);
-    externalPublicationOpt.map(MediaPackageElement::getFlavor).ifPresent(flavorsToRetract::add);
+
     final String publishThumbnailId = UUID.randomUUID().toString();
     final InputStream inputStream = tempInputStream();
     final URI publishThumbnailUri = workspace
@@ -340,11 +338,12 @@ public final class ThumbnailImpl {
     publishAttachment.setFlavor(publishFlavor.applyTo(trackFlavor));
     publishTags.forEach(publishAttachment::addTag);
     publishAttachment.setMimeType(this.tempThumbnailMimeType);
-    publicationsToUpdate.add(publishAttachment);
 
-    flavorsToRetract.add(publishFlavor);
-    final Publication oaiPmhPub = oaiPmhPublicationService.replaceSync(mp, oaiPmhChannel, publicationsToUpdate,
-      Collections.emptySet(), flavorsToRetract, Collections.emptySet(), false);
+    final Publication oaiPmhPub = oaiPmhPublicationService.replaceSync(
+      mp, oaiPmhChannel,
+      Collections.singleton(publishAttachment), Collections.emptySet(),
+      Collections.singleton(publishFlavor), Collections.emptySet(),
+      publicationsToUpdate, false);
     mp.remove(oldOaiPmhPub.get());
     mp.add(oaiPmhPub);
     return publishThumbnailUri;

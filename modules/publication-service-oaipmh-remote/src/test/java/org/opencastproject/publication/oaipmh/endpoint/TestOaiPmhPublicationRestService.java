@@ -74,8 +74,8 @@ public class TestOaiPmhPublicationRestService extends OaiPmhPublicationRestServi
     public Job replace(MediaPackage mediaPackage, String repository,
            Set<? extends MediaPackageElement> downloadElements, Set<? extends MediaPackageElement> streamingElements,
            Set<MediaPackageElementFlavor> retractDownloadFlavors,
-           Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability)
-        throws PublicationException {
+           Set<MediaPackageElementFlavor> retractStreamingFlavors,
+           Set<? extends Publication> publications, boolean checkAvailability) throws PublicationException {
       return null;
     }
 
@@ -83,7 +83,8 @@ public class TestOaiPmhPublicationRestService extends OaiPmhPublicationRestServi
     public Publication replaceSync(
         MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
         Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-        Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException {
+        Set<MediaPackageElementFlavor> retractStreamingFlavors,
+        Set<? extends Publication> publications, boolean checkAvailability) throws PublicationException {
       return null;
     }
 

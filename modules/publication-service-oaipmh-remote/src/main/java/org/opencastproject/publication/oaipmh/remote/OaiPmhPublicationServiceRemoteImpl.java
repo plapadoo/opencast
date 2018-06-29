@@ -105,8 +105,8 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
   @Override
   public Job replace(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
               Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-                     Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability)
-      throws PublicationException {
+              Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+              boolean checkAvailability) throws PublicationException {
     HttpResponse response = null;
     try {
       final String mediapackageXml = MediaPackageParser.getAsXml(mediaPackage);
@@ -114,6 +114,7 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
       final String streamingElementsXml = MediaPackageElementParser.getArrayAsXml(streamingElements);
       final String retractDownloadFlavorsString = StringUtils.join(retractDownloadFlavors, SEPARATOR);
       final String retractStreamingFlavorsString = StringUtils.join(retractStreamingFlavors, SEPARATOR);
+      final String publicationsXml = MediaPackageElementParser.getArrayAsXml(publications);
       final List<BasicNameValuePair> params = Arrays.asList(
               new BasicNameValuePair("mediapackage", mediapackageXml),
               new BasicNameValuePair("channel", repository),
@@ -121,6 +122,7 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
               new BasicNameValuePair("streamingElements", streamingElementsXml),
               new BasicNameValuePair("retractDownloadFlavors", retractDownloadFlavorsString),
               new BasicNameValuePair("retractStreamingFlavors", retractStreamingFlavorsString),
+              new BasicNameValuePair("publications", publicationsXml),
               new BasicNameValuePair("checkAvailability", Boolean.toString(checkAvailability)));
       final HttpPost post = new HttpPost("replace");
       post.setEntity(new UrlEncodedFormEntity(params, UTF_8));
@@ -145,7 +147,8 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
   public Publication replaceSync(
       MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
       Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException {
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+      boolean checkAvailability) throws PublicationException {
     HttpResponse response = null;
     try {
       final String mediapackageXml = MediaPackageParser.getAsXml(mediaPackage);
@@ -153,6 +156,7 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
       final String streamingElementsXml = MediaPackageElementParser.getArrayAsXml(streamingElements);
       final String retractDownloadFlavorsString = StringUtils.join(retractDownloadFlavors, SEPARATOR);
       final String retractStreamingFlavorsString = StringUtils.join(retractStreamingFlavors, SEPARATOR);
+      final String publicationsXml = MediaPackageElementParser.getArrayAsXml(publications);
       final List<BasicNameValuePair> params = Arrays.asList(
           new BasicNameValuePair("mediapackage", mediapackageXml),
           new BasicNameValuePair("channel", repository),
@@ -160,6 +164,7 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
           new BasicNameValuePair("streamingElements", streamingElementsXml),
           new BasicNameValuePair("retractDownloadFlavors", retractDownloadFlavorsString),
           new BasicNameValuePair("retractStreamingFlavors", retractStreamingFlavorsString),
+          new BasicNameValuePair("publications", publicationsXml),
           new BasicNameValuePair("checkAvailability", Boolean.toString(checkAvailability)));
       final HttpPost post = new HttpPost("replacesync");
       post.setEntity(new UrlEncodedFormEntity(params, UTF_8));

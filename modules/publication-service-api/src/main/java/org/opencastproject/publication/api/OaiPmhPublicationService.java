@@ -85,6 +85,8 @@ public interface OaiPmhPublicationService {
    *          flavors to use to search for download elements to retract.
    * @param retractStreamingFlavors
    *          flavors to use to search for streaming elements to retract.
+   * @param publications
+   *          the publications to update
    * @param checkAvailability
    *          whether to check the distributed download artifacts are available at their URLs
    *
@@ -96,7 +98,8 @@ public interface OaiPmhPublicationService {
    */
   Job replace(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
       Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-      Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException;
+      Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+      boolean checkAvailability) throws PublicationException;
 
   /**
    * Synchronously updates the given media package in the Oai-Pmh storage incrementally, i.e. without retracting the whole media
@@ -114,6 +117,8 @@ public interface OaiPmhPublicationService {
    *          flavors to use to search for download elements to retract.
    * @param retractStreamingFlavors
    *          flavors to use to search for streaming elements to retract.
+   * @param publications
+   *          the publications to update
    * @param checkAvailability
    *          whether to check the distributed download artifacts are available at their URLs
    *
@@ -126,8 +131,8 @@ public interface OaiPmhPublicationService {
    */
   Publication replaceSync(MediaPackage mediaPackage, String repository, Set<? extends MediaPackageElement> downloadElements,
               Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
-              Set<MediaPackageElementFlavor> retractStreamingFlavors, boolean checkAvailability) throws PublicationException,
-              MediaPackageException;
+              Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
+              boolean checkAvailability) throws PublicationException, MediaPackageException;
 
   /**
    * Retract a media package from the publication channel.
