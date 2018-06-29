@@ -97,6 +97,7 @@ import org.opencastproject.workflow.api.ConfiguredWorkflow;
 import org.opencastproject.workflow.api.WorkflowDatabaseException;
 import org.opencastproject.workflow.api.WorkflowDefinition;
 import org.opencastproject.workflow.api.WorkflowService;
+import org.opencastproject.workflow.api.WorkflowUtil;
 import org.opencastproject.workflow.handler.distribution.InternalPublicationChannel;
 import org.opencastproject.workspace.api.Workspace;
 
@@ -511,6 +512,11 @@ public class ToolsEndpoint implements ManagedService {
     if (optEvent.isNone()) {
       return R.notFound();
     }
+
+    if (WorkflowUtil.isActive(optEvent.get().getWorkflowState())) {
+      return R.locked();
+    }
+
     final MediaPackage mp = index.getEventMediapackage(optEvent.get());
 
     try {
@@ -600,6 +606,10 @@ public class ToolsEndpoint implements ManagedService {
     final Opt<Event> optEvent = getEvent(mediaPackageId);
     if (optEvent.isNone()) {
       return R.notFound();
+    }
+
+    if (WorkflowUtil.isActive(optEvent.get().getWorkflowState())) {
+      return R.locked();
     }
 
     MediaPackage mediaPackage = index.getEventMediapackage(optEvent.get());
