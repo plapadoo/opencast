@@ -25,6 +25,7 @@ angular.module('adminNg.controllers')
 .controller('ToolsCtrl', ['$scope', '$route', '$location', 'Storage', '$window', 'ToolsResource', 'Notifications', 'EventHelperService',
     function ($scope, $route, $location, Storage, $window, ToolsResource, Notifications, EventHelperService) {
         var errorMessageId = null;
+        var thumbnailErrorMessageId = null;
 
         $scope.navigateTo = function (path) {
             $location.path(path).replace();
@@ -61,9 +62,13 @@ angular.module('adminNg.controllers')
                 if (response.thumbnail && response.thumbnail.type === 'DEFAULT') {
                     $scope.$root.originalDefaultThumbnailPosition = response.thumbnail.position;
                 }
+                if (thumbnailErrorMessageId !== null) {
+                  Notifications.remove(thumbnailErrorMessageId, 'video-tools');
+                  thumbnailErrorMessageId = null;
+                }
                 $scope.video.thumbnail.loading = false;
               }, function() {
-                Notifications.add('error', 'THUMBNAIL_CHANGE_FAILED', 'video-tools');
+                thumbnailErrorMessageId = Notifications.add('error', 'THUMBNAIL_CHANGE_FAILED', 'video-tools');
                 $scope.video.thumbnail.loading = false;
               });
         };
