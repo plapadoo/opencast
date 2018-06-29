@@ -92,7 +92,7 @@ angular.module('adminNg.resources')
                 var fd = new FormData();
                 if (data.file) fd.append('File', data.file);
                 if (data.track) fd.append('Track', data.track);
-                if (data.position) fd.append('Position', data.position);
+                if (angular.isNumber(data.position)) fd.append('Position', data.position);
                 return fd;
             }
         },
