@@ -30,7 +30,6 @@ import org.opencastproject.mediapackage.MediaPackageParser;
 import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.ConfigurablePublicationService;
 import org.opencastproject.rest.AbstractJobProducerEndpoint;
-import org.opencastproject.security.util.SecurityUtil;
 import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
