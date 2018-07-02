@@ -51,11 +51,24 @@ angular.module('adminNg.controllers')
             return $scope.$root.calculateDefaultThumbnailPosition($scope.video.segments, $scope.video.thumbnail);
         }
 
+        $scope.getTrackFlavorType = function (selector) {
+            if (selector === 'single') {
+              return $scope.video.source_tracks[0].flavor.type;
+            }
+            var track = $scope.video.source_tracks.find(function (track) {
+              return track.side === selector;
+            });
+            if (track) {
+              return track.flavor.type;
+            }
+            return undefined;
+        }
+
         $scope.changeThumbnail = function (file, track, position) {
             $scope.video.thumbnail.loading = true;
             ToolsResource.thumbnail(
               { id: $scope.id, tool: 'thumbnail' },
-              { file: file, track: track, position: position },
+              { file: file, track: $scope.getTrackFlavorType(track), position: position },
               function(response) {
                 $scope.video.thumbnail = response.thumbnail;
                 $scope.video.thumbnail.defaultThumbnailPositionChanged = false;

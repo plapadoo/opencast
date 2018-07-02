@@ -53,8 +53,8 @@ public class AdminUIConfiguration implements ManagedService {
   public static final String OPT_THUMBNAIL_DEFAULT_TRACK_PRIMARY = "thumbnail.default.track.primary";
   public static final String OPT_THUMBNAIL_DEFAULT_TRACK_SECONDARY = "thumbnail.default.track.secondary";
   public static final String OPT_OAIPMH_CHANNEL = "oaipmh.channel";
-  public static final String OPT_SOURCE_TRACK_PRESENTER_FLAVOR = "sourcetrack.presenter.flavor";
-  public static final String OPT_SOURCE_TRACK_PRESENTATION_FLAVOR = "sourcetrack.presentation.flavor";
+  public static final String OPT_SOURCE_TRACK_LEFT_FLAVOR = "sourcetrack.left.flavor";
+  public static final String OPT_SOURCE_TRACK_RIGHT_FLAVOR = "sourcetrack.right.flavor";
   public static final String OPT_PREVIEW_AUDIO_SUBTYPE = "preview.audio.subtype";
   public static final String OPT_PREVIEW_VIDEO_SUBTYPE = "preview.video.subtype";
 
@@ -75,8 +75,8 @@ public class AdminUIConfiguration implements ManagedService {
   private static final String DEFAULT_OAIPMH_CHANNEL = "default";
   private static final String DEFAULT_PREVIEW_VIDEO_SUBTYPE = "video+preview";
   private static final String DEFAULT_PREVIEW_AUDIO_SUBTYPE = "audio+preview";
-  private static final String DEFAULT_SOURCE_TRACK_PRESENTER_FLAVOR = "presenter/source";
-  private static final String DEFAULT_SOURCE_TRACK_PRESENTATION_FLAVOR = "presentation/source";
+  private static final String DEFAULT_SOURCE_TRACK_LEFT_FLAVOR = "presenter/source";
+  private static final String DEFAULT_SOURCE_TRACK_RIGHT_FLAVOR = "presentation/source";
 
   private String previewSubtype = DEFAULT_PREVIEW_SUBTYPE;
   private String waveformSubtype = DEFAULT_WAVEFORM_SUBTYPE;
@@ -95,10 +95,10 @@ public class AdminUIConfiguration implements ManagedService {
   private String oaipmhChannel = DEFAULT_OAIPMH_CHANNEL;
   private String previewVideoSubtype = DEFAULT_PREVIEW_VIDEO_SUBTYPE;
   private String previewAudioSubtype = DEFAULT_PREVIEW_AUDIO_SUBTYPE;
-  private MediaPackageElementFlavor sourceTrackPresenterFlavor = MediaPackageElementFlavor.parseFlavor(
-    DEFAULT_SOURCE_TRACK_PRESENTER_FLAVOR);
-  private MediaPackageElementFlavor sourceTrackPresentationFlavor = MediaPackageElementFlavor.parseFlavor(
-    DEFAULT_SOURCE_TRACK_PRESENTATION_FLAVOR);
+  private MediaPackageElementFlavor sourceTrackLeftFlavor = MediaPackageElementFlavor.parseFlavor(
+    DEFAULT_SOURCE_TRACK_LEFT_FLAVOR);
+  private MediaPackageElementFlavor sourceTrackRightFlavor = MediaPackageElementFlavor.parseFlavor(
+    DEFAULT_SOURCE_TRACK_RIGHT_FLAVOR);
 
   public String getPreviewSubtype() {
     return previewSubtype;
@@ -168,12 +168,12 @@ public class AdminUIConfiguration implements ManagedService {
     return previewAudioSubtype;
   }
 
-  public MediaPackageElementFlavor getSourceTrackPresenterFlavor() {
-    return sourceTrackPresenterFlavor;
+  public MediaPackageElementFlavor getSourceTrackLeftFlavor() {
+    return sourceTrackLeftFlavor;
   }
 
-  public MediaPackageElementFlavor getSourceTrackPresentationFlavor() {
-    return sourceTrackPresentationFlavor;
+  public MediaPackageElementFlavor getSourceTrackRightFlavor() {
+    return sourceTrackRightFlavor;
   }
 
   @Override
@@ -268,13 +268,15 @@ public class AdminUIConfiguration implements ManagedService {
       DEFAULT_PREVIEW_AUDIO_SUBTYPE);
     logger.debug("Preview audio subtype set to '{}'", previewAudioSubtype);
 
-    sourceTrackPresenterFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.defaultString(
-      (String) properties.get(OPT_SOURCE_TRACK_PRESENTER_FLAVOR), DEFAULT_SOURCE_TRACK_PRESENTER_FLAVOR));
-    logger.debug("Source track presenter flavor set to '{}'", sourceTrackPresenterFlavor);
+    // Source track left flavor
+    sourceTrackLeftFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.defaultString(
+      (String) properties.get(OPT_SOURCE_TRACK_LEFT_FLAVOR), DEFAULT_SOURCE_TRACK_LEFT_FLAVOR));
+    logger.debug("Source track left flavor set to '{}'", sourceTrackLeftFlavor);
 
-    sourceTrackPresentationFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.defaultString(
-      (String) properties.get(OPT_SOURCE_TRACK_PRESENTATION_FLAVOR), DEFAULT_SOURCE_TRACK_PRESENTATION_FLAVOR));
-    logger.debug("Source track presentation flavor set to '{}'", sourceTrackPresentationFlavor);
+    // Source track right flavor
+    sourceTrackRightFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.defaultString(
+      (String) properties.get(OPT_SOURCE_TRACK_RIGHT_FLAVOR), DEFAULT_SOURCE_TRACK_RIGHT_FLAVOR));
+    logger.debug("Source track right flavor set to '{}'", sourceTrackRightFlavor);
 
   }
 }

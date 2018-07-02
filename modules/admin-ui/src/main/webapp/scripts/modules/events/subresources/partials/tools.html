@@ -140,9 +140,18 @@
                           </div>
                           <div class="function-buttons">
                             <a class="extract-thumbnail"
-                               translate="{{ video.source_tracks.length > 1 ? 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_LEFT_VIDEO.LABEL' : 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_VIDEO.LABEL' }}"
-                               title="{{ video.source_tracks.length > 1 ? 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_LEFT_VIDEO.TOOLTIP' : 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_VIDEO.TOOLTIP' |translate  }}"
-                               ng-click="changeThumbnail(undefined, video.source_tracks[0].flavor.type, player.adapter.getCurrentTime())"
+                               ng-if="video.source_tracks.length === 1"
+                               translate="VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_VIDEO.LABEL"
+                               title="{{ 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_VIDEO.TOOLTIP' |translate  }}"
+                               ng-click="changeThumbnail(undefined, 'single', player.adapter.getCurrentTime())"
+                               ng-class="{disabled: !video.thumbnail || video.thumbnail.loading || activeTransaction}">
+                              <!-- Extract -->
+                            </a>
+                            <a class="extract-thumbnail"
+                               ng-if="video.source_tracks.length > 1"
+                               translate="VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_LEFT_VIDEO.LABEL"
+                               title="{{ 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_LEFT_VIDEO.TOOLTIP' |translate  }}"
+                               ng-click="changeThumbnail(undefined, 'left', player.adapter.getCurrentTime())"
                                ng-class="{disabled: !video.thumbnail || video.thumbnail.loading || activeTransaction}">
                                <!-- Extract -->
                             </a>
@@ -150,7 +159,7 @@
                                ng-if="video.source_tracks.length > 1"
                                translate="VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_RIGHT_VIDEO.LABEL"
                                title="{{ 'VIDEO_TOOL.THUMBNAIL.ACTIONS.EXTRACT.FROM_RIGHT_VIDEO.TOOLTIP' | translate }}"
-                               ng-click="changeThumbnail(undefined, video.source_tracks[1].flavor.type, player.adapter.getCurrentTime())"
+                               ng-click="changeThumbnail(undefined, 'right', player.adapter.getCurrentTime())"
                                ng-class="{disabled: !video.thumbnail || video.thumbnail.loading || activeTransaction}">
                                <!-- Extract from video -->
                             </a>

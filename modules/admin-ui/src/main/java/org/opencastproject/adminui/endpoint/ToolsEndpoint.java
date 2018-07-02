@@ -453,8 +453,8 @@ public class ToolsEndpoint implements ManagedService {
       .collect(Collectors.toSet());
 
     final Collection<MediaPackageElementFlavor> acceptedFlavors = Arrays
-      .asList(this.adminUIConfiguration.getSourceTrackPresenterFlavor(),
-        this.adminUIConfiguration.getSourceTrackPresentationFlavor());
+      .asList(this.adminUIConfiguration.getSourceTrackLeftFlavor(),
+        this.adminUIConfiguration.getSourceTrackRightFlavor());
 
     // We already know the internal publication exists, so just "get" it here.
     final Publication internalPub = getInternalPublication(mp).get();
@@ -462,6 +462,12 @@ public class ToolsEndpoint implements ManagedService {
     final List<JValue> sourceTracks = Arrays.stream(mp.getTracks())
       .filter(e -> acceptedFlavors.contains(e.getFlavor()))
       .map(e -> {
+        String side = null;
+        if (e.getFlavor().equals(this.adminUIConfiguration.getSourceTrackLeftFlavor())) {
+          side = "left";
+        } else if (e.getFlavor().equals(this.adminUIConfiguration.getSourceTrackRightFlavor())) {
+          side = "right";
+        }
         final boolean audioHidden = hiddens.contains(Tuple.tuple(e.getFlavor().getType(), "audio"));
         final String audioPreview = Arrays.stream(internalPub.getAttachments())
           .filter(a -> a.getFlavor().getType().equals(e.getFlavor().getType()))
@@ -480,7 +486,7 @@ public class ToolsEndpoint implements ManagedService {
           .orElse(null);
         final SourceTrackSubInfo video = new SourceTrackSubInfo(e.hasVideo(), videoPreview,
           videoHidden);
-        return new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(), audio, video);
+        return new SourceTrackInfo(e.getFlavor().getType(), e.getFlavor().getSubtype(), audio, video, side);
       })
       .map(SourceTrackInfo::toJson)
       .collect(Collectors.toList());
@@ -621,8 +627,8 @@ public class ToolsEndpoint implements ManagedService {
       return R.badRequest("Unable to create SMIL cutting catalog");
     }
 
-    java.util.stream.Stream.of(this.adminUIConfiguration.getSourceTrackPresenterFlavor(),
-        this.adminUIConfiguration.getSourceTrackPresentationFlavor()).flatMap(flavor -> {
+    java.util.stream.Stream.of(this.adminUIConfiguration.getSourceTrackLeftFlavor(),
+        this.adminUIConfiguration.getSourceTrackRightFlavor()).flatMap(flavor -> {
           final java.util.stream.Stream.Builder<Tuple<String, String>> r = java.util.stream.Stream.builder();
           final Optional<SourceTrackInfo> track = editingInfo.sourceTracks.stream()
             .filter(s -> s.getFlavor().equals(flavor)).findAny();
@@ -1061,29 +1067,32 @@ public class ToolsEndpoint implements ManagedService {
     private final String flavorSubtype;
     private final SourceTrackSubInfo audio;
     private final SourceTrackSubInfo video;
+    private final String side;
 
     MediaPackageElementFlavor getFlavor() {
       return new MediaPackageElementFlavor(flavorType, flavorSubtype);
     }
 
     SourceTrackInfo(final String flavorType, final String flavorSubtype, final SourceTrackSubInfo audio,
-      final SourceTrackSubInfo video) {
+      final SourceTrackSubInfo video, final String side) {
       this.flavorType = flavorType;
       this.flavorSubtype = flavorSubtype;
       this.audio = audio;
       this.video = video;
+      this.side = side;
     }
 
     public static SourceTrackInfo parse(final JSONObject object) {
       final JSONObject flavor = (JSONObject) object.get("flavor");
       return new SourceTrackInfo((String) flavor.get("type"), (String) flavor.get("subtype"),
         SourceTrackSubInfo.parse((JSONObject) object.get("audio")),
-        SourceTrackSubInfo.parse((JSONObject) object.get("video")));
+        SourceTrackSubInfo.parse((JSONObject) object.get("video")),
+        (String) object.get("side"));
     }
 
     public JObject toJson() {
       final JObject flavor = obj(f("type", flavorType), f("subtype", flavorSubtype));
-      return obj(f("flavor", flavor), f("audio", audio.toJson()), f("video", video.toJson()));
+      return obj(f("flavor", flavor), f("audio", audio.toJson()), f("video", video.toJson()), f("side", side));
     }
   }
 
