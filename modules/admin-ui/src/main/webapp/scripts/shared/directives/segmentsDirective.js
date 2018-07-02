@@ -352,14 +352,11 @@ function (PlayerAdapter, $document, VideoService, $timeout) {
 
             scope.video.$promise.then(function () {
               // Take a snapshot of the original segments to track if we have changes
-              if (!scope.$root.originalSegments) {
-                scope.$root.originalSegments = angular.copy(scope.video.segments);
-              }
+              scope.$root.originalSegments = angular.copy(scope.video.segments);
+
               // In case the default thumbnail is used, store the original position, to be able to check if the
               // thumbnail position has to be adjusted when cutting changes
-              if (!scope.$root.originalDefaultThumbnailPosition
-                  && scope.video.thumbnail
-                  && scope.video.thumbnail.type === 'DEFAULT') {
+              if (scope.video.thumbnail && scope.video.thumbnail.type === 'DEFAULT') {
                 scope.$root.originalDefaultThumbnailPosition = scope.video.thumbnail.position;
               }
 
