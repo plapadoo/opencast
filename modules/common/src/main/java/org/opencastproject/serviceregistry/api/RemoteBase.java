@@ -159,8 +159,12 @@ public class RemoteBase {
     final long maxWaitTimeMillis = System.currentTimeMillis() + DateTimeConstants.MILLIS_PER_DAY;
     boolean warnedUnavailability = false;
 
+    int loopCount = 1;
+
     // Try forever
     while (true) {
+
+      logger.debug("Current loop count: {}", loopCount++);
 
       List<ServiceRegistration> remoteServices = null;
       List<String> servicesInWarningState = new ArrayList<String>();

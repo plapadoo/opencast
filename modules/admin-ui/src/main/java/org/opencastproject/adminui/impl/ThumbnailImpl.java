@@ -339,11 +339,15 @@ public final class ThumbnailImpl {
     publishTags.forEach(publishAttachment::addTag);
     publishAttachment.setMimeType(this.tempThumbnailMimeType);
 
+    logger.debug("Starting replaceSync for OAI-PMH. My thread: {}/{}", Thread.currentThread().getId(),
+      Thread.currentThread().getName());
+    final long start = System.currentTimeMillis();
     final Publication oaiPmhPub = oaiPmhPublicationService.replaceSync(
       mp, oaiPmhChannel,
       Collections.singleton(publishAttachment), Collections.emptySet(),
       Collections.singleton(publishFlavor), Collections.emptySet(),
       publicationsToUpdate, false);
+    logger.debug("replaceSync for OAI-PMH done. Took {} ms", System.currentTimeMillis() - start);
     mp.remove(oldOaiPmhPub.get());
     mp.add(oaiPmhPub);
     return publishThumbnailUri;
@@ -376,7 +380,11 @@ public final class ThumbnailImpl {
     final Collection<MediaPackageElement> addElements = Collections.singleton(attachment);
     final Set<String> removeElementsIds = Arrays.stream(pub.getAttachments()).filter(priorFilter)
       .map(MediaPackageElement::getIdentifier).collect(Collectors.toSet());
+    logger.debug("Starting replaceSync for publication with channel {}. My thread: {}/{}", pub.getChannel(),
+      Thread.currentThread().getId(), Thread.currentThread().getName());
+    final long start = System.currentTimeMillis();
     final Publication newPublication = replaceIgnoreExceptions(mp, channelId, addElements, removeElementsIds);
+    logger.debug("replaceSync for {} done. Took {} ms", pub.getChannel(), System.currentTimeMillis() - start);
     mp.remove(pub);
     mp.add(newPublication);
     //noinspection ConstantConditions

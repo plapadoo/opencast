@@ -149,6 +149,9 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
       Set<? extends MediaPackageElement> streamingElements, Set<MediaPackageElementFlavor> retractDownloadFlavors,
       Set<MediaPackageElementFlavor> retractStreamingFlavors, Set<? extends Publication> publications,
       boolean checkAvailability) throws PublicationException {
+    logger.debug("Starting request to remote service endpoint. My Thread: {}/{}", Thread.currentThread().getId(),
+        Thread.currentThread().getName());
+    final long start = System.currentTimeMillis();
     HttpResponse response = null;
     try {
       final String mediapackageXml = MediaPackageParser.getAsXml(mediaPackage);
@@ -169,12 +172,15 @@ public class OaiPmhPublicationServiceRemoteImpl extends RemoteBase implements Oa
       final HttpPost post = new HttpPost("replacesync");
       post.setEntity(new UrlEncodedFormEntity(params, UTF_8));
       response = getResponse(post);
+      logger.debug("Received response. Took {} ms", System.currentTimeMillis() - start);
       if (response != null) {
         logger.info("Replace media package {} in OAI-PMH channel {} using a remote publication service", mediaPackage,
             repository);
 
         final String xml = IOUtils.toString(response.getEntity().getContent(), Charset.forName("utf-8"));
         return (Publication) MediaPackageElementParser.getFromXml(xml);
+      } else {
+        logger.debug("Response was null.");
       }
     } catch (final Exception e) {
       throw new PublicationException(

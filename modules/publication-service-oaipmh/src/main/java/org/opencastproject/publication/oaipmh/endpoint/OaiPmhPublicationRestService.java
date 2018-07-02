@@ -203,6 +203,10 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
       @FormParam("retractStreamingFlavors") final String retractStreamingFlavorsString,
       @FormParam("publications") final String publicationsXml,
       @FormParam("checkAvailability") @DefaultValue("true") final boolean checkAvailability) throws MediaPackageException {
+    logger.debug("Received request to /replacesync. My Thread: {}/{}", Thread.currentThread().getId(),
+        Thread.currentThread().getName());
+    logger.debug("Starting to create response...");
+    final long start = System.currentTimeMillis();
     final Publication publication;
     try {
       final MediaPackage mediaPackage = MediaPackageParser.getFromXml(mediaPackageXml);
@@ -226,7 +230,9 @@ public class OaiPmhPublicationRestService extends AbstractJobProducerEndpoint {
       logger.warn("Error publishing or retracting element", e);
       return Response.serverError().build();
     }
-    return Response.ok(MediaPackageElementParser.getAsXml(publication)).build();
+    final Response response = Response.ok(MediaPackageElementParser.getAsXml(publication)).build();
+    logger.debug("Response is ready. Took {} ms", System.currentTimeMillis() - start);
+    return response;
   }
 
   @POST

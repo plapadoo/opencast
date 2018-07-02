@@ -105,6 +105,11 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
   public Publication replaceSync(
       MediaPackage mediaPackage, String channelId, Collection<? extends MediaPackageElement> addElements,
       Set<String> retractElementIds) throws PublicationException, MediaPackageException {
+
+    logger.debug("Starting request to remote service endpoint. My Thread: {}/{}", Thread.currentThread().getId(),
+        Thread.currentThread().getName());
+    final long start = System.currentTimeMillis();
+
     final List<BasicNameValuePair> params = new ArrayList<>();
     params.add(new BasicNameValuePair("mediapackage", MediaPackageParser.getAsXml(mediaPackage)));
     params.add(new BasicNameValuePair("channel", channelId));
@@ -116,6 +121,7 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
     try {
       post.setEntity(new UrlEncodedFormEntity(params, UTF_8));
       response = getResponse(post);
+      logger.debug("Received response. Took {} ms", System.currentTimeMillis() - start);
       if (response != null) {
         logger.info("Publishing media package {} to channel {} using a remote publication service",
             mediaPackage, channelId);
@@ -126,6 +132,8 @@ public class ConfigurablePublicationServiceRemoteImpl extends RemoteBase impleme
           throw new PublicationException(
               "Unable to publish media package '" + mediaPackage + "' using a remote publication service", e);
         }
+      } else {
+        logger.debug("Response was null.");
       }
     } catch (final Exception e) {
       throw new PublicationException(

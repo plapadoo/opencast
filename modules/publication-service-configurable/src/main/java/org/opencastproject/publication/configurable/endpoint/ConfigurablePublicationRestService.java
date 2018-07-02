@@ -30,6 +30,7 @@ import org.opencastproject.mediapackage.MediaPackageParser;
 import org.opencastproject.mediapackage.Publication;
 import org.opencastproject.publication.api.ConfigurablePublicationService;
 import org.opencastproject.rest.AbstractJobProducerEndpoint;
+import org.opencastproject.security.util.SecurityUtil;
 import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
@@ -141,6 +142,10 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
   public Response replaceSync(@FormParam("mediapackage") final String mediaPackageXml,
                           @FormParam("channel") final String channel, @FormParam("addElements") final String addElementsXml,
                           @FormParam("retractElements") final String retractElements) {
+    logger.debug("Received request to /replacesync. My Thread: {}/{}", Thread.currentThread().getId(),
+        Thread.currentThread().getName());
+    logger.debug("Starting to create response...");
+    final long start = System.currentTimeMillis();
     Response response;
     final Publication publication;
     try {
@@ -150,6 +155,7 @@ public class ConfigurablePublicationRestService extends AbstractJobProducerEndpo
       Set<String> retractElementsIds = gson.fromJson(retractElements, new TypeToken<Set<String>>() { }.getType());
       publication = service.replaceSync(mediaPackage, channel, addElements, retractElementsIds);
       response = Response.ok(MediaPackageElementParser.getAsXml(publication)).build();
+      logger.debug("Response is ready. Took {} ms", System.currentTimeMillis() - start);
     } catch (Exception e) {
       logger.warn("Error publishing or retracting element", e);
       response = Response.serverError().build();
