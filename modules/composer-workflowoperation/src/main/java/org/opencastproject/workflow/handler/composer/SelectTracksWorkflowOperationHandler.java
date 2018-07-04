@@ -70,18 +70,44 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
   /** The configuration options for this handler */
   private static final SortedMap<String, String> CONFIG_OPTIONS;
 
+  private enum AudioMuxing {
+    NONE("none"), FORCE("force"), DUPLICATE("duplicate");
+
+    private final String value;
+
+    AudioMuxing(final String value) {
+      this.value = value;
+    }
+
+    static AudioMuxing fromConfigurationString(final String s) {
+      for (final AudioMuxing audioMuxing : AudioMuxing.values()) {
+        if (audioMuxing.value.equals(s)) {
+          return audioMuxing;
+        }
+      }
+      throw new IllegalArgumentException("invalid audio muxing parameter \"" + s + "\"");
+    }
+  }
+
+  private static final String CONFIG_AUDIO_MUXING = "audio-muxing";
+
+  private static final String CONFIG_FORCE_TARGET = "force-target";
+
+  private static final String FORCE_TARGET_DEFAULT = "presenter";
+
   static {
     CONFIG_OPTIONS = new TreeMap<>();
     CONFIG_OPTIONS.put("source-flavor", "The \"flavor\" of the track to use as a video source input");
     CONFIG_OPTIONS.put("target-flavor", "The flavor to apply to the encoded file");
     CONFIG_OPTIONS.put("target-tags", "The tags to apply to the encoded file");
+    CONFIG_OPTIONS.put(CONFIG_FORCE_TARGET,
+            String.format("Target flavor type for the \"%s\" option \"%s\" (default %s)", CONFIG_AUDIO_MUXING,
+                    AudioMuxing.FORCE, FORCE_TARGET_DEFAULT));
+    CONFIG_OPTIONS.put(CONFIG_AUDIO_MUXING,
+            String.format("Either \"%s\", \"%s\" or \"%s\" to specially mux audio streams", AudioMuxing.NONE.value,
+                    AudioMuxing.DUPLICATE.value, AudioMuxing.FORCE));
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   * @see org.opencastproject.workflow.api.WorkflowOperationHandler#getConfigurationOptions()
-   */
   @Override
   public SortedMap<String, String> getConfigurationOptions() {
     return CONFIG_OPTIONS;
@@ -110,8 +136,9 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
 
   private EncodingProfile getProfile(final String identifier) {
     final EncodingProfile profile = this.composerService.getProfile(identifier);
-    if (profile == null)
+    if (profile == null) {
       throw new IllegalStateException(String.format("couldn't find encoding profile \"%s\"", identifier));
+    }
     return profile;
   }
 
@@ -165,6 +192,10 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
     void setFlavorSubtype(final String subtype) {
       track.setFlavor(new MediaPackageElementFlavor(track.getFlavor().getType(), subtype));
     }
+
+    String getFlavorType() {
+      return track.getFlavor().getType();
+    }
   }
 
   @Override
@@ -195,55 +226,68 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
     final List<AugmentedTrack> augmentedTracks = createAugmentedTracks(tracks, workflowInstance);
 
     long queueTime = 0L;
+    // This function is formulated in a way so that it's hopefully compatible with an event with an arbitrary number of
+    // tracks. However, many of the requirements were written with one or two tracks in mind. For example, below, we
+    // test if "all tracks are non-hidden" or "exactly one track is non-hidden". This works for arbitrary tracks, of
+    // course, but with more than two, we might want something better. Hopefully, this will be easy to improve later
+    // on.
+
     // First case: We have only tracks with non-hidden video streams. So we keep them all and possibly cut away audio.
     if (allNonHidden(augmentedTracks, SubTrack.VIDEO)) {
-      for (final AugmentedTrack t : augmentedTracks) {
-        if (t.hasAudio() && t.hideAudio) {
-          // The flavor gets "nulled" in the process. Reverse that so we can treat all tracks equally.
-          final MediaPackageElementFlavor previousFlavor = t.track.getFlavor();
-          final TrackJobResult trackJobResult = hideAudio(t.track, mediaPackage);
-          trackJobResult.track.setFlavor(previousFlavor);
-          t.resetTrack(trackJobResult.track);
-          queueTime += trackJobResult.waitTime;
-        } else {
-          // Even if we don't modify the track, we clone and re-add it to the MP (since it will be a new track with a
-          // different flavor)
-          final Track clonedTrack = (Track) t.track.clone();
-          clonedTrack.setIdentifier(null);
-          mediaPackage.add(clonedTrack);
-          t.resetTrack(clonedTrack);
+      final Optional<AudioMuxing> audioMuxing = getConfiguration(workflowInstance, CONFIG_AUDIO_MUXING)
+              .map(AudioMuxing::fromConfigurationString);
+      // For both special options, we need to find out if we have exactly one audio track present
+      final Optional<AugmentedTrack> singleAudioTrackOpt = findSingleAudioTrack(augmentedTracks);
+      if (audioMuxing.map(m -> m == AudioMuxing.DUPLICATE).orElse(Boolean.FALSE) && singleAudioTrackOpt.isPresent()) {
+        // Special option: If we have multiple video tracks, but only one audio track: copy this audio track to
+        // all video tracks.
+        final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
+        for (final AugmentedTrack t : augmentedTracks) {
+          if (t.track != singleAudioTrack.track) {
+            final TrackJobResult jobResult = mux(t.track, singleAudioTrack.track, mediaPackage);
+            t.track = jobResult.track;
+            queueTime += jobResult.waitTime;
+          }
         }
+      } else if (audioMuxing.map(m -> m == AudioMuxing.FORCE).orElse(Boolean.FALSE) && singleAudioTrackOpt
+              .isPresent()) {
+        // Special option: if the only audio track we have selected is not in the video track of "force-target", we
+        // copy it there (and remove the original audio track).
+        final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
+        final String forceTargetOpt = getConfiguration(workflowInstance, CONFIG_FORCE_TARGET)
+                .orElse(FORCE_TARGET_DEFAULT);
+
+        final Optional<AugmentedTrack> forceTargetTrackOpt = findTrackByFlavorType(augmentedTracks, forceTargetOpt);
+
+        if (!forceTargetTrackOpt.isPresent()) {
+          throw new IllegalStateException(
+                  String.format("\"%s\" set to \"%s\", but target flavor \"%s\" not found!",
+                          CONFIG_AUDIO_MUXING,
+                          AudioMuxing.FORCE.value, forceTargetOpt));
+        }
+
+        final AugmentedTrack forceTargetTrack = forceTargetTrackOpt.get();
+
+        if (singleAudioTrack.track != forceTargetTrack.track) {
+          // Copy it over...
+          final TrackJobResult muxResult = mux(forceTargetTrack.track, singleAudioTrack.track, mediaPackage);
+          forceTargetTrack.track = muxResult.track;
+          queueTime += muxResult.waitTime;
+
+          // ...and remove the original
+          final TrackJobResult hideAudioResult = hideAudio(singleAudioTrack.track, mediaPackage);
+          singleAudioTrack.track = hideAudioResult.track;
+          queueTime += hideAudioResult.waitTime;
+        }
+      } else {
+        // No special options selected, or conditions for special options don't match.
+        queueTime += muxMultipleVideoTracks(mediaPackage, augmentedTracks);
       }
     } else {
-      // Otherwise, we have just one video track that's not hidden (because hopefully, the UI prevented all other
-      // cases). We keep that, and mux in the audio from the other track.
-      final AugmentedTrack nonHiddenVideo = findNonHidden(augmentedTracks, SubTrack.VIDEO)
-              .orElseThrow(() -> new IllegalStateException("couldn't find a stream with non-hidden video"));
-      // Implicit here is the assumption that there's just _one_ other audio stream. It's written so that
-      // we can loosen this assumption later on.
-      final Optional<AugmentedTrack> nonHiddenAudio = findNonHidden(augmentedTracks, SubTrack.AUDIO);
+      // Second case: we have exactly one video track that is not hidden (hopefully, because for all other cases there
+      // were no requirements given).
+      queueTime += muxSingleVideoTrack(mediaPackage, augmentedTracks);
 
-      // If there's just one non-hidden video stream, and that one has hidden audio, we have to cut that away, too.
-      if (nonHiddenVideo.hasAudio() && nonHiddenVideo.hideAudio && (!nonHiddenAudio.isPresent()
-              || nonHiddenAudio.get() == nonHiddenVideo)) {
-        final TrackJobResult jobResult = hideAudio(nonHiddenVideo.track, mediaPackage);
-        nonHiddenVideo.track = jobResult.track;
-        queueTime += jobResult.waitTime;
-      } else if (!nonHiddenAudio.isPresent() || nonHiddenAudio.get() == nonHiddenVideo) {
-        // It could be the case that the non-hidden video stream is also the non-hidden audio stream. In that
-        // case, we don't have to mux. But have to clone it.
-        final Track clonedTrack = (Track) nonHiddenVideo.track.clone();
-        clonedTrack.setIdentifier(null);
-        mediaPackage.add(clonedTrack);
-        nonHiddenVideo.resetTrack(clonedTrack);
-      } else {
-        // Otherwise, we mux!
-        final TrackJobResult jobResult = mux(nonHiddenVideo.track, nonHiddenAudio.get().track, mediaPackage);
-        nonHiddenVideo.track = jobResult.track;
-        queueTime += jobResult.waitTime;
-      }
-      // ...and then throw away everything else.
-      augmentedTracks.removeIf(t -> t.track != nonHiddenVideo.track);
     }
 
     final MediaPackageElementFlavor targetTrackFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.trimToNull(
@@ -260,6 +304,90 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
     });
 
     return createResult(mediaPackage, WorkflowOperationResult.Action.CONTINUE, queueTime);
+  }
+
+  private Optional<AugmentedTrack> findTrackByFlavorType(final Collection<AugmentedTrack> augmentedTracks,
+          final String flavorType) {
+    return augmentedTracks.stream().filter(augmentedTrack -> augmentedTrack.getFlavorType().equals(flavorType))
+            .findAny();
+  }
+
+  private long muxSingleVideoTrack(final MediaPackage mediaPackage, final Collection<AugmentedTrack> augmentedTracks)
+          throws MediaPackageException, EncoderException, WorkflowOperationException, NotFoundException, IOException {
+    long queueTime = 0L;
+
+    // Otherwise, we have just one video track that's not hidden (because hopefully, the UI prevented all other
+    // cases). We keep that, and mux in the audio from the other track.
+    final AugmentedTrack nonHiddenVideo = findNonHidden(augmentedTracks, SubTrack.VIDEO)
+            .orElseThrow(() -> new IllegalStateException("couldn't find a stream with non-hidden video"));
+    // Implicit here is the assumption that there's just _one_ other audio stream. It's written so that
+    // we can loosen this assumption later on.
+    final Optional<AugmentedTrack> nonHiddenAudio = findNonHidden(augmentedTracks, SubTrack.AUDIO);
+
+    // If there's just one non-hidden video stream, and that one has hidden audio, we have to cut that away, too.
+    if (nonHiddenVideo.hasAudio() && nonHiddenVideo.hideAudio && (!nonHiddenAudio.isPresent()
+            || nonHiddenAudio.get() == nonHiddenVideo)) {
+      final TrackJobResult jobResult = hideAudio(nonHiddenVideo.track, mediaPackage);
+      nonHiddenVideo.track = jobResult.track;
+      queueTime += jobResult.waitTime;
+    } else if (!nonHiddenAudio.isPresent() || nonHiddenAudio.get() == nonHiddenVideo) {
+      // It could be the case that the non-hidden video stream is also the non-hidden audio stream. In that
+      // case, we don't have to mux. But have to clone it.
+      final Track clonedTrack = (Track) nonHiddenVideo.track.clone();
+      clonedTrack.setIdentifier(null);
+      mediaPackage.add(clonedTrack);
+      nonHiddenVideo.resetTrack(clonedTrack);
+    } else {
+      // Otherwise, we mux!
+      final TrackJobResult jobResult = mux(nonHiddenVideo.track, nonHiddenAudio.get().track, mediaPackage);
+      nonHiddenVideo.track = jobResult.track;
+      queueTime += jobResult.waitTime;
+    }
+    // ...and then throw away everything else.
+    augmentedTracks.removeIf(t -> t.track != nonHiddenVideo.track);
+    return queueTime;
+  }
+
+  private long muxMultipleVideoTracks(final MediaPackage mediaPackage, final Iterable<AugmentedTrack> augmentedTracks)
+          throws MediaPackageException, EncoderException, WorkflowOperationException, NotFoundException, IOException {
+    long queueTime = 0L;
+    for (final AugmentedTrack t : augmentedTracks) {
+      if (t.hasAudio() && t.hideAudio) {
+        // The flavor gets "nulled" in the process. Reverse that so we can treat all tracks equally.
+        final MediaPackageElementFlavor previousFlavor = t.track.getFlavor();
+        final TrackJobResult trackJobResult = hideAudio(t.track, mediaPackage);
+        trackJobResult.track.setFlavor(previousFlavor);
+        t.resetTrack(trackJobResult.track);
+        queueTime += trackJobResult.waitTime;
+      } else {
+        // Even if we don't modify the track, we clone and re-add it to the MP (since it will be a new track with a
+        // different flavor)
+        final Track clonedTrack = (Track) t.track.clone();
+        clonedTrack.setIdentifier(null);
+        mediaPackage.add(clonedTrack);
+        t.resetTrack(clonedTrack);
+      }
+    }
+    return queueTime;
+  }
+
+  /**
+   * Returns the single track that has audio, or an empty {@code Optional} if either more than one audio track exists, or none exists.
+   * @param augmentedTracks List of tracks
+   * @return See above.
+   */
+  private Optional<AugmentedTrack> findSingleAudioTrack(final Iterable<AugmentedTrack> augmentedTracks) {
+    AugmentedTrack result = null;
+    for (final AugmentedTrack augmentedTrack : augmentedTracks) {
+      if (augmentedTrack.hasAudio() && !augmentedTrack.hideAudio) {
+        // Already got an audio track? Aw, then there's more than one! :(
+        if (result != null) {
+          return Optional.empty();
+        }
+        result = augmentedTrack;
+      }
+    }
+    return Optional.ofNullable(result);
   }
 
   private TrackJobResult mux(final Track videoTrack, final Track audioTrack, final MediaPackage mediaPackage)
@@ -337,12 +465,10 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
   }
 
   private List<AugmentedTrack> createAugmentedTracks(final Track[] tracks, final WorkflowInstance instance) {
-    return Arrays.stream(tracks)
-                 .map(t -> {
-                   final boolean hideAudio = trackHidden(instance, t.getFlavor().getType(), SubTrack.AUDIO);
-                   final boolean hideVideo = trackHidden(instance, t.getFlavor().getType(), SubTrack.VIDEO);
-                   return new AugmentedTrack(t, hideAudio, hideVideo);
-                 })
-                 .collect(Collectors.toList());
+    return Arrays.stream(tracks).map(t -> {
+      final boolean hideAudio = trackHidden(instance, t.getFlavor().getType(), SubTrack.AUDIO);
+      final boolean hideVideo = trackHidden(instance, t.getFlavor().getType(), SubTrack.VIDEO);
+      return new AugmentedTrack(t, hideAudio, hideVideo);
+    }).collect(Collectors.toList());
   }
 }
