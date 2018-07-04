@@ -29,29 +29,29 @@ force-target      | presenter     | Target track for the `force` setting for `au
 Audio Muxing
 -----------------
 
-The optional `audio-muxing` parameter has three possible values: `none` (same as omitting the option), `force` and 
+The optional `audio-muxing` parameter has three possible values: `none` (same as omitting the option), `force` and
 `duplicate`.
 
 ### `force` ###
 
-The parameter value `force` only applies to media packages that have exactly one non-hidden audio track. For media packages 
-without an audio track or with more than one audio track, the behavior is the same as if the parameter were omitted. The 
-same applies to media packages for which there is only one audio track, and it already belongs to the track with flavor type 
+The parameter value `force` only applies to media packages that have exactly one non-hidden audio track. For media packages
+without an audio track or with more than one audio track, the behavior is the same as if the parameter were omitted. The
+same applies to media packages for which there is only one audio track, and it already belongs to the track with flavor type
 given by `force-target` (or `presenter` if that parameter is omitted).
 
-If, however, there is only one non-hidden audio track and it does *not* belong to the track given by `force-target`, then the 
-WOH will “move” the audio track to this target track. Specifically, it will mux the video track of `force-target` with the 
-audio track it found. Then, it removes the audio track from the original track. 
+If, however, there is only one non-hidden audio track and it does *not* belong to the track given by `force-target`, then
+the WOH will “move” the audio track to this target track. Specifically, it will mux the video track of `force-target` with
+the audio track it found. Then, it removes the audio track from the original track.
 
-For example, if there is a media package with two tracks, “presenter” and “presentation”, and the audio track of “presenter” 
-is hidden. Then the WOH will mux presenter’s video track and presentations audio track and store it in presenter’s place. It 
-will also remove the audio track from “presentation”.
+For example, if there is a media package with two tracks, “presenter” and “presentation”, and the audio track of
+“presenter” is hidden. Then the WOH will mux presenter’s video track and presentations audio track and store it in
+presenter’s place. It will also remove the audio track from “presentation”.
 
 ### `duplicate` ###
 
-The parameter value `duplicate` only applies to media packages that have exactly one non-hidden audio track. For media packages 
-without an audio track or with more than one audio track, the behavior is the same as if the parameter were omitted. For these 
-media packages, the WOH will mux the audio track it found to all video tracks in the media package.
+The parameter value `duplicate` only applies to media packages that have exactly one non-hidden audio track. For media
+packages without an audio track or with more than one audio track, the behavior is the same as if the parameter were
+omitted. For these media packages, the WOH will mux the audio track it found to all video tracks in the media package.
 
 Operation Example
 -----------------
@@ -67,4 +67,3 @@ Operation Example
         <configuration key="audio-muxing">force</configuration>
       </configurations>
     </operation>
-
