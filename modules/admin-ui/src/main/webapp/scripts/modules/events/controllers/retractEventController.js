@@ -56,8 +56,7 @@ function ($scope, NewEventProcessing, TaskResource, Notifications) {
         eventIds.push($scope.$parent.resourceId);
         payload = {
             workflow: $scope.processing.ud.workflow.id,
-            configuration: $scope.processing.ud.workflow.selection.configuration,
-            eventIds: eventIds
+            configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties, $scope.getSelectedIds())
         };
         TaskResource.save(payload, onSuccess, onFailure);
     };

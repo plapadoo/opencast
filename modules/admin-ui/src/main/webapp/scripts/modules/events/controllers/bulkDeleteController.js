@@ -150,8 +150,7 @@ angular.module('adminNg.controllers')
                     resetSubmitButton = false;
                     payload = {
                         workflow: $scope.processing.ud.workflow.id,
-                        configuration: $scope.processing.ud.workflow.selection.configuration,
-                        eventIds: retractEventIds
+                        configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties, $scope.getSelectedIds())
                     };
                     TaskResource.save(payload, $scope.onSuccess, $scope.onFailure);
                 }
