@@ -148,9 +148,16 @@ angular.module('adminNg.controllers')
                 });
                 if (retractEventIds.length > 0) {
                     resetSubmitButton = false;
+                    var configuration = $scope.processing.ud.workflow.selection.configuration;
+                    var finalConfiguration = {};
+                    // We have to duplicate the configuration for each event, since the "bulk start task"
+                    // event wants per-event configuration since MH-12826.
+                    for (var i = 0; i < retractEventIds.length; i++) {
+                        finalConfiguration[retractEventIds[i]] = configuration;
+                    }
                     payload = {
                         workflow: $scope.processing.ud.workflow.id,
-                        configuration: $scope.processing.getWorkflowConfigs($scope.workflowProperties, $scope.getSelectedIds())
+                        configuration: finalConfiguration
                     };
                     TaskResource.save(payload, $scope.onSuccess, $scope.onFailure);
                 }
