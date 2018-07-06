@@ -320,10 +320,10 @@ public abstract class AbstractEventEndpoint {
     try {
       ids = (List<String>) parser.parse(eventIds);
     } catch (org.json.simple.parser.ParseException e) {
-      logger.error("Unable to parse '{}' because: {}", eventIds, ExceptionUtils.getStackTrace(e));
+      logger.error("Unable to parse '{}'", eventIds, e);
       return Response.status(Response.Status.BAD_REQUEST).build();
     } catch (ClassCastException e) {
-      logger.error("Unable to cast '{}' because: {}", eventIds, ExceptionUtils.getStackTrace(e));
+      logger.error("Unable to cast '{}'", eventIds, e);
       return Response.status(Response.Status.BAD_REQUEST).build();
     }
 

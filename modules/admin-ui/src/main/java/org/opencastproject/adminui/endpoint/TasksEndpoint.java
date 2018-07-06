@@ -166,7 +166,6 @@ public class TasksEndpoint {
     if (StringUtils.isBlank(workflowId))
       return RestUtil.R.badRequest("No workflow set");
 
-    //noinspection unchecked
     Map<String, Map<String, String>> configuration = (Map<String, Map<String, String>>) metadataJson.get("configuration");
     if (configuration == null) {
       return RestUtil.R.badRequest("No events set");
