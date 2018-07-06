@@ -83,7 +83,7 @@ angular.module('adminNg.services')
                     f(idAttr, angularElement);
                 }
             });
-        };
+        }
 
         // Collect all radio elements (which are linked by their name
         // attribute) into a dictionary:
@@ -116,11 +116,17 @@ angular.module('adminNg.services')
                     radioValues.push(htmlFields[radios[radioId][i]]);
                 }
                 if (allTheSame(radioValues)) {
-                    for (var i = 0; i < radios[radioId].length; i++) {
-                        htmlFields[radios[radioId][i]] = null;
+                    for (var j = 0; j < radios[radioId].length; j++) {
+                        htmlFields[radios[radioId][j]] = null;
                     }
                 }
             }
+        }
+
+        // Most of the stuff we do here with input elements doesn't distinguish between
+        // input type="text" and input type="number", so we need this getter a few times.
+        function elementIsTextual(angularElement) {
+            return angularElement.is("[type=text]") || angularElement.is("[type=number]");
         }
 
         // Gather all input elements used in the workflow configuration HTML into a dictionary:
@@ -128,7 +134,7 @@ angular.module('adminNg.services')
         function gatherHtmlFormElements(htmlElement) {
             var result = {};
             forEachHtmlFormElement(htmlElement, function(id, angularElement) {
-                if (angularElement.is('[type=text]')) {
+                if (elementIsTextual(angularElement)) {
                     if (angularElement.val() === '') {
                         result[id] = null;
                     } else {
@@ -156,7 +162,7 @@ angular.module('adminNg.services')
             var result = [];
             for(var eid in events) {
                 for (var evProp in events[eid]) {
-                    if (evProp == searchProp) {
+                    if (evProp === searchProp) {
                         result.push(events[eid][evProp]);
                     }
                 }
@@ -196,7 +202,7 @@ angular.module('adminNg.services')
         // Set a HTML form value (abstracts over "set checked" or "set
         // value" for checkboxes and text fields, respectively)
         function setHtmlFormValue(angularElement, value) {
-            if (angularElement.is("[type=text]")) {
+            if (elementIsTextual(angularElement)) {
                 angularElement.val(value);
             } else if (angularElement.is("[type=checkbox]") || angularElement.is("[type=radio]")) {
                 if (value === "true") {
@@ -210,7 +216,7 @@ angular.module('adminNg.services')
         // Set an indeterminate HTML form value (depends on the type
         // of the form element)
         function setIndeterminateHtmlFormValue(angularElement) {
-            if (angularElement.is("[type=text]")) {
+            if (elementIsTextual(angularElement)) {
                 angularElement.val("");
             } else if (angularElement.is("[type=checkbox]")) {
                 angularElement.prop("indeterminate", true);
@@ -320,7 +326,7 @@ angular.module('adminNg.services')
             }
 
             return workflowConfigs;
-        }
+        };
 
         // Get the workflow configuration (used for the final value table in the wizard)
         this.getWorkflowConfig = function () {
