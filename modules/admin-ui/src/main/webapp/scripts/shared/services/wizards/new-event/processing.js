@@ -103,6 +103,21 @@ angular.module('adminNg.services')
             return result;
         }
 
+        // Determine if all elements of an array are the same (returns
+        // true for empty arrays).
+        function allTheSame(a) {
+            if (a.length === 0) {
+                return true;
+            }
+            var first = a[0];
+            for(var i = 0; i < a.length; i++) {
+                if (a[i] !== first) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         // Take a dictionary collected by gatherHtmlFormElements and
         // nullify all radio elements that are ambiguous (i.e. are all
         // unchecked).
@@ -182,21 +197,6 @@ angular.module('adminNg.services')
             }
           }
           return result;
-        }
-
-        // Determine if all elements of an array are the same (returns
-        // true for empty arrays).
-        function allTheSame(a) {
-            if (a.length === 0) {
-                return true;
-            }
-            var first = a[0];
-            for(var i = 0; i < a.length; i++) {
-                if (a[i] !== first) {
-                    return false;
-                }
-            }
-            return true;
         }
 
         // Set a HTML form value (abstracts over "set checked" or "set
@@ -301,7 +301,7 @@ angular.module('adminNg.services')
         };
 
         // This is used for the new task post request
-        this.getWorkflowConfigs = function (workflowProperties, selectedIds) {
+        this.getWorkflowConfigs = function () {
             var workflowConfigs = {}, element, isRendered = workflowConfigEl.find('.configField').length > 0;
 
             if (!isRendered) {
