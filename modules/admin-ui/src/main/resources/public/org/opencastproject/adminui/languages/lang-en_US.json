@@ -249,7 +249,7 @@
           "GENERAL": {
               "CAPTION": "General",
               "CANNOTSTART": "Highlighted event(s) cannot be processed, only scheduled events are supported.",
-              "CANNOTEDITSCHEDULE": "For the highlighted events, you don't have the permission to edit scheduling information. You can continue, but you won't be able to edit scheduling information of any events at all.",
+              "CANNOTEDITSCHEDULE": "For the highlighted events, you don't have the permission to edit scheduling information. Please de-select them.",
               "NOCHANGES": "No changes to the events detected!"
           },
           "METADATA": {
