@@ -295,7 +295,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 id: "title",
                 label: "EVENTS.EVENTS.DETAILS.METADATA.TITLE",
                 readOnly: false,
-                required: true,
+                required: false,
                 type: "text",
                 value: getMetadataPart(getterForMetadata('title'))
             },
