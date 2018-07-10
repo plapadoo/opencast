@@ -128,6 +128,7 @@ import org.opencastproject.util.RestUtil;
 import org.opencastproject.util.UrlSupport;
 import org.opencastproject.util.data.Option;
 import org.opencastproject.util.data.Tuple;
+import org.opencastproject.util.data.Tuple3;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
@@ -1156,47 +1157,75 @@ public abstract class AbstractEventEndpoint {
       return badRequest("Cannot parse bulk update instructions");
     }
 
-    final Map<String, List<MediaPackage>> conflicts = new HashMap<>();
-    for (final BulkUpdateUtil.BulkUpdateInstructionGroup groupInstructions : instructions.getGroups()) {
-      // Get all the events to check
-      final Map<String, Optional<Event>> events = groupInstructions.getEventIds().stream()
-        .collect(Collectors.toMap(id -> id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
+    final Map<String, List<JValue>> conflicts = new HashMap<>();
+    final List<Tuple3<String, Optional<Event>, JSONObject>> eventsWithSchedulingOpt = instructions.getGroups().stream()
+      .flatMap(group -> group.getEventIds().stream().map(eventId -> Tuple3
+        .tuple3(eventId, BulkUpdateUtil.getEvent(getIndexService(), getIndex(), eventId), group.getScheduling())))
+      .collect(Collectors.toList());
+    // Check for invalid (non-existing) event ids
+    final Set<String> notFoundIds = eventsWithSchedulingOpt.stream().filter(e -> !e.getB().isPresent())
+      .map(Tuple3::getA).collect(Collectors.toSet());
+    if (!notFoundIds.isEmpty()) {
+      return notFoundJson(JSONUtils.setToJSON(notFoundIds));
+    }
+    final List<Tuple<Event, JSONObject>> eventsWithScheduling = eventsWithSchedulingOpt.stream()
+      .map(e -> Tuple.tuple(e.getB().get(), e.getC())).collect(Collectors.toList());
+    final Set<String> changedIds = eventsWithScheduling.stream().map(e -> e.getA().getIdentifier())
+      .collect(Collectors.toSet());
+    for (final Tuple<Event, JSONObject> eventWithGroup : eventsWithScheduling) {
+      final Event event = eventWithGroup.getA();
+      final JSONObject groupScheduling = eventWithGroup.getB();
+      try {
+        if (groupScheduling != null) {
+          // Since we only have the start/end time, we have to add the correct date(s) for this event.
+          final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, groupScheduling);
+          final Date start = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_START_KEY)));
+          final Date end = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_END_KEY)));
+          final String agentId = Optional.ofNullable((String) scheduling.get(SCHEDULING_AGENT_ID_KEY))
+            .orElse(event.getAgentId());
 
-      // Check for invalid (non-existing) event ids
-      final Set<String> notFoundIds = events.entrySet().stream().filter(e -> !e.getValue().isPresent()).map(Entry::getKey).collect(Collectors.toSet());
-      if (!notFoundIds.isEmpty()) {
-        return notFoundJson(JSONUtils.setToJSON(notFoundIds));
-      }
+          final List<JValue> currentConflicts = new ArrayList<>();
 
-      events.values().forEach(e -> e.ifPresent(event -> {
-        try {
-          if (groupInstructions.getScheduling() != null) {
-            // Since we only have the start/end time, we have to add the correct date(s) for this event.
-            final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, groupInstructions.getScheduling());
-            final Date start = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_START_KEY)));
-            final Date end = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_END_KEY)));
-            final String agentId = Optional.ofNullable((String) scheduling.get(SCHEDULING_AGENT_ID_KEY)).orElse(event.getAgentId());
-            final List<MediaPackage> conflicting = getSchedulerService().findConflictingEvents(agentId, start, end);
-            if (conflicting != null && !conflicting.isEmpty() && !(conflicting.size() == 1 && conflicting.get(0).getIdentifier().toString().equals(event.getIdentifier()))) {
-              conflicts.put(event.getIdentifier(), conflicting);
+          // Check for conflicts between the events themselves
+          eventsWithScheduling.stream()
+            .filter(otherEvent -> !otherEvent.getA().getIdentifier().equals(event.getIdentifier()))
+            .forEach(otherEvent -> {
+            final JSONObject otherScheduling = BulkUpdateUtil.addSchedulingDates(otherEvent.getA(), otherEvent.getB());
+            final Date otherStart = Date.from(Instant.parse((String) otherScheduling.get(SCHEDULING_START_KEY)));
+            final Date otherEnd = Date.from(Instant.parse((String) otherScheduling.get(SCHEDULING_END_KEY)));
+            final String otherAgentId = Optional.ofNullable((String) otherScheduling.get(SCHEDULING_AGENT_ID_KEY))
+              .orElse(otherEvent.getA().getAgentId());
+            if (!otherAgentId.equals(agentId)) {
+              // different agent -> no conflict
+              return;
             }
+            if (!start.after(otherEnd) && !end.before(otherStart)) {
+              // conflict
+              currentConflicts.add(convertEventToConflictingObject(DateTimeSupport.toUTC(otherStart.getTime()),
+                DateTimeSupport.toUTC(otherEnd.getTime()), otherEvent.getA().getTitle()));
+            }
+          });
+
+          // Check for conflicts with other events from the database
+          final List<MediaPackage> conflicting = getSchedulerService().findConflictingEvents(agentId, start, end)
+            .stream()
+            .filter(mp -> !changedIds.contains(mp.getIdentifier().toString()))
+            .collect(Collectors.toList());
+          if (conflicting != null && !conflicting.isEmpty()) {
+            currentConflicts.addAll(convertToConflictObjects(event.getIdentifier(), conflicting));
           }
-        } catch (SchedulerException | UnauthorizedException exception) {
-          throw new RuntimeException(exception);
+          conflicts.put(event.getIdentifier(), currentConflicts);
         }
-      }));
+      } catch (SchedulerException | UnauthorizedException | SearchIndexException exception) {
+        throw new RuntimeException(exception);
+      }
     }
 
     if (!conflicts.isEmpty()) {
       final List<JValue> responseJson = new ArrayList<>();
       conflicts.forEach((eventId, conflictingEvents) -> {
-        try {
-          final List<JValue> eventsJSON = convertToConflictObjects(eventId, conflictingEvents);
-          if (!eventsJSON.isEmpty()) {
-            responseJson.add(obj(f("eventId", eventId), f("conflicts", arr(eventsJSON))));
-          }
-        } catch (SearchIndexException e) {
-          throw new RuntimeException(e);
+        if (!conflictingEvents.isEmpty()) {
+          responseJson.add(obj(f("eventId", eventId), f("conflicts", arr(conflictingEvents))));
         }
       });
       if (!responseJson.isEmpty()) {
@@ -2087,14 +2116,21 @@ public abstract class AbstractEventEndpoint {
         if (StringUtils.isNotEmpty(eventId) && eventId.equals(e.getIdentifier())) {
           continue;
         }
-        eventsJSON.add(obj(f("start", v(e.getTechnicalStartTime())), f("end", v(e.getTechnicalEndTime())),
-          f("title", v(e.getTitle()))));
+        eventsJSON.add(convertEventToConflictingObject(e.getTechnicalStartTime(), e.getTechnicalEndTime(), e.getTitle()));
       } else {
         logger.warn("Index out of sync! Conflicting event catalog {} not found on event index!",
           event.getIdentifier().compact());
       }
     }
     return eventsJSON;
+  }
+
+  private JValue convertEventToConflictingObject(final String start, final String end, final String title) {
+    return obj(
+      f("start", v(start)),
+      f("end", v(end)),
+      f("title", v(title))
+    );
   }
 
   @POST
