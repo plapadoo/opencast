@@ -55,6 +55,13 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         });
     });
 
+    $scope.clearAndClose = function() {
+        if (me.notificationConflict) {
+            Notifications.remove(me.notificationConflict, SCHEDULING_CONTEXT);
+        }
+        $scope.close();
+    };
+
     // Given a series id, get me the title (we need this for the summary prettification)
     var seriesTitleForId = function(id) {
         var result = null;
