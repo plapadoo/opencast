@@ -1071,10 +1071,10 @@ public abstract class AbstractEventEndpoint {
   @PUT
   @Path("bulk/update")
   @RestQuery(name = "bulkupdate", description = "Update all of the given events at once", restParameters = {
-    @RestParameter(name = "update", isRequired = true, type = RestParameter.Type.TEXT, description = "The list of events and fields to update.")}, reponses = {
+    @RestParameter(name = "update", isRequired = true, type = RestParameter.Type.TEXT, description = "The list of groups with events and fields to update.")}, reponses = {
     @RestResponse(description = "All events have been updated successfully.", responseCode = HttpServletResponse.SC_OK),
     @RestResponse(description = "Could not parse update instructions.", responseCode = HttpServletResponse.SC_BAD_REQUEST),
-    @RestResponse(description = "Faield updating metadata or scheduling information. Some events may have been updated. Details are available in the response body.", responseCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
+    @RestResponse(description = "Field updating metadata or scheduling information. Some events may have been updated. Details are available in the response body.", responseCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
     @RestResponse(description = "The events in the response body were not found. No events were updated.", responseCode = HttpServletResponse.SC_NOT_FOUND)},
     returnDescription = "In case of success, no content is returned. In case of errors while updating the metadata or scheduling information, the errors are returned. In case events were not found, their ids are returned")
   public Response bulkUpdate(@FormParam("update") String updateJson) {
@@ -1086,50 +1086,49 @@ public abstract class AbstractEventEndpoint {
       return badRequest("Cannot parse bulk update instructions");
     }
 
-    // Get all the events to edit
-    final Map<String, Optional<Event>> events = instructions.getEventIds().stream()
-      .collect(Collectors.toMap(id -> id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
-
-    // Check for invalid (non-existing) event ids
-    final Set<String> notFoundIds = events.entrySet().stream()
-      .filter(e -> !e.getValue().isPresent())
-      .map(Entry::getKey)
-      .collect(Collectors.toSet());
-    if (!notFoundIds.isEmpty()) {
-      return notFoundJson(JSONUtils.setToJSON(notFoundIds));
-    }
-
     final Map<String, String> metadataUpdateFailures = new HashMap<>();
     final Map<String, String> schedulingUpdateFailures = new HashMap<>();
 
-    events.values().forEach(e -> e.ifPresent(event -> {
+    for (final BulkUpdateUtil.BulkUpdateInstructionGroup groupInstructions : instructions.getGroups()) {
+      // Get all the events to edit
+      final Map<String, Optional<Event>> events = groupInstructions.getEventIds().stream()
+        .collect(Collectors.toMap(id -> id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
 
-      JSONObject metadata = null;
-
-      // Update the scheduling information
-      try {
-        if (instructions.getScheduling() != null) {
-          // Since we only have the start/end time, we have to add the correct date(s) for this event.
-          final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, instructions.getScheduling());
-          updateEventScheduling(scheduling.toJSONString(), event);
-          // We have to update the non-technical metadata as well to keep them in sync with the technical ones.
-          metadata = BulkUpdateUtil.toNonTechnicalMetadataJson(scheduling);
-        }
-      } catch (Exception exception) {
-        schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+      // Check for invalid (non-existing) event ids
+      final Set<String> notFoundIds = events.entrySet().stream().filter(e -> !e.getValue().isPresent()).map(Entry::getKey).collect(Collectors.toSet());
+      if (!notFoundIds.isEmpty()) {
+        return notFoundJson(JSONUtils.setToJSON(notFoundIds));
       }
 
-      // Update the event metadata
-      try {
-        if (instructions.getMetadata() != null || metadata != null) {
-          metadata = BulkUpdateUtil.mergeMetadataFields(metadata, instructions.getMetadata());
-          getIndexService().updateAllEventMetadata(event.getIdentifier(),
-            JSONArray.toJSONString(Collections.singletonList(metadata)), getIndex());
+
+      events.values().forEach(e -> e.ifPresent(event -> {
+
+        JSONObject metadata = null;
+
+        // Update the scheduling information
+        try {
+          if (groupInstructions.getScheduling() != null) {
+            // Since we only have the start/end time, we have to add the correct date(s) for this event.
+            final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, groupInstructions.getScheduling());
+            updateEventScheduling(scheduling.toJSONString(), event);
+            // We have to update the non-technical metadata as well to keep them in sync with the technical ones.
+            metadata = BulkUpdateUtil.toNonTechnicalMetadataJson(scheduling);
+          }
+        } catch (Exception exception) {
+          schedulingUpdateFailures.put(event.getIdentifier(), exception.getMessage());
         }
-      } catch (Exception exception) {
-        metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
-      }
-    }));
+
+        // Update the event metadata
+        try {
+          if (groupInstructions.getMetadata() != null || metadata != null) {
+            metadata = BulkUpdateUtil.mergeMetadataFields(metadata, groupInstructions.getMetadata());
+            getIndexService().updateAllEventMetadata(event.getIdentifier(), JSONArray.toJSONString(Collections.singletonList(metadata)), getIndex());
+          }
+        } catch (Exception exception) {
+          metadataUpdateFailures.put(event.getIdentifier(), exception.getMessage());
+        }
+      }));
+    }
 
     // Check if there were any errors updating the metadata or scheduling information
     if (!metadataUpdateFailures.isEmpty() || !schedulingUpdateFailures.isEmpty()) {
@@ -1157,39 +1156,36 @@ public abstract class AbstractEventEndpoint {
       return badRequest("Cannot parse bulk update instructions");
     }
 
-    // Get all the events to check
-    final Map<String, Optional<Event>> events = instructions.getEventIds().stream()
-      .collect(Collectors.toMap(id -> id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
-
-    // Check for invalid (non-existing) event ids
-    final Set<String> notFoundIds = events.entrySet().stream()
-      .filter(e -> !e.getValue().isPresent())
-      .map(Entry::getKey)
-      .collect(Collectors.toSet());
-    if (!notFoundIds.isEmpty()) {
-      return notFoundJson(JSONUtils.setToJSON(notFoundIds));
-    }
-
     final Map<String, List<MediaPackage>> conflicts = new HashMap<>();
-    events.values().forEach(e -> e.ifPresent(event -> {
-      try {
-        if (instructions.getScheduling() != null) {
-          // Since we only have the start/end time, we have to add the correct date(s) for this event.
-          final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, instructions.getScheduling());
-          final Date start = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_START_KEY)));
-          final Date end = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_END_KEY)));
-          final String agentId = Optional.ofNullable((String) scheduling.get(SCHEDULING_AGENT_ID_KEY))
-            .orElse(event.getAgentId());
-          final List<MediaPackage> conflicting = getSchedulerService().findConflictingEvents(agentId, start, end);
-          if (conflicting != null && !conflicting.isEmpty() && !(
-            conflicting.size() == 1 && conflicting.get(0).getIdentifier().toString().equals(event.getIdentifier()))) {
-            conflicts.put(event.getIdentifier(), conflicting);
-          }
-        }
-      } catch (SchedulerException | UnauthorizedException exception) {
-        throw new RuntimeException(exception);
+    for (final BulkUpdateUtil.BulkUpdateInstructionGroup groupInstructions : instructions.getGroups()) {
+      // Get all the events to check
+      final Map<String, Optional<Event>> events = groupInstructions.getEventIds().stream()
+        .collect(Collectors.toMap(id -> id, id -> BulkUpdateUtil.getEvent(getIndexService(), getIndex(), id)));
+
+      // Check for invalid (non-existing) event ids
+      final Set<String> notFoundIds = events.entrySet().stream().filter(e -> !e.getValue().isPresent()).map(Entry::getKey).collect(Collectors.toSet());
+      if (!notFoundIds.isEmpty()) {
+        return notFoundJson(JSONUtils.setToJSON(notFoundIds));
       }
-    }));
+
+      events.values().forEach(e -> e.ifPresent(event -> {
+        try {
+          if (groupInstructions.getScheduling() != null) {
+            // Since we only have the start/end time, we have to add the correct date(s) for this event.
+            final JSONObject scheduling = BulkUpdateUtil.addSchedulingDates(event, groupInstructions.getScheduling());
+            final Date start = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_START_KEY)));
+            final Date end = Date.from(Instant.parse((String) scheduling.get(SCHEDULING_END_KEY)));
+            final String agentId = Optional.ofNullable((String) scheduling.get(SCHEDULING_AGENT_ID_KEY)).orElse(event.getAgentId());
+            final List<MediaPackage> conflicting = getSchedulerService().findConflictingEvents(agentId, start, end);
+            if (conflicting != null && !conflicting.isEmpty() && !(conflicting.size() == 1 && conflicting.get(0).getIdentifier().toString().equals(event.getIdentifier()))) {
+              conflicts.put(event.getIdentifier(), conflicting);
+            }
+          }
+        } catch (SchedulerException | UnauthorizedException exception) {
+          throw new RuntimeException(exception);
+        }
+      }));
+    }
 
     if (!conflicts.isEmpty()) {
       final List<JValue> responseJson = new ArrayList<>();
@@ -1207,6 +1203,7 @@ public abstract class AbstractEventEndpoint {
         return conflictJson(arr(responseJson));
       }
     }
+
 
     return noContent();
   }
