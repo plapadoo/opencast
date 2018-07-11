@@ -400,23 +400,14 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             }
 
             var changes = [];
+            var valueWeekDay = fromJsWeekday(new Date(value.start.date).getDay());
+            var scheduling = $scope.scheduling[valueWeekDay.key];
 
-            if ($scope.scheduling.location !== null && $scope.scheduling.location.id !== null && $scope.scheduling.location.id !== value.agentId) {
+            if (scheduling.location !== null && scheduling.location.id !== null && scheduling.location.id !== value.agentId) {
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.LOCATION',
                     previous: value.agentId,
-                    next: $scope.scheduling.location.id
-                });
-            }
-
-            var valueWeekDay = fromJsWeekday(new Date(value.start.date).getDay());
-            if ($scope.scheduling.weekday !== null && valueWeekDay.key !== $scope.scheduling.weekday) {
-                changes.push({
-                    type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
-                    // Might be better to actually use the promise rather than using instant,
-                    // but it's difficult with the two-way binding here.
-                    previous: $translate.instant(valueWeekDay.translationLong),
-                    next: $translate.instant(JsHelper.weekdayTranslation($scope.scheduling.weekday, true))
+                    next: scheduling.location.id
                 });
             }
 
@@ -495,8 +486,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 }
             };
 
-            formatPart($scope.scheduling.start, value.start, 'START');
-            formatPart($scope.scheduling.end, value.end, 'END');
+            formatPart(scheduling.start, value.start, 'START');
+            formatPart(scheduling.end, value.end, 'END');
 
             if (changes.length > 0) {
                 $scope.eventSummaries.push({
@@ -542,20 +533,26 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     $scope.submitButton = false;
     $scope.submit = function () {
         $scope.submitButton = true;
-        var payload = {
-            metadata: {
-                flavor: "dublincore/episode",
-                title: "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE",
-                fields: JsHelper.filter(
-                    $scope.metadataRows,
-                    function(row) {
-                        // Search for "hack" in this file for an explanation of this typeof magic.
-                        return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object' && row.value !== '';
-                    })
-            },
-            scheduling: postprocessScheduling(),
-            events: $scope.getSelectedIds()
+        var metadata = {
+            flavor: "dublincore/episode",
+            title: "EVENTS.EVENTS.DETAILS.CATALOG.EPISODE",
+            fields: JsHelper.filter(
+                $scope.metadataRows,
+                function(row) {
+                    // Search for "hack" in this file for an explanation of this typeof magic.
+                    return angular.isDefined(row.value) && row.value !== null && typeof row.value !== 'object' && row.value !== '';
+                })
         };
+        var weekdays = $scope.validWeekdays();
+        var payload = [];
+        for (var i = 0; i < weekdays.length; i++) {
+            var wd = weekdays[i];
+            payload.push({
+                events: eventIdsForWeekday(wd),
+                metadata: metadata,
+                scheduling: postprocessScheduling(wd)
+            });
+        }
         if ($scope.valid()) {
             EventBulkEditResource.update(payload, onSuccess, onFailure);
         }
