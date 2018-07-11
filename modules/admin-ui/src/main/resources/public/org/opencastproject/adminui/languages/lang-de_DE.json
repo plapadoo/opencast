@@ -262,7 +262,7 @@
           "EDIT": {
               "CAPTION": "Bearbeiten",
               "METADATA": "Metadaten",
-              "SCHEDULING": "Planung"
+              "SCHEDULING": "Planung {{ weekday }}"
           }
       }
    },

@@ -108,15 +108,36 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return getRowForId(id).title;
     };
 
+    // For a given event id, get it's scheduling data
+    var getSchedulingEvent = function(id) {
+        for(var i = 0; i < $scope.schedulingSingle.length; i++) {
+            var row = $scope.schedulingSingle[i];
+            if (row.eventId === id) {
+                return row;
+            }
+        }
+        return null;
+
+    };
+
     // Iterate over all (selected) events (via the rows) and get the
     // specific metadata element. Returns the empty string if the
     // value is ambiguous between the rows.
-    var getMetadataPart = function(getter) {
+    // A weekday can be passed to filter specific weekdays
+    var getMetadataPart = function(getter, weekday) {
         var result = null;
         for (var i = 0; i < $scope.rows.length; i++) {
             var row = $scope.rows[i];
             if (!row.selected) {
                 continue;
+            }
+            if (!angular.isUndefined(weekday)) {
+                // If we've got a weekday, we have to retrieve the event's start date from the scheduling
+                // information
+                var schedulingEvent = getSchedulingEvent(row.id);
+                if (getWeekdayString(schedulingEvent.start.date) !== weekday) {
+                    continue;
+                }
             }
             var val = getter(row);
             if (!angular.isDefined(val)) {
@@ -141,10 +162,15 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     };
 
     // see "getMetadataPart", but this one is for scheduling information
-    var getSchedulingPart = function(getter) {
+    // A weekday can be passed in order to filter specific weekdays
+    var getSchedulingPart = function(getter, weekday) {
         var result = { ambiguous: false, value: null };
         angular.forEach($scope.schedulingSingle, function(value) {
             if (!isSelected(value.eventId)) {
+                return;
+            }
+            if (!angular.isUndefined(weekday) && getWeekdayString(value.start.date) !== weekday) {
+                console.log("sched: row weekday is "+getWeekdayString(value.start.date)+" need "+weekday);
                 return;
             }
             var val = getter(value);
@@ -182,8 +208,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             ignoreNonScheduled: true
         });
 
-    $scope.onTemporalValueChange = function(type) {
-        SchedulingHelperService.applyTemporalValueChange($scope.scheduling, type, false);
+    $scope.onTemporalValueChange = function(weekday, type) {
+        SchedulingHelperService.applyTemporalValueChange($scope.scheduling[weekday], type, false);
     };
 
     this.clearConflicts = function () {
@@ -279,6 +305,9 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         }
     };
 
+    var getWeekdayString = function(date) {
+        return fromJsWeekday(new Date(date).getDay()).key;
+    };
 
     // This is triggered after the user selected some events in the first wizard step
     $scope.clearFormAndContinue = function() {
@@ -303,23 +332,33 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 value: getMetadataPart(getterForMetadata('isPartOf'))
             },
         ];
-        $scope.scheduling = {
-            timezone: JsHelper.getTimeZoneName(),
-            location: getCaById(getMetadataPart(function(row) { return row.agent_id; })),
-            start: {
-                hour: getSchedulingPart(function(entry) { return entry.start.hour; }),
-                minute: getSchedulingPart(function(entry) { return entry.start.minute; })
-            },
-            end: {
-                hour: getSchedulingPart(function(entry) { return entry.end.hour; }),
-                minute: getSchedulingPart(function(entry) { return entry.end.minute; })
-            },
-            duration: {
-                hour: getSchedulingPart(function(entry) { return entry.duration.hour; }),
-                minute: getSchedulingPart(function(entry) { return entry.duration.minute; })
-            },
-            weekday: getSchedulingPart(function(entry) { return fromJsWeekday(new Date(entry.start.date).getDay()).key; })
-        };
+        angular.forEach($scope.schedulingSingle, function(value) {
+            if (!isSelected(value.eventId)) {
+                return;
+            }
+            var weekday = getWeekdayString(value.start.date);
+            if (weekday in $scope.scheduling) {
+                return;
+            }
+
+            $scope.scheduling[weekday] = {
+                timezone: JsHelper.getTimeZoneName(),
+                location: getCaById(getMetadataPart(function(row) { return row.agent_id; }, weekday)),
+                start: {
+                    hour: getSchedulingPart(function(entry) { return entry.start.hour; }, weekday),
+                    minute: getSchedulingPart(function(entry) { return entry.start.minute; }, weekday)
+                },
+                end: {
+                    hour: getSchedulingPart(function(entry) { return entry.end.hour; }, weekday),
+                    minute: getSchedulingPart(function(entry) { return entry.end.minute; }, weekday)
+                },
+                duration: {
+                    hour: getSchedulingPart(function(entry) { return entry.duration.hour; }, weekday),
+                    minute: getSchedulingPart(function(entry) { return entry.duration.minute; }, weekday)
+                }
+            };
+        });
+        console.log("scheduling is "+JSON.stringify($scope.scheduling));
         nextWizardStep();
     };
 
@@ -341,8 +380,16 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return JsHelper.filter($scope.getSelected(),function (r) { return r.source !== 'SCHEDULE'; }).length > 0;
     };
 
+    $scope.translateWeekdayLong = function(wd) {
+        return $translate.instant(JsHelper.weekdayTranslation(wd, true));
+    };
+
     $scope.rowsValid = function() {
         return !$scope.nonScheduleSelected() && $scope.hasAnySelected();
+    };
+
+    $scope.validWeekdays = function() {
+        return Object.keys($scope.scheduling);
     };
 
     $scope.generateEventSummariesAndContinue = function() {

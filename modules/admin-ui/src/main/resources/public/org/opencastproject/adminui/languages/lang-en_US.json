@@ -264,7 +264,7 @@
           "EDIT": {
               "CAPTION": "Edit",
               "METADATA": "Metadata",
-              "SCHEDULING": "Scheduling"
+              "SCHEDULING": "Scheduling {{ weekday }}"
           }
       }
    },
