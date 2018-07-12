@@ -266,6 +266,19 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return scheduling;
     };
 
+    var eventIdsForWeekday = function(weekday) {
+        var result = [];
+        angular.forEach($scope.schedulingSingle, function(value) {
+            if (!isSelected(value.eventId)) {
+                return;
+            }
+            if (getWeekdayString(value.start.date) === weekday) {
+                result.push(value.eventId);
+            }
+        });
+        return result;
+    };
+
     $scope.checkConflicts = function () {
         if ($scope.conflictCheckingEnabled === false) {
             return;
@@ -303,10 +316,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         } else {
             return value;
         }
-    };
-
-    var getWeekdayString = function(date) {
-        return fromJsWeekday(new Date(date).getDay()).key;
     };
 
     // This is triggered after the user selected some events in the first wizard step
@@ -355,10 +364,10 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 duration: {
                     hour: getSchedulingPart(function(entry) { return entry.duration.hour; }, weekday),
                     minute: getSchedulingPart(function(entry) { return entry.duration.minute; }, weekday)
-                }
+                },
+                weekday: weekday
             };
         });
-        console.log("scheduling is "+JSON.stringify($scope.scheduling));
         nextWizardStep();
     };
 
@@ -408,6 +417,16 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                     type: 'EVENTS.EVENTS.TABLE.LOCATION',
                     previous: value.agentId,
                     next: scheduling.location.id
+                });
+            }
+
+            if (scheduling.weekday !== null && valueWeekDay.key !== scheduling.weekday) {
+                changes.push({
+                    type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
+                    // Might be better to actually use the promise rather than using instant,
+                    // but it's difficult with the two-way binding here.
+                    previous: $translate.instant(valueWeekDay.translationLong),
+                    next: $translate.instant(JsHelper.weekdayTranslation(scheduling.weekday, true))
                 });
             }
 

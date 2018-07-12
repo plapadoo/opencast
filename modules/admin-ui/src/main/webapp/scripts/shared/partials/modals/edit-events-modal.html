@@ -199,6 +199,19 @@
                                     </label>
                                   </td>
                                 </tr>
+                                <tr>
+                                  <td>{{ 'EVENTS.EVENTS.NEW.SOURCE.SCHEDULE_MULTIPLE.WEEKDAYS' | translate }}</td>
+                                  <td class="weekdays">
+                                    <label ng-repeat="weekday in weekdays">
+                                      <input type="radio"
+                                             ng-change="checkConflicts()"
+                                             ng-model="scheduling[wd].weekday"
+                                             name="weekdays_{{wd}}"
+                                             value="{{weekday.key}}"
+                                             ng-disabled="checkingConflicts || !$root.userIs('ROLE_UI_EVENTS_DETAILS_SCHEDULING_EDIT')"> {{ weekday.translation | translate }}
+                                    </label>
+                                  </td>
+                                </tr>
                               </table>
 
                             </div>
