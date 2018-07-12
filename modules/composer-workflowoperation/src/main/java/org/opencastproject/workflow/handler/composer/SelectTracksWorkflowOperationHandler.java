@@ -44,12 +44,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
@@ -150,8 +152,39 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
     AUDIO, VIDEO
   }
 
+  /**
+   * During our operations, we accumulate new tracks and wait times, for which we have this nice helper class
+   */
+  private static final class MuxResult {
+    private long queueTime;
+    private final Collection<Track> tracks;
+
+    private MuxResult(final long queueTime, final Collection<Track> tracks) {
+      this.queueTime = queueTime;
+      this.tracks = tracks;
+    }
+
+    static MuxResult empty() {
+      return new MuxResult(0L, new ArrayList<>(0));
+    }
+
+    void forEachTrack(final Consumer<Track> trackConsumer) {
+      tracks.forEach(trackConsumer);
+    }
+
+    public void add(final TrackJobResult jobResult) {
+      this.queueTime += jobResult.waitTime;
+      this.tracks.add(jobResult.track);
+    }
+
+    public void add(final MuxResult muxResult) {
+      this.queueTime += muxResult.queueTime;
+      this.tracks.addAll(muxResult.tracks);
+    }
+  }
+
   private static final class AugmentedTrack {
-    private Track track;
+    private final Track track;
     private final boolean hideAudio;
     private final boolean hideVideo;
 
@@ -169,10 +202,6 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
       }
     }
 
-    void resetTrack(final Track t) {
-      track = t;
-    }
-
     boolean hide(final SubTrack t) {
       if (t == SubTrack.AUDIO) {
         return hideAudio;
@@ -187,10 +216,6 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
 
     boolean hasVideo() {
       return track.hasVideo();
-    }
-
-    void setFlavorSubtype(final String subtype) {
-      track.setFlavor(new MediaPackageElementFlavor(track.getFlavor().getType(), subtype));
     }
 
     String getFlavorType() {
@@ -225,7 +250,7 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
 
     final List<AugmentedTrack> augmentedTracks = createAugmentedTracks(tracks, workflowInstance);
 
-    long queueTime = 0L;
+    final MuxResult result = MuxResult.empty();
     // This function is formulated in a way so that it's hopefully compatible with an event with an arbitrary number of
     // tracks. However, many of the requirements were written with one or two tracks in mind. For example, below, we
     // test if "all tracks are non-hidden" or "exactly one track is non-hidden". This works for arbitrary tracks, of
@@ -247,8 +272,7 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
         for (final AugmentedTrack t : augmentedTracks) {
           if (t.track != singleAudioTrack.track) {
             final TrackJobResult jobResult = mux(t.track, singleAudioTrack.track, mediaPackage);
-            t.track = jobResult.track;
-            queueTime += jobResult.waitTime;
+            result.add(jobResult);
           }
         }
       } else if (multipleVideo && audioMuxing.map(m -> m == AudioMuxing.FORCE).orElse(Boolean.FALSE)
@@ -273,39 +297,41 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
         if (singleAudioTrack.track != forceTargetTrack.track) {
           // Copy it over...
           final TrackJobResult muxResult = mux(forceTargetTrack.track, singleAudioTrack.track, mediaPackage);
-          forceTargetTrack.track = muxResult.track;
-          queueTime += muxResult.waitTime;
+          result.add(muxResult);
 
           // ...and remove the original
           final TrackJobResult hideAudioResult = hideAudio(singleAudioTrack.track, mediaPackage);
-          singleAudioTrack.track = hideAudioResult.track;
-          queueTime += hideAudioResult.waitTime;
+          result.add(hideAudioResult);
         }
       } else {
         // No special options selected, or conditions for special options don't match.
-        queueTime += muxMultipleVideoTracks(mediaPackage, augmentedTracks);
+        final MuxResult muxResult = muxMultipleVideoTracks(mediaPackage, augmentedTracks);
+        result.add(muxResult);
       }
     } else {
       // Second case: we have exactly one video track that is not hidden (hopefully, because for all other cases there
       // were no requirements given).
-      queueTime += muxSingleVideoTrack(mediaPackage, augmentedTracks);
-
+      final MuxResult muxResult = muxSingleVideoTrack(mediaPackage, augmentedTracks);
+      result.add(muxResult);
     }
 
     final MediaPackageElementFlavor targetTrackFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.trimToNull(
             getConfiguration(workflowInstance, "target-flavor")
                     .orElseThrow(() -> new IllegalStateException("Target flavor not specified"))));
 
-    // Update Flavor
-    augmentedTracks.forEach(t -> t.setFlavorSubtype(targetTrackFlavor.getSubtype()));
+    // Update Flavor and add to media package
+    result.forEachTrack(t -> {
+      t.setFlavor(new MediaPackageElementFlavor(t.getFlavor().getType(), targetTrackFlavor.getSubtype()));
+      mediaPackage.add(t);
+    });
 
     // Update Tags here
     getConfiguration(workflowInstance, "target-tags").ifPresent(tags -> {
       final WorkflowOperationTagUtil.TagDiff tagDiff = WorkflowOperationTagUtil.createTagDiff(tags);
-      augmentedTracks.forEach(t -> WorkflowOperationTagUtil.applyTagDiff(tagDiff, t.track));
+      result.forEachTrack(t -> WorkflowOperationTagUtil.applyTagDiff(tagDiff, t));
     });
 
-    return createResult(mediaPackage, WorkflowOperationResult.Action.CONTINUE, queueTime);
+    return createResult(mediaPackage, WorkflowOperationResult.Action.CONTINUE, result.queueTime);
   }
 
   private Optional<AugmentedTrack> findTrackByFlavorType(final Collection<AugmentedTrack> augmentedTracks,
@@ -314,9 +340,11 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
             .findAny();
   }
 
-  private long muxSingleVideoTrack(final MediaPackage mediaPackage, final Collection<AugmentedTrack> augmentedTracks)
+  private MuxResult muxSingleVideoTrack(final MediaPackage mediaPackage, final Collection<AugmentedTrack> augmentedTracks)
           throws MediaPackageException, EncoderException, WorkflowOperationException, NotFoundException, IOException {
     long queueTime = 0L;
+
+    final Collection<Track> resultingTracks = new ArrayList<>(0);
 
     // Otherwise, we have just one video track that's not hidden (because hopefully, the UI prevented all other
     // cases). We keep that, and mux in the audio from the other track.
@@ -330,47 +358,44 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
     if (nonHiddenVideo.hasAudio() && nonHiddenVideo.hideAudio && (!nonHiddenAudio.isPresent()
             || nonHiddenAudio.get() == nonHiddenVideo)) {
       final TrackJobResult jobResult = hideAudio(nonHiddenVideo.track, mediaPackage);
-      nonHiddenVideo.track = jobResult.track;
+      resultingTracks.add(jobResult.track);
       queueTime += jobResult.waitTime;
     } else if (!nonHiddenAudio.isPresent() || nonHiddenAudio.get() == nonHiddenVideo) {
       // It could be the case that the non-hidden video stream is also the non-hidden audio stream. In that
       // case, we don't have to mux. But have to clone it.
       final Track clonedTrack = (Track) nonHiddenVideo.track.clone();
       clonedTrack.setIdentifier(null);
-      mediaPackage.add(clonedTrack);
-      nonHiddenVideo.resetTrack(clonedTrack);
+      resultingTracks.add(clonedTrack);
     } else {
       // Otherwise, we mux!
       final TrackJobResult jobResult = mux(nonHiddenVideo.track, nonHiddenAudio.get().track, mediaPackage);
-      nonHiddenVideo.track = jobResult.track;
+      resultingTracks.add(jobResult.track);
       queueTime += jobResult.waitTime;
     }
-    // ...and then throw away everything else.
-    augmentedTracks.removeIf(t -> t.track != nonHiddenVideo.track);
-    return queueTime;
+    return new MuxResult(queueTime, resultingTracks);
   }
 
-  private long muxMultipleVideoTracks(final MediaPackage mediaPackage, final Iterable<AugmentedTrack> augmentedTracks)
+  private MuxResult muxMultipleVideoTracks(final MediaPackage mediaPackage, final Iterable<AugmentedTrack> augmentedTracks)
           throws MediaPackageException, EncoderException, WorkflowOperationException, NotFoundException, IOException {
     long queueTime = 0L;
+    final List<Track> resultingTracks = new ArrayList<>(0);
     for (final AugmentedTrack t : augmentedTracks) {
       if (t.hasAudio() && t.hideAudio) {
         // The flavor gets "nulled" in the process. Reverse that so we can treat all tracks equally.
         final MediaPackageElementFlavor previousFlavor = t.track.getFlavor();
         final TrackJobResult trackJobResult = hideAudio(t.track, mediaPackage);
         trackJobResult.track.setFlavor(previousFlavor);
-        t.resetTrack(trackJobResult.track);
+        resultingTracks.add(trackJobResult.track);
         queueTime += trackJobResult.waitTime;
       } else {
         // Even if we don't modify the track, we clone and re-add it to the MP (since it will be a new track with a
         // different flavor)
         final Track clonedTrack = (Track) t.track.clone();
         clonedTrack.setIdentifier(null);
-        mediaPackage.add(clonedTrack);
-        t.resetTrack(clonedTrack);
+        resultingTracks.add(clonedTrack);
       }
     }
-    return queueTime;
+    return new MuxResult(queueTime, resultingTracks);
   }
 
   /**
@@ -436,7 +461,6 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
   private TrackJobResult processJob(final Track track, final MediaPackage mediaPackage, final Job job)
           throws MediaPackageException, NotFoundException, IOException {
     final Track composedTrack = (Track) MediaPackageElementParser.getFromXml(job.getPayload());
-    mediaPackage.add(composedTrack);
     final String fileName = getFileNameFromElements(track, composedTrack);
 
     // Note that the composed track must have an ID before being moved to the mediapackage in the working file
