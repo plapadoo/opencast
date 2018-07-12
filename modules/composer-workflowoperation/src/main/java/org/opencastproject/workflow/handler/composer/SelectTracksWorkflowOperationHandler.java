@@ -238,7 +238,9 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
               .map(AudioMuxing::fromConfigurationString);
       // For both special options, we need to find out if we have exactly one audio track present
       final Optional<AugmentedTrack> singleAudioTrackOpt = findSingleAudioTrack(augmentedTracks);
-      if (audioMuxing.map(m -> m == AudioMuxing.DUPLICATE).orElse(Boolean.FALSE) && singleAudioTrackOpt.isPresent()) {
+      final boolean multipleVideo = augmentedTracks.size() > 1;
+      if (multipleVideo && audioMuxing.map(m -> m == AudioMuxing.DUPLICATE).orElse(Boolean.FALSE) && singleAudioTrackOpt
+              .isPresent()) {
         // Special option: If we have multiple video tracks, but only one audio track: copy this audio track to
         // all video tracks.
         final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
@@ -249,8 +251,8 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
             queueTime += jobResult.waitTime;
           }
         }
-      } else if (audioMuxing.map(m -> m == AudioMuxing.FORCE).orElse(Boolean.FALSE) && singleAudioTrackOpt
-              .isPresent()) {
+      } else if (multipleVideo && audioMuxing.map(m -> m == AudioMuxing.FORCE).orElse(Boolean.FALSE)
+              && singleAudioTrackOpt.isPresent()) {
         // Special option: if the only audio track we have selected is not in the video track of "force-target", we
         // copy it there (and remove the original audio track).
         final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
