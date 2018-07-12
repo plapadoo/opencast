@@ -457,7 +457,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
 
             if (scheduling.weekday !== null && ocWeekdayStruct.key !== scheduling.weekday) {
                 var dayOfWeekPrevious = $translate.instant(ocWeekdayStruct.translationLong);
-                var datePrevious = Language.formatDate('medium', jsDateBefore.toISOString());
+                var datePrevious = Language.format('medium', jsDateBefore.toISOString(), 'date');
                 var germanWeekdayNext = (JsHelper.weekdayByKey(scheduling.weekday).jsWeekday + 6) % 7;
                 var germanWeekdayBefore = (jsDateBefore.getDay() + 6) % 7;
                 var jsDateNext = new Date(jsDateBefore.getTime());
@@ -465,7 +465,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 var dayOfWeekNext = $translate.instant(JsHelper.weekdayTranslation(
                     scheduling.weekday,
                     true));
-                var dateNext = Language.formatDate('medium', jsDateNext.toISOString());
+                var dateNext = Language.format('medium', jsDateNext.toISOString(), 'date');
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
                     // Might be better to actually use the promise rather than using instant,
