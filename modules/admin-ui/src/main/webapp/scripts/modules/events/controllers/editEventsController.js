@@ -108,7 +108,7 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return getRowForId(id).title;
     };
 
-    // For a given event id, get it's scheduling data
+    // For a given event id, get its scheduling data
     var getSchedulingEvent = function(id) {
         for(var i = 0; i < $scope.schedulingSingle.length; i++) {
             var row = $scope.schedulingSingle[i];
@@ -118,6 +118,17 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         }
         return null;
 
+    };
+
+    // Convert a Javascript, sunday-based weekday to the corresponding
+    // OC weekday object
+    var jsWeekdayToOcKey = function(d) {
+        // Javascript week days start at sunday (so 0=SU), so we have to roll over.
+        return JsHelper.getWeekDays()[(d + 6) % 7];
+    };
+
+    var getWeekdayString = function(date) {
+        return jsWeekdayToOcKey(new Date(date).getDay()).key;
     };
 
     // Iterate over all (selected) events (via the rows) and get the
@@ -393,6 +404,29 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         return $translate.instant(JsHelper.weekdayTranslation(wd, true));
     };
 
+    $scope.numberOfEventsForWeekday = function(wd) {
+        var result = 0;
+        angular.forEach($scope.schedulingSingle, function(value) {
+            if (!isSelected(value.eventId)) {
+                return;
+            }
+            if (getWeekdayString(value.start.date) === wd) {
+                result++;
+            }
+        });
+        return result;
+    };
+
+    $scope.eventOrEvents = function(wd) {
+        var key;
+        if ($scope.numberOfEventsForWeekday(wd) === 1) {
+            key = "BULK_ACTIONS.EDIT_EVENTS.EDIT.EVENT";
+        } else {
+            key = "BULK_ACTIONS.EDIT_EVENTS.EDIT.EVENTS";
+        }
+        return $translate.instant(key);
+    };
+
     $scope.rowsValid = function() {
         return !$scope.nonScheduleSelected() && $scope.hasAnySelected();
     };
@@ -409,8 +443,9 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
             }
 
             var changes = [];
-            var valueWeekDay = fromJsWeekday(new Date(value.start.date).getDay());
-            var scheduling = $scope.scheduling[valueWeekDay.key];
+            var jsDateBefore = new Date(value.start.date);
+            var ocWeekdayStruct = jsWeekdayToOcKey(jsDateBefore.getDay());
+            var scheduling = $scope.scheduling[ocWeekdayStruct.key];
 
             if (scheduling.location !== null && scheduling.location.id !== null && scheduling.location.id !== value.agentId) {
                 changes.push({
@@ -420,13 +455,23 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 });
             }
 
-            if (scheduling.weekday !== null && valueWeekDay.key !== scheduling.weekday) {
+            if (scheduling.weekday !== null && ocWeekdayStruct.key !== scheduling.weekday) {
+                var dayOfWeekPrevious = $translate.instant(ocWeekdayStruct.translationLong);
+                var datePrevious = Language.formatDate('medium', jsDateBefore.toISOString());
+                var germanWeekdayNext = (JsHelper.weekdayByKey(scheduling.weekday).jsWeekday + 6) % 7;
+                var germanWeekdayBefore = (jsDateBefore.getDay() + 6) % 7;
+                var jsDateNext = new Date(jsDateBefore.getTime());
+                jsDateNext.setHours(24 * (germanWeekdayNext - germanWeekdayBefore));
+                var dayOfWeekNext = $translate.instant(JsHelper.weekdayTranslation(
+                    scheduling.weekday,
+                    true));
+                var dateNext = Language.formatDate('medium', jsDateNext.toISOString());
                 changes.push({
                     type: 'EVENTS.EVENTS.TABLE.WEEKDAY',
                     // Might be better to actually use the promise rather than using instant,
                     // but it's difficult with the two-way binding here.
-                    previous: $translate.instant(valueWeekDay.translationLong),
-                    next: $translate.instant(JsHelper.weekdayTranslation(scheduling.weekday, true))
+                    previous: dayOfWeekPrevious+", "+datePrevious,
+                    next: dayOfWeekNext+", "+dateNext
                 });
             }
 

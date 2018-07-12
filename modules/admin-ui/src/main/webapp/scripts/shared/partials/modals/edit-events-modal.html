@@ -87,6 +87,10 @@
                         </table>
                       </div>
 
+                      <div class="alert sticky">
+                        <span translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.HEADER"></span>
+                      </div>
+
                         <div class="obj tbl-details">
                             <header translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.METADATA"><!-- Edit Metadata --></header>
                             <div class="obj-container">
@@ -112,7 +116,7 @@
                         <div class="obj tbl-details" ng-repeat="wd in validWeekdays()">
                             <header
                               translate="BULK_ACTIONS.EDIT_EVENTS.EDIT.SCHEDULING"
-                              translate-values="{ weekday: '{{ translateWeekdayLong(wd) }}' }">
+                              translate-values="{ weekday: '{{ translateWeekdayLong(wd) }}', noEvents: '{{numberOfEventsForWeekday(wd)}}', eventOrEvents: '{{ eventOrEvents(wd) }}' }">
                               <!-- Edit scheduling -->
                             </header>
                             <div class="obj-container">
@@ -200,7 +204,7 @@
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td>{{ 'EVENTS.EVENTS.NEW.SOURCE.SCHEDULE_MULTIPLE.WEEKDAYS' | translate }}</td>
+                                  <td>{{ 'EVENTS.EVENTS.NEW.SOURCE.SCHEDULE_MULTIPLE.WEEKDAY' | translate }}</td>
                                   <td class="weekdays">
                                     <label ng-repeat="weekday in weekdays">
                                       <input type="radio"
