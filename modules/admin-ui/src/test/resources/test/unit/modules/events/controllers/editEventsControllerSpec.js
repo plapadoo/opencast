@@ -45,7 +45,7 @@ describe('Edit events controller', function () {
         // These are the requests that are necessary to construct the modal.
         $httpBackend.expectGET('/admin-ng/series/series.json').respond(JSON.stringify(getJSONFixture('admin-ng/series/series.json')));
         $httpBackend.expectGET('/admin-ng/capture-agents/agents.json?inputs=true').respond(JSON.stringify(getJSONFixture('admin-ng/capture-agents/agents.json')));
-        $httpBackend.expectPOST('/admin-ng/event/scheduling.json').respond(JSON.stringify(getJSONFixture('admin-ng/event/scheduling.json')));
+        $httpBackend.expectPOST('/admin-ng/event/scheduling.json').respond(200, getJSONFixture('admin-ng/event/scheduling.json'));
         $httpBackend.flush();
     });
 
@@ -79,8 +79,11 @@ describe('Edit events controller', function () {
             // Series is non-ambiguous
             expect($scope.metadataRows[1].value).toBe("4581");
             expect($scope.scheduling).not.toBe({});
+            expect(Object.keys($scope.scheduling).length).toBe(2);
+            expect($scope.scheduling['FR']).not.toBe(undefined);
+            expect($scope.scheduling['FR']).not.toBe({});
             // Agent is non-ambiguous
-            expect($scope.scheduling.location.id).toBe("agent1");
+            expect($scope.scheduling['FR'].location.id).toBe("agent1");
             // Yadda yadda, test the rest of the data. :)
         });
     });
