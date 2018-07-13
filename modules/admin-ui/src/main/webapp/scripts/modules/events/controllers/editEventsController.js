@@ -181,7 +181,6 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
                 return;
             }
             if (!angular.isUndefined(weekday) && getWeekdayString(value.start.date) !== weekday) {
-                console.log("sched: row weekday is "+getWeekdayString(value.start.date)+" need "+weekday);
                 return;
             }
             var val = getter(value);
@@ -258,8 +257,8 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
     // What we send to the server is slightly different than what we
     // internally use for the forms. This function returns the
     // "cleaned up" result.
-    var postprocessScheduling = function() {
-        var scheduling = $.extend(true, {}, $scope.scheduling);
+    var postprocessScheduling = function(weekday) {
+        var scheduling = $.extend(true, {}, $scope.scheduling[weekday]);
         JsHelper.removeNulls(scheduling);
         JsHelper.removeNulls(scheduling.start);
         JsHelper.removeNulls(scheduling.end);
@@ -294,12 +293,25 @@ function ($scope, Table, Notifications, EventBulkEditResource, SeriesResource, C
         if ($scope.conflictCheckingEnabled === false) {
             return;
         }
-        $scope.checkingConflicts = true;
-        var payload = {
-            events: $scope.getSelectedIds(),
-            scheduling: postprocessScheduling()
-        };
-        EventBulkEditResource.conflicts(payload, me.noConflictsDetected, me.conflictsDetected);
+        return new Promise(function(resolve, reject) {
+            $scope.checkingConflicts = true;
+            var weekdays = $scope.validWeekdays();
+            var payload = [];
+            for (var i = 0; i < weekdays.length; i++) {
+                var wd = weekdays[i];
+                payload.push({
+                    events: eventIdsForWeekday(wd),
+                    scheduling: postprocessScheduling(wd)
+                });
+            }
+            EventBulkEditResource.conflicts(payload, me.noConflictsDetected, me.conflictsDetected)
+                .$promise.then(function() {
+                    resolve();
+                })
+                .catch(function(err) {
+                    reject();
+                });
+        });
     };
 
     $scope.checkingConflicts = false;
