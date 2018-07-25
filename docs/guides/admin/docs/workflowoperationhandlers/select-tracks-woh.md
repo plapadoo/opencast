@@ -6,8 +6,8 @@ Description
 -----------
 
 The SelectTracksWorkflowOperationHandler can be used in case not all source tracks should be processed. For example,
-given a recording with a presenter and presentation track, the final recording to be publish may should only include
-the video stream of the presenter track and the audio stream of the presentation track.
+given a recording with a presenter and presentation track, the final recording to be publish may should only include the
+video stream of the presenter track and the audio stream of the presentation track.
 
 The workflow operation will use workflow properties set by the Opencast video editor to determine which tracks should be
 selected for further processing and add them to the media package based on `target-flavor` and `target-tags`.
@@ -34,20 +34,24 @@ The optional `audio-muxing` parameter has three possible values: `none` (same as
 
 ### `none` ###
 
-If `none` is specified or the option is omitted, tracks are taken from the specified `source-flavor` and are edited according to the selections in video editor’s “Tracks” panel. The resulting tracks are stored in the corresponding `target-flavor` and `target-tags` are applied.
+If `none` is specified or the option is omitted, tracks are taken from the specified `source-flavor` and are edited
+according to the selections in video editor’s “Tracks” panel. The resulting tracks are stored in the corresponding `
+target-flavor` and `target-tags` are applied.
 
-Editing in the “Tracks” panel usually means removing video or audio streams from tracks. However, if there are multiple video and audio streams, but only one video stream and one audio stream is “non-hidden”, then these two streams will be muxed together into a single track.
+Editing in the “Tracks” panel usually means removing video or audio streams from tracks. However, if there are multiple
+video and audio streams, but only one video stream and one audio stream is “non-hidden”, then these two streams will be
+muxed together into a single track.
 
 ### `force` ###
 
-The parameter value `force` only applies to media packages that have exactly one non-hidden audio stream. For media packages
-without an audio stream or with more than one audio stream, the behavior is the same as if the parameter were omitted. The
-same applies to media packages for which there is only one audio stream, and it already belongs to the track with flavor type
-given by `force-target` (or `presenter` if that parameter is omitted).
+The parameter value `force` only applies to media packages that have exactly one non-hidden audio stream. For media
+packages without an audio stream or with more than one audio stream, the behavior is the same as if the parameter were
+omitted. The same applies to media packages for which there is only one audio stream, and it already belongs to the
+track with flavor type given by `force-target` (or `presenter` if that parameter is omitted).
 
-If, however, there is only one non-hidden audio stream and it does *not* belong to the track given by `force-target`, then
-the WOH will “move” the audio stream to this target track. Specifically, it will mux the video stream of `force-target` with
-the audio stream it found. Then, it removes the audio stream from the original track.
+If, however, there is only one non-hidden audio stream and it does *not* belong to the track given by `force-target`,
+then the WOH will “move” the audio stream to this target track. Specifically, it will mux the video stream of
+`force-target` with the audio stream it found. Then, it removes the audio stream from the original track.
 
 For example, if there is a media package with two tracks, “presenter” and “presentation”, and the audio stream of
 “presenter” is hidden. Then the WOH will mux presenter’s video stream and presentations audio stream and store it in
