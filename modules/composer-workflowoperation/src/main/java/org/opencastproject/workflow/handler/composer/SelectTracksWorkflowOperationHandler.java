@@ -39,11 +39,13 @@ import org.opencastproject.workflow.api.WorkflowOperationResult;
 import org.opencastproject.workflow.api.WorkflowOperationTagUtil;
 import org.opencastproject.workspace.api.Workspace;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,6 +53,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -73,21 +76,15 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
   private static final SortedMap<String, String> CONFIG_OPTIONS;
 
   private enum AudioMuxing {
-    NONE("none"), FORCE("force"), DUPLICATE("duplicate");
+    NONE, FORCE, DUPLICATE;
 
-    private final String value;
-
-    AudioMuxing(final String value) {
-      this.value = value;
+    @Override
+    public String toString() {
+      return super.toString().toLowerCase();
     }
 
     static AudioMuxing fromConfigurationString(final String s) {
-      for (final AudioMuxing audioMuxing : AudioMuxing.values()) {
-        if (audioMuxing.value.equals(s)) {
-          return audioMuxing;
-        }
-      }
-      throw new IllegalArgumentException("invalid audio muxing parameter \"" + s + "\"");
+      return AudioMuxing.valueOf(s.toUpperCase());
     }
   }
 
@@ -106,8 +103,8 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
             String.format("Target flavor type for the \"%s\" option \"%s\" (default %s)", CONFIG_AUDIO_MUXING,
                     AudioMuxing.FORCE, FORCE_TARGET_DEFAULT));
     CONFIG_OPTIONS.put(CONFIG_AUDIO_MUXING,
-            String.format("Either \"%s\", \"%s\" or \"%s\" to specially mux audio streams", AudioMuxing.NONE.value,
-                    AudioMuxing.DUPLICATE.value, AudioMuxing.FORCE));
+            String.format("Either \"%s\", \"%s\" or \"%s\" to specially mux audio streams", AudioMuxing.NONE,
+                    AudioMuxing.DUPLICATE, AudioMuxing.FORCE));
   }
 
   @Override
@@ -241,6 +238,10 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
             .map(MediaPackageElementFlavor::parseFlavor)
             .orElseThrow(() -> new IllegalStateException("Source flavor must be specified"));
 
+    final MediaPackageElementFlavor targetTrackFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.trimToNull(
+            getConfiguration(workflowInstance, "target-flavor")
+                    .orElseThrow(() -> new IllegalStateException("Target flavor not specified"))));
+
     final Track[] tracks = mediaPackage.getTracks(sourceFlavor);
 
     if (tracks.length == 0) {
@@ -259,13 +260,12 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
 
     // First case: We have only tracks with non-hidden video streams. So we keep them all and possibly cut away audio.
     if (allNonHidden(augmentedTracks, SubTrack.VIDEO)) {
-      final Optional<AudioMuxing> audioMuxing = getConfiguration(workflowInstance, CONFIG_AUDIO_MUXING)
-              .map(AudioMuxing::fromConfigurationString);
+      final AudioMuxing audioMuxing = getConfiguration(workflowInstance, CONFIG_AUDIO_MUXING)
+              .map(AudioMuxing::fromConfigurationString).orElse(AudioMuxing.NONE);
       // For both special options, we need to find out if we have exactly one audio track present
       final Optional<AugmentedTrack> singleAudioTrackOpt = findSingleAudioTrack(augmentedTracks);
       final boolean multipleVideo = augmentedTracks.size() > 1;
-      if (multipleVideo && audioMuxing.map(m -> m == AudioMuxing.DUPLICATE).orElse(Boolean.FALSE) && singleAudioTrackOpt
-              .isPresent()) {
+      if (multipleVideo && audioMuxing == AudioMuxing.DUPLICATE && singleAudioTrackOpt.isPresent()) {
         // Special option: If we have multiple video tracks, but only one audio track: copy this audio track to
         // all video tracks.
         final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
@@ -273,10 +273,11 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
           if (t.track != singleAudioTrack.track) {
             final TrackJobResult jobResult = mux(t.track, singleAudioTrack.track, mediaPackage);
             result.add(jobResult);
+          } else {
+            result.add(copyTrack(t.track));
           }
         }
-      } else if (multipleVideo && audioMuxing.map(m -> m == AudioMuxing.FORCE).orElse(Boolean.FALSE)
-              && singleAudioTrackOpt.isPresent()) {
+      } else if (multipleVideo && audioMuxing == AudioMuxing.FORCE && singleAudioTrackOpt.isPresent()) {
         // Special option: if the only audio track we have selected is not in the video track of "force-target", we
         // copy it there (and remove the original audio track).
         final AugmentedTrack singleAudioTrack = singleAudioTrackOpt.get();
@@ -289,7 +290,7 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
           throw new IllegalStateException(
                   String.format("\"%s\" set to \"%s\", but target flavor \"%s\" not found!",
                           CONFIG_AUDIO_MUXING,
-                          AudioMuxing.FORCE.value, forceTargetOpt));
+                          AudioMuxing.FORCE, forceTargetOpt));
         }
 
         final AugmentedTrack forceTargetTrack = forceTargetTrackOpt.get();
@@ -302,6 +303,15 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
           // ...and remove the original
           final TrackJobResult hideAudioResult = hideAudio(singleAudioTrack.track, mediaPackage);
           result.add(hideAudioResult);
+        } else {
+          result.add(copyTrack(singleAudioTrack.track));
+        }
+
+        // Just copy the rest of the tracks to ensure they got the correct output flavor
+        for (final AugmentedTrack augmentedTrack : augmentedTracks) {
+          if (augmentedTrack.track != singleAudioTrack.track && augmentedTrack.track != forceTargetTrack.track) {
+            result.add(copyTrack(augmentedTrack.track));
+          }
         }
       } else {
         // No special options selected, or conditions for special options don't match.
@@ -314,10 +324,6 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
       final MuxResult muxResult = muxSingleVideoTrack(mediaPackage, augmentedTracks);
       result.add(muxResult);
     }
-
-    final MediaPackageElementFlavor targetTrackFlavor = MediaPackageElementFlavor.parseFlavor(StringUtils.trimToNull(
-            getConfiguration(workflowInstance, "target-flavor")
-                    .orElseThrow(() -> new IllegalStateException("Target flavor not specified"))));
 
     // Update Flavor and add to media package
     result.forEachTrack(t -> {
@@ -496,5 +502,28 @@ public class SelectTracksWorkflowOperationHandler extends AbstractWorkflowOperat
       final boolean hideVideo = trackHidden(instance, t.getFlavor().getType(), SubTrack.VIDEO);
       return new AugmentedTrack(t, hideAudio, hideVideo);
     }).collect(Collectors.toList());
+  }
+
+  private TrackJobResult copyTrack(final Track track) throws WorkflowOperationException {
+    final Track copiedTrack = (Track) track.clone();
+    copiedTrack.setIdentifier(UUID.randomUUID().toString());
+    try {
+      // Generate a new filename
+      String targetFilename = copiedTrack.getIdentifier();
+      final String extension = FilenameUtils.getExtension(track.getURI().getPath());
+      if (!extension.isEmpty()) {
+        targetFilename += "." + extension;
+      }
+
+      // Copy the files on dis and put them into the working file repository
+      logger.debug("Start copying element {}.", track.getURI());
+      final URI newUri = workspace.put(track.getMediaPackage().getIdentifier().toString(), copiedTrack.getIdentifier(),
+              targetFilename, workspace.read(track.getURI()));
+      copiedTrack.setURI(newUri);
+    } catch (IOException | NotFoundException e) {
+      throw new WorkflowOperationException(String.format("Error while copying track %s", track.getIdentifier()), e);
+    }
+
+    return new TrackJobResult(copiedTrack, 0);
   }
 }
