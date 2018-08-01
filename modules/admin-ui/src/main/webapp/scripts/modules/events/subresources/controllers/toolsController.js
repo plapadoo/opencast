@@ -100,28 +100,9 @@ angular.module('adminNg.controllers')
             return flavor.type;
         };
 
-        $scope.tooManyAudios = function () {
-            var audioTrackCount = 0;
-            var videoTrackCount = 0;
-            for(var i = 0; i < $scope.video.source_tracks.length; i++) {
-                var t = $scope.video.source_tracks[i];
-                if (t.audio.present === true && t.audio.hidden === false) {
-                    audioTrackCount++;
-                }
-                if (t.video.present === true && t.video.hidden === false) {
-                    videoTrackCount++;
-                }
-            }
-            return audioTrackCount > videoTrackCount;
-        };
-
         $scope.sanityCheckSourceTracks = function() {
             if (!$scope.anyTrackSelected('video')) {
                 errorMessageId = Notifications.add('error', 'VIDEO_SOURCE_TRACKS_INVALID');
-                return false;
-            }
-            if ($scope.tooManyAudios()) {
-                errorMessageId = Notifications.add('error', 'VIDEO_TOO_MANY_AUDIOS');
                 return false;
             }
             return true;

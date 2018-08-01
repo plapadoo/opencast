@@ -180,7 +180,6 @@
      "VIDEO_CUT_SAVED": "The editing information has been saved",
      "VIDEO_CUT_PROCESSING": "The video is being processed…",
      "VIDEO_SOURCE_TRACKS_INVALID": "You have selected no video tracks to process",
-     "VIDEO_TOO_MANY_AUDIOS": "You cannot have more than one audio stream on a single video stream",
      "SERVER_UNRESPONSIVE": "Oops! The server seems to be unresponsive. Please try again later.",
      "SERVICE_UNAVAILABLE": "Oops! The server seems to be unresponsive. Please try again later.",
      "ACTIVE_TRANSACTION": "This event can not be edited while there is an active workflow or transaction."
