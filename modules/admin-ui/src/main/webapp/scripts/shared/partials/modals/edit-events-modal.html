@@ -1,6 +1,6 @@
 <section ng-form="editEventsForm" ng-show="open" ng-keyup="keyUp($event)" tabindex="1" class="modal wizard modal-animation ng-hide" ng-controller="EditEventsCtrl">
     <header>
-        <a class="fa fa-times close-modal" ng-click="clearAndClose()"></a>
+        <a class="fa fa-times close-modal" ng-click="close()"></a>
         <h2 translate="BULK_ACTIONS.EDIT_EVENTS.CAPTION"><!-- Template --></h2>
     </header>
     <wizard edit-mode="false" name="editEventsWz" on-finish="submit()" template="shared/partials/wizardNav.html">
