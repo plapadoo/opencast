@@ -628,6 +628,7 @@ admin-ui
   org.mnode.ical4j                       ical4j                                           BSD 3-Clause License
   org.codehaus.groovy                    groovy-all                                       The Apache Software License, Version 2.0
   org.slf4j                              slf4j-api                                        MIT License
+  org.influxdb                           org.influxdb                                     MIT License
 
 
 annotation-impl

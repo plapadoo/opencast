@@ -216,6 +216,10 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.influxdb</groupId>
+      <artifactId>influxdb-java</artifactId>
+    </dependency>
     <!-- Testing -->
     <dependency>
       <groupId>junit</groupId>
@@ -455,16 +459,33 @@
             <Http-Alias>/admin-ng</Http-Alias>
             <Http-Classpath>/webapp</Http-Classpath>
             <Http-Welcome>index.html</Http-Welcome>
+            <Embed-Dependency>
+              influxdb-java;inline=true,
+              okhttp3;inline=true,
+              okio;inline=true,
+              retrofit2;inline=true,
+              com.squareup.moshi;inline=true
+            </Embed-Dependency>
             <Import-Package>
               net.fortuna.ical4j.*,
               org.opencastproject.index.service.message,
               org.opencastproject.adminui.index,
               javax.ws.rs;version=2.0.1,
               javax.ws.rs.core;version=2.0.1,
+              !org.msgpack.*;
+              !android.*;
+              !kotlin.*;
+              !javax.annotation.meta;
+              !org.conscrypt;
               *
             </Import-Package>
             <Private-Package>
               webapp.*,
+              com.squareup.moshi;
+              okhttp3.*;
+              okio;
+              retrofit2.*;
+              org.influxdb.*,
               org.opencastproject.adminui.util,
               org.opencastproject.adminui.exception
             </Private-Package>
@@ -492,6 +513,7 @@
               OSGI-INF/server_endpoint.xml,
               OSGI-INF/series_endpoint.xml,
               OSGI-INF/services_endpoint.xml,
+              OSGI-INF/statistics_endpoint.xml,
               OSGI-INF/tasks_endpoint.xml,
               OSGI-INF/themes_endpoint.xml,
               OSGI-INF/tools_endpoint.xml,
