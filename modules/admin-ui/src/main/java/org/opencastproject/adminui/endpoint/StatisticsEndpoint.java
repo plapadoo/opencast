@@ -21,13 +21,25 @@
 
 package org.opencastproject.adminui.endpoint;
 
+import static org.opencastproject.security.api.SecurityConstants.GLOBAL_ADMIN_ROLE;
 import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
+import org.opencastproject.adminui.index.AdminUISearchIndex;
+import org.opencastproject.index.service.api.IndexService;
+import org.opencastproject.index.service.impl.index.event.Event;
+import org.opencastproject.index.service.impl.index.series.Series;
+import org.opencastproject.matterhorn.search.SearchIndexException;
+import org.opencastproject.security.api.Organization;
+import org.opencastproject.security.api.SecurityService;
+import org.opencastproject.security.api.UnauthorizedException;
+import org.opencastproject.security.api.User;
 import org.opencastproject.util.RestUtil;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
 import org.opencastproject.util.doc.rest.RestService;
+
+import com.entwinemedia.fn.data.Opt;
 
 import org.apache.commons.lang3.StringUtils;
 import org.influxdb.InfluxDB;
@@ -85,6 +97,10 @@ public class StatisticsEndpoint implements ManagedService {
 
   private InfluxDB influxDB;
 
+  private SecurityService securityService;
+  private IndexService indexService;
+  private AdminUISearchIndex searchIndex;
+
   enum DataResolution {
     HOURLY("1h"),
     DAILY("1d"),
@@ -108,6 +124,18 @@ public class StatisticsEndpoint implements ManagedService {
     public static boolean isValid(final String value) {
       return Arrays.stream(DataResolution.values()).map(Enum::toString).anyMatch(v -> v.equals(value.toUpperCase()));
     }
+  }
+
+  public void setSecurityService(SecurityService securityService) {
+    this.securityService = securityService;
+  }
+
+  public void setIndexService(IndexService indexService) {
+    this.indexService = indexService;
+  }
+
+  public void setSearchIndex(AdminUISearchIndex searchIndex) {
+    this.searchIndex = searchIndex;
   }
 
   @Override
@@ -150,7 +178,8 @@ public class StatisticsEndpoint implements ManagedService {
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given event as JSON", responseCode = HttpServletResponse.SC_OK),
-      @RestResponse(description = "No event with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
+      @RestResponse(description = "No event with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND),
+      @RestResponse(description = "If the current user is not authorized to perform this action", responseCode = HttpServletResponse.SC_UNAUTHORIZED)
     })
   public Response getEventViews(
     @PathParam("eventId") final String eventId,
@@ -173,7 +202,7 @@ public class StatisticsEndpoint implements ManagedService {
     if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
-    //TODO: Security. hat $user Zugriff auf event?
+    checkMediapackageAccess(eventId);
     final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
     final Query query = BoundParameterQuery.QueryBuilder
       .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE episodeId=$eventId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
@@ -199,7 +228,8 @@ public class StatisticsEndpoint implements ManagedService {
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given series as JSON", responseCode = HttpServletResponse.SC_OK),
-      @RestResponse(description = "No series with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
+      @RestResponse(description = "No series with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND),
+      @RestResponse(description = "If the current user is not authorized to perform this action", responseCode = HttpServletResponse.SC_UNAUTHORIZED)
     })
   public Response getSeriesViews(
     @PathParam("seriesId") final String seriesId,
@@ -222,7 +252,7 @@ public class StatisticsEndpoint implements ManagedService {
     if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
-    //TODO: Security. hat $user Zugriff auf series?
+    checkSeriesAccess(seriesId);
     final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
     final Query query = BoundParameterQuery.QueryBuilder
       .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE seriesId=$seriesId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
@@ -248,7 +278,8 @@ public class StatisticsEndpoint implements ManagedService {
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given organization as JSON", responseCode = HttpServletResponse.SC_OK),
-      @RestResponse(description = "No organization with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
+      @RestResponse(description = "No organization with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND),
+      @RestResponse(description = "If the current user is not authorized to perform this action", responseCode = HttpServletResponse.SC_UNAUTHORIZED)
     })
   public Response getOrganizationViews(
     @PathParam("organizationId") final String organizationId,
@@ -271,7 +302,7 @@ public class StatisticsEndpoint implements ManagedService {
     if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
-    //TODO: Security. hat $user Zugriff auf organization?
+    checkOrganizationAccess(organizationId);
     final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
     final Query query = BoundParameterQuery.QueryBuilder
       .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE organizationId=$organizationId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
@@ -322,5 +353,35 @@ public class StatisticsEndpoint implements ManagedService {
       influxDB.close();
     }
     influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
+  }
+
+  private void checkMediapackageAccess(final String mpId) throws UnauthorizedException, SearchIndexException {
+    final Opt<Event> event = indexService.getEvent(mpId, searchIndex);
+    if (event.isNone()) {
+      // IndexService checks permissions and returns None if user is unauthorized
+      throw new UnauthorizedException(securityService.getUser(), "read");
+    }
+  }
+
+  private void checkSeriesAccess(final String seriesId) throws UnauthorizedException, SearchIndexException {
+    final Opt<Series> series = indexService.getSeries(seriesId, searchIndex);
+    if (series.isNone()) {
+      // IndexService checks permissions and returns None if user is unauthorized
+      throw new UnauthorizedException(securityService.getUser(), "read");
+    }
+  }
+
+  private void checkOrganizationAccess(final String orgId) throws UnauthorizedException {
+    final User currentUser = securityService.getUser();
+    final Organization currentOrg = securityService.getOrganization();
+    final String currentOrgAdminRole = currentOrg.getAdminRole();
+    final String currentOrgId = currentOrg.getId();
+
+    boolean authorized = currentUser.hasRole(GLOBAL_ADMIN_ROLE)
+      || (currentUser.hasRole(currentOrgAdminRole) && currentOrgId.equals(orgId));
+
+    if (!authorized) {
+      throw new UnauthorizedException(currentUser, "read");
+    }
   }
 }
