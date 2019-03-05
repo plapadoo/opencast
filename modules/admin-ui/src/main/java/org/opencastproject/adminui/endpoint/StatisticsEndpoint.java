@@ -21,6 +21,8 @@
 
 package org.opencastproject.adminui.endpoint;
 
+import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
+
 import org.opencastproject.util.RestUtil;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
@@ -30,6 +32,10 @@ import org.opencastproject.util.doc.rest.RestService;
 import org.apache.commons.lang3.StringUtils;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
+import org.influxdb.dto.BoundParameterQuery;
+import org.influxdb.dto.Query;
+import org.influxdb.dto.QueryResult;
+import org.json.simple.JSONObject;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.slf4j.Logger;
@@ -37,8 +43,11 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Dictionary;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
@@ -49,7 +58,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
 @Path("/")
 @RestService(name = "statistics", title = "statistics façade service",
@@ -66,10 +74,14 @@ public class StatisticsEndpoint implements ManagedService {
   private static final String KEY_INFLUX_URI = "influx.uri";
   private static final String KEY_INFLUX_USER = "influx.username";
   private static final String KEY_INFLUX_PW = "influx.password";
+  private static final String KEY_INFLUX_DB = "influx.db";
+  private static final String KEY_INFLUX_VIEWS_MEASUREMENT = "influx.measurement.views";
 
   private String influxUri = "http://127.0.0.1:8086";
   private String influxUser = "root";
   private String influxPw = "root";
+  private String influxDbName = "opencast";
+  private String influxViewsMeasurement = "impressions";
 
   private InfluxDB influxDB;
 
@@ -115,6 +127,14 @@ public class StatisticsEndpoint implements ManagedService {
       if (influxPwValue != null) {
         influxPw = influxPwValue.toString();
       }
+      final Object influxDbValue = dictionary.get(KEY_INFLUX_DB);
+      if (influxDbValue != null) {
+        influxDbName = influxDbValue.toString();
+      }
+      final Object influxViewsMeasurementValue = dictionary.get(KEY_INFLUX_VIEWS_MEASUREMENT);
+      if (influxViewsMeasurementValue != null) {
+        influxViewsMeasurement = influxViewsMeasurementValue.toString();
+      }
     }
     connectInflux();
   }
@@ -132,7 +152,7 @@ public class StatisticsEndpoint implements ManagedService {
       @RestResponse(description = "Returns the views statistics for the given event as JSON", responseCode = HttpServletResponse.SC_OK),
       @RestResponse(description = "No event with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
     })
-  public Response getEventMetadata(
+  public Response getEventViews(
     @PathParam("eventId") final String eventId,
     @QueryParam("from") final String from,
     @QueryParam("to") final String to,
@@ -153,9 +173,18 @@ public class StatisticsEndpoint implements ManagedService {
     if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
-
     //TODO: Security. hat $user Zugriff auf event?
-    return null;
+    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
+    final Query query = BoundParameterQuery.QueryBuilder
+      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE episodeId=$eventId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
+      .forDatabase(influxDbName)
+      .bind("eventId", eventId)
+      .bind("from", from)
+      .bind("to", to)
+      .create();
+
+    final QueryResult results = influxDB.query(query);
+    return Response.ok(viewsToJson(results).toJSONString()).build();
   }
 
 
@@ -172,7 +201,7 @@ public class StatisticsEndpoint implements ManagedService {
       @RestResponse(description = "Returns the views statistics for the given series as JSON", responseCode = HttpServletResponse.SC_OK),
       @RestResponse(description = "No series with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
     })
-  public Response getSeriesMetadata(
+  public Response getSeriesViews(
     @PathParam("seriesId") final String seriesId,
     @QueryParam("from") final String from,
     @QueryParam("to") final String to,
@@ -193,9 +222,18 @@ public class StatisticsEndpoint implements ManagedService {
     if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
-
     //TODO: Security. hat $user Zugriff auf series?
-    return null;
+    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
+    final Query query = BoundParameterQuery.QueryBuilder
+      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE seriesId=$seriesId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
+      .forDatabase(influxDbName)
+      .bind("seriesId", seriesId)
+      .bind("from", from)
+      .bind("to", to)
+      .create();
+
+    final QueryResult results = influxDB.query(query);
+    return Response.ok(viewsToJson(results).toJSONString()).build();
   }
 
 
@@ -212,7 +250,7 @@ public class StatisticsEndpoint implements ManagedService {
       @RestResponse(description = "Returns the views statistics for the given organization as JSON", responseCode = HttpServletResponse.SC_OK),
       @RestResponse(description = "No organization with this identifier was found.", responseCode = HttpServletResponse.SC_NOT_FOUND)
     })
-  public Response getOrganizationMetadata(
+  public Response getOrganizationViews(
     @PathParam("organizationId") final String organizationId,
     @QueryParam("from") final String from,
     @QueryParam("to") final String to,
@@ -234,7 +272,40 @@ public class StatisticsEndpoint implements ManagedService {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
     //TODO: Security. hat $user Zugriff auf organization?
-    return null;
+    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
+    final Query query = BoundParameterQuery.QueryBuilder
+      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE organizationId=$organizationId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
+      .forDatabase(influxDbName)
+      .bind("organizationId", organizationId)
+      .bind("from", from)
+      .bind("to", to)
+      .create();
+
+    final QueryResult results = influxDB.query(query);
+    return Response.ok(viewsToJson(results).toJSONString()).build();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static JSONObject viewsToJson(final QueryResult results) {
+    final List<String> labels = new ArrayList<>();
+    final List<Double> values = new ArrayList<>();
+    for (final QueryResult.Result result : results.getResults()) {
+      if (result.getSeries() == null || result.getSeries().isEmpty()) {
+        continue;
+      }
+      labels.addAll(result.getSeries().get(0).getValues().stream()
+        .map(l -> (String) l.get(0))
+        .collect(Collectors.toList()));
+      values.addAll(result.getSeries().get(0).getValues().stream()
+        .map(l -> l.get(1))
+        .map(v -> v == null ? 0 : (Double) v)
+        .collect(Collectors.toList()));
+    }
+
+    final JSONObject json = new JSONObject();
+    json.put("labels", labels);
+    json.put("values", values);
+    return json;
   }
 
   private static boolean isIso8601Utc(final String value) {
