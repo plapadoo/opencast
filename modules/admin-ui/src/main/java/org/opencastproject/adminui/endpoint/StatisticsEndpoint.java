@@ -33,6 +33,7 @@ import org.opencastproject.security.api.Organization;
 import org.opencastproject.security.api.SecurityService;
 import org.opencastproject.security.api.UnauthorizedException;
 import org.opencastproject.security.api.User;
+import org.opencastproject.statistics.api.StatisticsService;
 import org.opencastproject.util.RestUtil;
 import org.opencastproject.util.doc.rest.RestParameter;
 import org.opencastproject.util.doc.rest.RestQuery;
@@ -42,24 +43,12 @@ import org.opencastproject.util.doc.rest.RestService;
 import com.entwinemedia.fn.data.Opt;
 
 import org.apache.commons.lang3.StringUtils;
-import org.influxdb.InfluxDB;
-import org.influxdb.InfluxDBFactory;
-import org.influxdb.dto.BoundParameterQuery;
-import org.influxdb.dto.Query;
-import org.influxdb.dto.QueryResult;
 import org.json.simple.JSONObject;
-import org.osgi.service.cm.ConfigurationException;
-import org.osgi.service.cm.ManagedService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
@@ -78,53 +67,15 @@ import javax.ws.rs.core.Response;
     + "<em>This service is for exclusive use by the module admin-ui. Its API might change "
     + "anytime without prior notice. Any dependencies other than the admin UI will be strictly ignored. "
     + "DO NOT use this for integration of third-party applications.<em>"})
-public class StatisticsEndpoint implements ManagedService {
+public class StatisticsEndpoint {
 
   /** The logging facility */
   private static final Logger logger = LoggerFactory.getLogger(StatisticsEndpoint.class);
 
-  private static final String KEY_INFLUX_URI = "influx.uri";
-  private static final String KEY_INFLUX_USER = "influx.username";
-  private static final String KEY_INFLUX_PW = "influx.password";
-  private static final String KEY_INFLUX_DB = "influx.db";
-  private static final String KEY_INFLUX_VIEWS_MEASUREMENT = "influx.measurement.views";
-
-  private String influxUri = "http://127.0.0.1:8086";
-  private String influxUser = "root";
-  private String influxPw = "root";
-  private String influxDbName = "opencast";
-  private String influxViewsMeasurement = "impressions";
-
-  private InfluxDB influxDB;
-
   private SecurityService securityService;
   private IndexService indexService;
   private AdminUISearchIndex searchIndex;
-
-  enum DataResolution {
-    HOURLY("1h"),
-    DAILY("1d"),
-    WEEKLY("1w"),
-    MONTHLY("30d");
-
-    private String influxUnit;
-
-    DataResolution(String influxUnit) {
-      this.influxUnit = influxUnit;
-    }
-
-    public String getInfluxUnit() {
-      return influxUnit;
-    }
-
-    public static DataResolution fromString(final String value) {
-      return DataResolution.valueOf(value.toUpperCase());
-    }
-
-    public static boolean isValid(final String value) {
-      return Arrays.stream(DataResolution.values()).map(Enum::toString).anyMatch(v -> v.equals(value.toUpperCase()));
-    }
-  }
+  private StatisticsService statisticsService;
 
   public void setSecurityService(SecurityService securityService) {
     this.securityService = securityService;
@@ -138,34 +89,10 @@ public class StatisticsEndpoint implements ManagedService {
     this.searchIndex = searchIndex;
   }
 
-  @Override
-  public void updated(Dictionary<String, ?> dictionary) throws ConfigurationException {
-    if (dictionary == null) {
-      logger.info("No configuration available, using defaults");
-    } else {
-      final Object influxUriValue = dictionary.get(KEY_INFLUX_URI);
-      if (influxUriValue != null) {
-        influxUri = influxUriValue.toString();
-      }
-      final Object influxUserValue = dictionary.get(KEY_INFLUX_USER);
-      if (influxUserValue != null) {
-        influxUser = influxUserValue.toString();
-      }
-      final Object influxPwValue = dictionary.get(KEY_INFLUX_PW);
-      if (influxPwValue != null) {
-        influxPw = influxPwValue.toString();
-      }
-      final Object influxDbValue = dictionary.get(KEY_INFLUX_DB);
-      if (influxDbValue != null) {
-        influxDbName = influxDbValue.toString();
-      }
-      final Object influxViewsMeasurementValue = dictionary.get(KEY_INFLUX_VIEWS_MEASUREMENT);
-      if (influxViewsMeasurementValue != null) {
-        influxViewsMeasurement = influxViewsMeasurementValue.toString();
-      }
-    }
-    connectInflux();
+  public void setStatisticsService(StatisticsService statisticsService) {
+    this.statisticsService = statisticsService;
   }
+
 
   @GET
   @Path("views/event/{eventId}")
@@ -174,7 +101,7 @@ public class StatisticsEndpoint implements ManagedService {
     @RestParameter(name = "eventId", description = "The event id", isRequired = true, type = RestParameter.Type.STRING),
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
-    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly'", isRequired = true, type = STRING),
+    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given event as JSON", responseCode = HttpServletResponse.SC_OK),
@@ -199,20 +126,13 @@ public class StatisticsEndpoint implements ManagedService {
     if (to.compareTo(from) <= 0) {
       return RestUtil.R.badRequest("'from' date must be before 'to' date");
     }
-    if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
+    if (StringUtils.isBlank(resolution) || !StatisticsService.DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
     checkMediapackageAccess(eventId);
-    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
-    final Query query = BoundParameterQuery.QueryBuilder
-      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE episodeId=$eventId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-      .forDatabase(influxDbName)
-      .bind("eventId", eventId)
-      .bind("from", from)
-      .bind("to", to)
-      .create();
-
-    final QueryResult results = influxDB.query(query);
+    final StatisticsService.Views results = statisticsService.getEpisodeViews(
+      eventId, Instant.parse(from), Instant.parse(to), StatisticsService.DataResolution.fromString(resolution)
+    );
     return Response.ok(viewsToJson(results).toJSONString()).build();
   }
 
@@ -224,7 +144,7 @@ public class StatisticsEndpoint implements ManagedService {
     @RestParameter(name = "seriesId", description = "The series id", isRequired = true, type = RestParameter.Type.STRING),
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
-    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly'", isRequired = true, type = STRING),
+    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given series as JSON", responseCode = HttpServletResponse.SC_OK),
@@ -249,20 +169,13 @@ public class StatisticsEndpoint implements ManagedService {
     if (to.compareTo(from) <= 0) {
       return RestUtil.R.badRequest("'from' date must be before 'to' date");
     }
-    if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
+    if (StringUtils.isBlank(resolution) || !StatisticsService.DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
     checkSeriesAccess(seriesId);
-    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
-    final Query query = BoundParameterQuery.QueryBuilder
-      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE seriesId=$seriesId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-      .forDatabase(influxDbName)
-      .bind("seriesId", seriesId)
-      .bind("from", from)
-      .bind("to", to)
-      .create();
-
-    final QueryResult results = influxDB.query(query);
+    final StatisticsService.Views results = statisticsService.getSeriesViews(
+      seriesId, Instant.parse(from), Instant.parse(to), StatisticsService.DataResolution.fromString(resolution)
+    );
     return Response.ok(viewsToJson(results).toJSONString()).build();
   }
 
@@ -274,7 +187,7 @@ public class StatisticsEndpoint implements ManagedService {
     @RestParameter(name = "organizationId", description = "The organization id", isRequired = true, type = RestParameter.Type.STRING),
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
-    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly'", isRequired = true, type = STRING),
+    @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),
   },
     reponses = {
       @RestResponse(description = "Returns the views statistics for the given organization as JSON", responseCode = HttpServletResponse.SC_OK),
@@ -299,43 +212,21 @@ public class StatisticsEndpoint implements ManagedService {
     if (to.compareTo(from) <= 0) {
       return RestUtil.R.badRequest("'from' date must be before 'to' date");
     }
-    if (StringUtils.isBlank(resolution) || !DataResolution.isValid(resolution)) {
+    if (StringUtils.isBlank(resolution) || !StatisticsService.DataResolution.isValid(resolution)) {
       return RestUtil.R.badRequest("'resolution' must be one of 'hourly', 'daily', 'weekly', 'monthly'");
     }
     checkOrganizationAccess(organizationId);
-    final String influxUnit = DataResolution.fromString(resolution).getInfluxUnit();
-    final Query query = BoundParameterQuery.QueryBuilder
-      .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE organizationId=$organizationId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-      .forDatabase(influxDbName)
-      .bind("organizationId", organizationId)
-      .bind("from", from)
-      .bind("to", to)
-      .create();
-
-    final QueryResult results = influxDB.query(query);
+    final StatisticsService.Views results = statisticsService.getOrganizationViews(
+      organizationId, Instant.parse(from), Instant.parse(to), StatisticsService.DataResolution.fromString(resolution)
+    );
     return Response.ok(viewsToJson(results).toJSONString()).build();
   }
 
   @SuppressWarnings("unchecked")
-  private static JSONObject viewsToJson(final QueryResult results) {
-    final List<String> labels = new ArrayList<>();
-    final List<Double> values = new ArrayList<>();
-    for (final QueryResult.Result result : results.getResults()) {
-      if (result.getSeries() == null || result.getSeries().isEmpty()) {
-        continue;
-      }
-      labels.addAll(result.getSeries().get(0).getValues().stream()
-        .map(l -> (String) l.get(0))
-        .collect(Collectors.toList()));
-      values.addAll(result.getSeries().get(0).getValues().stream()
-        .map(l -> l.get(1))
-        .map(v -> v == null ? 0 : (Double) v)
-        .collect(Collectors.toList()));
-    }
-
+  private static JSONObject viewsToJson(final StatisticsService.Views views) {
     final JSONObject json = new JSONObject();
-    json.put("labels", labels);
-    json.put("values", values);
+    json.put("labels", views.getLabels());
+    json.put("values", views.getValues());
     return json;
   }
 
@@ -346,13 +237,6 @@ public class StatisticsEndpoint implements ManagedService {
     } catch (DateTimeParseException e) {
       return false;
     }
-  }
-
-  private void connectInflux() {
-    if (influxDB != null) {
-      influxDB.close();
-    }
-    influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
   }
 
   private void checkMediapackageAccess(final String mpId) throws UnauthorizedException, SearchIndexException {
@@ -384,4 +268,5 @@ public class StatisticsEndpoint implements ManagedService {
       throw new UnauthorizedException(currentUser, "read");
     }
   }
+
 }
