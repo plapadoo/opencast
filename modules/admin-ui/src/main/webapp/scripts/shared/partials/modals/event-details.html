@@ -37,6 +37,9 @@
     <a ng-click="openTab('comments')" data-modal-tab="comments" ng-class="{ active: tab == 'comments' }" translate="EVENTS.EVENTS.DETAILS.TABS.COMMENTS" with-role="ROLE_UI_EVENTS_DETAILS_COMMENTS_VIEW">
       <!-- Comments -->
     </a>
+    <a ng-click="openTab('statistics')" data-modal-tab="statistics" ng-class="{ active: tab == 'statistics' }" translate="EVENTS.EVENTS.DETAILS.TABS.STATISTICS" with-role="ROLE_UI_EVENTS_DETAILS_STATISTICS_VIEW">
+      <!-- Statistics -->
+    </a>
   </nav>
 
   <nav id="breadcrumb"></nav>
@@ -761,6 +764,31 @@
                   <!-- Resolved -->
                 </label>
               </form>
+            </div>
+          </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-content" data-modal-tab-content="statistics">
+    <div class="modal-body">
+      <div data-admin-ng-notifications="" context="events-access"></div>
+      <div class="full-col">
+
+          <div class="obj statistics">
+            <header class="no-expand" translate="EVENTS.EVENTS.DETAILS.STATISTICS.CAPTION">
+              <!-- Statistics -->
+            </header>
+            <div class="obj-container">
+              <div class="statistics-container">
+                <canvas
+                  class="chart chart-line"
+                  chart-data="pmiData"
+                  chart-labels="pmiLabels"
+                  chart-series="pmiSeries"
+                  chart-click="pmiOnClick">
+                </canvas> 
+              </div>
             </div>
           </div>
       </div>

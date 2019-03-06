@@ -565,7 +565,8 @@
            "SCHEDULING": "Scheduling",
            "WORKFLOWS":   "Workflows",
            "ACCESS":      "Access policy",
-           "COMMENTS":    "Comments"
+           "COMMENTS":    "Comments",
+           "STATISTICS":    "Statistics"
          },
          "PUBLICATIONS": {
            "CAPTION":                    "Publications",
@@ -809,6 +810,9 @@
              "WRONG_WORKFLOW" : "Wrong workflow",
              "PROCESSING_FAILURE" : "Processing failure"
            }
+         },
+         "COMMENTS": {
+           "CAPTION":     "Statistics"
          },
          "METADATA": {
            "CAPTION": "Event details",
