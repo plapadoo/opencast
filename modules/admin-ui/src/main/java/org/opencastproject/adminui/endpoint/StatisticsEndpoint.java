@@ -98,7 +98,8 @@ public class StatisticsEndpoint {
   @Path("views/event/{eventId}")
   @Produces(MediaType.APPLICATION_JSON)
   @RestQuery(name = "getviewsbyeventid", description = "Returns the views statistics for the given event as JSON", returnDescription = "The views statistics as JSON", pathParameters = {
-    @RestParameter(name = "eventId", description = "The event id", isRequired = true, type = RestParameter.Type.STRING),
+    @RestParameter(name = "eventId", description = "The event id", isRequired = true, type = RestParameter.Type.STRING)},
+    restParameters = {
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),
@@ -141,7 +142,8 @@ public class StatisticsEndpoint {
   @Path("views/series/{seriesId}")
   @Produces(MediaType.APPLICATION_JSON)
   @RestQuery(name = "getviewsbyseriesid", description = "Returns the views statistics for the given series as JSON", returnDescription = "The views statistics as JSON", pathParameters = {
-    @RestParameter(name = "seriesId", description = "The series id", isRequired = true, type = RestParameter.Type.STRING),
+    @RestParameter(name = "seriesId", description = "The series id", isRequired = true, type = RestParameter.Type.STRING)},
+    restParameters = {
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),
@@ -184,7 +186,8 @@ public class StatisticsEndpoint {
   @Path("views/organization/{organizationId}")
   @Produces(MediaType.APPLICATION_JSON)
   @RestQuery(name = "getviewsbyorganizationid", description = "Returns the views statistics for the given organization as JSON", returnDescription = "The views statistics as JSON", pathParameters = {
-    @RestParameter(name = "organizationId", description = "The organization id", isRequired = true, type = RestParameter.Type.STRING),
+    @RestParameter(name = "organizationId", description = "The organization id", isRequired = true, type = RestParameter.Type.STRING)},
+    restParameters = {
     @RestParameter(name = "from", description = "Start of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "to", description = "End of the time series as ISO 8601 UTC date string", isRequired = true, type = STRING),
     @RestParameter(name = "resolution", description = "Data aggregation level. Must be one of 'hourly', 'daily', 'weekly', 'monthly', 'yearly'", isRequired = true, type = STRING),

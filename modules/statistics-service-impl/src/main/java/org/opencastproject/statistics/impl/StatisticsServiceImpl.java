@@ -28,7 +28,6 @@ import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.BoundParameterQuery;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
-import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
@@ -62,12 +61,12 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
 
   private InfluxDB influxDB;
 
-  public void activate(ComponentContext cc) throws Exception {
+  public void activate(ComponentContext cc) {
     logger.info("Activating Statistics Service");
   }
 
   @Override
-  public void updated(Dictionary<String, ?> dictionary) throws ConfigurationException {
+  public void updated(Dictionary<String, ?> dictionary) {
     if (dictionary == null) {
       logger.info("No configuration available, using defaults");
     } else {
