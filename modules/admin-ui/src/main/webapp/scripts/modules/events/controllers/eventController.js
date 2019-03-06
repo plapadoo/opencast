@@ -29,13 +29,14 @@ angular.module('adminNg.controllers')
   'EventPublicationsResource', 'OptoutsResource', 'EventParticipationResource', 'EventSchedulingResource',
   'NewEventProcessingResource', 'OptoutSingleResource', 'CaptureAgentsResource', 'ConflictCheckResource', 'Language',
   'JsHelper', '$sce', '$timeout', 'EventHelperService', 'UploadAssetOptions', 'EventUploadAssetResource', 'Table',
-  'SchedulingHelperService',
+  'SchedulingHelperService', 'StatisticsResource',
   function ($scope, Notifications, EventTransactionResource, EventMetadataResource, EventAssetsResource,
     EventAssetCatalogsResource, CommentResource, EventWorkflowsResource, EventWorkflowActionResource,
     EventWorkflowDetailsResource, ResourcesListResource, UserRolesResource, EventAccessResource,
     EventPublicationsResource, OptoutsResource, EventParticipationResource, EventSchedulingResource,
     NewEventProcessingResource, OptoutSingleResource, CaptureAgentsResource, ConflictCheckResource, Language, JsHelper,
-    $sce, $timeout, EventHelperService, UploadAssetOptions, EventUploadAssetResource, Table, SchedulingHelperService) {
+    $sce, $timeout, EventHelperService, UploadAssetOptions, EventUploadAssetResource, Table, SchedulingHelperService,
+    StatisticsResource) {
 
     var roleSlice = 100;
     var roleOffset = 0;
@@ -241,7 +242,37 @@ angular.module('adminNg.controllers')
           }
           me.clearConflicts();
         },
+        recalculateStats = function (resolution) {
+          var to = moment();
+          var span;
+          if ($scope.eventStatsTimeRange.value === 'monthly') {
+            span = moment.duration(1, 'year');
+          } else {
+            span = moment.duration(1, 'month');
+          }
+          var from = to.clone().subtract(span);
+          StatisticsResource.get(
+            {
+              id: $scope.resourceId,
+              type: "event",
+              from: from.toJSON(),
+              to: to.toJSON(),
+              resolution: $scope.eventStatsTimeRange.value
+            }).$promise.then(function(stats) {
+              $scope.eventStatsData = stats.values;
+              $scope.eventStatsLabels = stats.labels;
+            });
+        },
         fetchChildResources = function (id) {
+          $scope.eventStatsData = [];
+          $scope.eventStatsTimeRangeOptions = [
+            { label: 'Monthly', value: "monthly" },
+            { label: 'Weekly', value: "weekly" },
+          ];
+          $scope.eventStatsTimeRange = $scope.eventStatsTimeRangeOptions[0];
+          $scope.eventStatsLabels = [];
+
+          recalculateStats($scope.eventStatsTimeRangeOptions[0].value);
 
           var publications = EventPublicationsResource.get({ id: id }, function () {
             angular.forEach(publications.publications, function (publication, index) {
@@ -436,6 +467,9 @@ angular.module('adminNg.controllers')
         },
         tzOffset = (new Date()).getTimezoneOffset() / -60;
 
+    $scope.eventStatsChange = function() {
+      recalculateStats($scope.eventStatsTimeRangeOptions[0].value);
+    };
 
     $scope.getMoreRoles = function (value) {
 

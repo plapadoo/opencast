@@ -811,8 +811,8 @@
              "PROCESSING_FAILURE" : "Processing failure"
            }
          },
-         "COMMENTS": {
-           "CAPTION":     "Statistics"
+         "STATISTICS": {
+           "CAPTION":     "Views"
          },
          "METADATA": {
            "CAPTION": "Event details",

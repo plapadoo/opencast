@@ -782,12 +782,18 @@
             <div class="obj-container">
               <div class="statistics-container">
                 <canvas
-                  class="chart chart-line"
-                  chart-data="pmiData"
-                  chart-labels="pmiLabels"
-                  chart-series="pmiSeries"
-                  chart-click="pmiOnClick">
+                  class="chart chart-bar"
+                  chart-data="eventStatsData"
+                  chart-labels="eventStatsLabels"
+                  chart-series="eventStatsSeries">
                 </canvas> 
+                <select chosen
+                        data-width="'200px'"
+                        ng-model="eventStatsTimeRange"
+                        ng-change="eventStatsChange()"
+                        ng-options="item as item.label | translate for item in eventStatsTimeRangeOptions track by item.value"
+                        >
+                </select>
               </div>
             </div>
           </div>
