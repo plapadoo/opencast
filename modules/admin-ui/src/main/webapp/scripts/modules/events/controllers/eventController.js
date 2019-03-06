@@ -248,7 +248,7 @@ angular.module('adminNg.controllers')
           if ($scope.eventStatsTimeRange.value === 'monthly') {
             span = moment.duration(1, 'year');
           } else {
-            span = moment.duration(1, 'month');
+            span = moment.duration(10, 'year');
           }
           var from = to.clone().subtract(span);
           StatisticsResource.get(
@@ -267,7 +267,7 @@ angular.module('adminNg.controllers')
           $scope.eventStatsData = [];
           $scope.eventStatsTimeRangeOptions = [
             { label: 'Monthly', value: "monthly" },
-            { label: 'Weekly', value: "weekly" },
+            { label: 'Yearly', value: "yearly" },
           ];
           $scope.eventStatsTimeRange = $scope.eventStatsTimeRangeOptions[0];
           $scope.eventStatsLabels = [];
