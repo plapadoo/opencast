@@ -265,6 +265,24 @@ angular.module('adminNg.controllers')
         },
         fetchChildResources = function (id) {
           $scope.eventStatsData = [];
+          $scope.eventStatsOptions = {
+            scales: {
+              xAxes: [ {
+                ticks: {
+                  callback: function(value, index, values) {
+                    return moment(value).format("LL");
+                  }
+                }
+              } ]
+            },
+            layout: {
+                padding: {
+                  top: 20,
+                  left: 20,
+                  right: 20
+                }
+            }
+          };
           $scope.eventStatsTimeRangeOptions = [
             { label: 'Monthly', value: "monthly" },
             { label: 'Yearly', value: "yearly" },
