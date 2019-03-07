@@ -780,24 +780,50 @@
               <!-- Statistics -->
             </header>
             <div class="obj-container">
-              <div class="statistics-container">
-                <canvas
-                  class="chart chart-line"
-                  chart-data="eventStatsData"
-                  chart-options="eventStatsOptions"
-                  chart-labels="eventStatsLabels"
-                  chart-series="eventStatsSeries">
-                </canvas> 
-                <select chosen
-                        data-width="'200px'"
-                        ng-model="eventStatsTimeRange"
-                        ng-change="eventStatsChange()"
-                        ng-options="item as item.label | translate for item in eventStatsTimeRangeOptions track by item.value"
-                        >
-                </select>
-              </div>
+              <canvas
+                class="chart chart-line"
+                chart-data="eventStatsData"
+                chart-options="eventStatsOptions"
+                chart-labels="eventStatsLabels"
+                chart-series="eventStatsSeries">
+              </canvas> 
+              <table class="main-tbl">
+                <thead>
+                  <tr>
+                    <th translate="EVENTS.EVENTS.DETAILS.ACCESS.TEMPLATES.TITLE">
+                      <!-- Templates -->
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="obj-container padded">
+                        <input datepicker
+                               type="text"
+                               tabindex="4"
+                               placeholder="{{ 'EVENTS.EVENTS.NEW.SOURCE.PLACEHOLDER.START_DATE' | translate }}"
+                               ng-model="eventStatsFrom"
+                               ng-change="eventStatsChange()" />
+                        <input datepicker
+                               type="text"
+                               tabindex="4"
+                               placeholder="{{ 'EVENTS.EVENTS.NEW.SOURCE.PLACEHOLDER.END_DATE' | translate }}"
+                               ng-model="eventStatsTo"
+                               ng-change="eventStatsChange()" />
+                        <select chosen
+                                data-width="'200px'"
+                                ng-model="eventStatsTimeRange"
+                                ng-change="eventStatsChange()"
+                                ng-options="item as item.label | translate for item in eventStatsTimeRangeOptions track by item.value"
+                                >
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </select>
             </div>
-          </div>
       </div>
     </div>
   </div>

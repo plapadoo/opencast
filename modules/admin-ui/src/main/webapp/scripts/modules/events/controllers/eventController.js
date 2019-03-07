@@ -242,15 +242,9 @@ angular.module('adminNg.controllers')
           }
           me.clearConflicts();
         },
-        recalculateStats = function (resolution) {
-          var to = moment();
-          var span;
-          if ($scope.eventStatsTimeRange.value === 'monthly') {
-            span = moment.duration(1, 'year');
-          } else {
-            span = moment.duration(10, 'year');
-          }
-          var from = to.clone().subtract(span);
+        recalculateStats = function (resolution, fromDate, toDate) {
+          var from = moment(fromDate);
+          var to = moment(toDate);
           StatisticsResource.get(
             {
               id: $scope.resourceId,
@@ -287,10 +281,12 @@ angular.module('adminNg.controllers')
             { label: 'Monthly', value: "monthly" },
             { label: 'Yearly', value: "yearly" },
           ];
+          $scope.eventStatsFrom = moment().subtract(1, "years").startOf("day").format("YYYY-MM-DD");
+          $scope.eventStatsTo = moment().endOf("day").format("YYYY-MM-DD");
           $scope.eventStatsTimeRange = $scope.eventStatsTimeRangeOptions[0];
           $scope.eventStatsLabels = [];
 
-          recalculateStats($scope.eventStatsTimeRangeOptions[0].value);
+          recalculateStats($scope.eventStatsTimeRangeOptions[0].value, $scope.eventStatsFrom, $scope.eventStatsTo);
 
           var publications = EventPublicationsResource.get({ id: id }, function () {
             angular.forEach(publications.publications, function (publication, index) {
@@ -486,7 +482,7 @@ angular.module('adminNg.controllers')
         tzOffset = (new Date()).getTimezoneOffset() / -60;
 
     $scope.eventStatsChange = function() {
-      recalculateStats($scope.eventStatsTimeRangeOptions[0].value);
+      recalculateStats($scope.eventStatsTimeRangeOptions[0].value, $scope.eventStatsFrom, $scope.eventStatsTo);
     };
 
     $scope.getMoreRoles = function (value) {
