@@ -26,10 +26,12 @@ import org.opencastproject.message.broker.api.MessageReceiver;
 import org.opencastproject.message.broker.api.MessageSender;
 import org.opencastproject.message.broker.api.assetmanager.AssetManagerItem;
 import org.opencastproject.statistics.api.StatisticsService;
+import org.opencastproject.util.data.Tuple;
 
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.BoundParameterQuery;
+import org.influxdb.dto.Point;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
 import org.osgi.service.cm.ManagedService;
@@ -46,6 +48,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -129,7 +132,6 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
     final String influxUnit = dataResolutionToInfluxUnit(resolution);
     final Query query = BoundParameterQuery.QueryBuilder
         .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE episodeId=$eventId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-        .forDatabase(influxDbName)
         .bind("eventId", episodeId)
         .bind("from", from)
         .bind("to", to)
@@ -144,7 +146,6 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
     final String influxUnit = dataResolutionToInfluxUnit(resolution);
     final Query query = BoundParameterQuery.QueryBuilder
         .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE seriesId=$seriesId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-        .forDatabase(influxDbName)
         .bind("seriesId", seriesId)
         .bind("from", from)
         .bind("to", to)
@@ -159,7 +160,6 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
     final String influxUnit = dataResolutionToInfluxUnit(resolution);
     final Query query = BoundParameterQuery.QueryBuilder
         .newQuery("SELECT SUM(value) FROM " + influxViewsMeasurement + " WHERE organizationId=$organizationId AND time>=$from AND time<$to GROUP BY time(" + influxUnit + ")")
-        .forDatabase(influxDbName)
         .bind("organizationId", organizationId)
         .bind("from", from)
         .bind("to", to)
@@ -174,6 +174,7 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
       influxDB.close();
     }
     influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
+    influxDB.setDatabase(influxDbName);
   }
 
   private static String dataResolutionToInfluxUnit(DataResolution dataResolution) {
@@ -237,7 +238,6 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
             if (AssetManagerItem.Type.Delete.equals(item.getType())) {
               // If an episode is deleted from opencast, also delete it from influxdb
               final Query query = BoundParameterQuery.QueryBuilder.newQuery("DELETE FROM " + influxViewsMeasurement + " WHERE episodeId=$episodeId")
-                  .forDatabase(influxDbName)
                   .bind("episodeId", item.getMediaPackageId())
                   .create();
               final QueryResult result = influxDB.query(query);
@@ -252,16 +252,37 @@ public class StatisticsServiceImpl implements StatisticsService, ManagedService 
               // If an episode is moved to a different series, also update influxdb data
               final String episodeId = item.getMediapackage().getIdentifier().toString();
               final String seriesId = item.getMediapackage().getSeries();
-              final Query query = BoundParameterQuery.QueryBuilder.newQuery("SELECT COUNT(*) FROM " + influxViewsMeasurement + " WHERE episodeId=$episodeId AND seriesId!=$seriesId")
-                  .forDatabase(influxDbName)
+              final Query query = BoundParameterQuery.QueryBuilder.newQuery("SELECT * FROM " + influxViewsMeasurement + " WHERE episodeId=$episodeId AND seriesId!=$seriesId")
                   .bind("episodeId", episodeId)
                   .bind("seriesId", seriesId)
                   .create();
-              final boolean needsUpdate = influxDB.query(query).getResults().stream().anyMatch(r -> r.getSeries() != null);
-              if (needsUpdate) {
-                logger.info("Series for episode with id {} needs to be updated in influxdb", episodeId);
-                // TODO: Handle series change
-              }
+              influxDB.query(query).getResults().stream()
+                  .filter(r -> r.getSeries() != null)
+                  .flatMap(r -> r.getSeries().stream())
+                  .filter(s -> s.getName().equals(influxViewsMeasurement))
+                  .flatMap(s -> s.getValues().stream().map(v -> new Tuple<>(s.getColumns(), v)))
+                  .forEach(t -> {
+                    final List<String> columns = t.getA();
+                    final List<Object> values = t.getB();
+                    final int timeIndex = columns.indexOf("time");
+                    final int episodeIdIndex = columns.indexOf("episodeId");
+                    final int organizationIdIndex = columns.indexOf("organizationId");
+                    final int valueIndex = columns.indexOf("value");
+                    final Instant time = Instant.parse(values.get(timeIndex).toString());
+                    final Point point = Point.measurement(influxViewsMeasurement)
+                        .tag("episodeId", values.get(episodeIdIndex).toString())
+                        .tag("organizationId", values.get(organizationIdIndex).toString())
+                        .tag("seriesId", seriesId)
+                        .addField("value", (Double) values.get(valueIndex))
+                        .time(time.toEpochMilli(), TimeUnit.MILLISECONDS)
+                        .build();
+                    influxDB.write(point);
+                  });
+              final Query deleteQuery = BoundParameterQuery.QueryBuilder.newQuery("DELETE FROM " + influxViewsMeasurement + " WHERE episodeId=$episodeId AND seriesId!=$seriesId")
+                  .bind("episodeId", episodeId)
+                  .bind("seriesId", seriesId)
+                  .create();
+              influxDB.query(deleteQuery);
             }
           }
         } catch (CancellationException e) {
