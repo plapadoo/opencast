@@ -22,11 +22,12 @@
 package org.opencastproject.statistics.provider.influx.provider;
 
 import org.opencastproject.statistics.api.DataResolution;
-import org.opencastproject.statistics.api.DateUtil;
 import org.opencastproject.statistics.api.ResourceType;
 import org.opencastproject.statistics.api.StatisticsProvider;
 import org.opencastproject.statistics.provider.influx.StatisticsProviderInfluxService;
 import org.opencastproject.util.data.Tuple;
+
+import com.google.common.collect.Ordering;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -125,7 +126,7 @@ public abstract class InfluxStatisticsProvider implements StatisticsProvider {
     for (YearMonth month : months) {
       final Instant start = month.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
       final Instant end = month.atEndOfMonth().atTime(23, 59, 59, 1_000_000_000 - 1).toInstant(ZoneOffset.UTC);
-      result.add(new Tuple<>(DateUtil.max(start, from), DateUtil.min(end, to)));
+      result.add(new Tuple<>(Ordering.natural().max(start, from), Ordering.natural().min(end, to)));
     }
     return result;
   }
@@ -135,7 +136,7 @@ public abstract class InfluxStatisticsProvider implements StatisticsProvider {
     for (Year year : years) {
       final Instant start = year.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
       final Instant end = year.atMonthDay(MonthDay.of(12, 31)).atTime(23, 59, 59, 1_000_000_000 - 1).toInstant(ZoneOffset.UTC);
-      result.add(new Tuple<>(DateUtil.max(start, from), DateUtil.min(end, to)));
+      result.add(new Tuple<>(Ordering.natural().max(start, from), Ordering.natural().min(end, to)));
     }
     return result;
   }

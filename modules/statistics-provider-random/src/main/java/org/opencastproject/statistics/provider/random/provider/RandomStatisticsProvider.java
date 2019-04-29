@@ -22,8 +22,8 @@
 package org.opencastproject.statistics.provider.random.provider;
 
 import org.opencastproject.statistics.api.DataResolution;
-import org.opencastproject.statistics.api.DateUtil;
 import org.opencastproject.statistics.api.ResourceType;
+import org.opencastproject.statistics.api.StatisticsUtil;
 import org.opencastproject.statistics.api.TimeSeries;
 import org.opencastproject.statistics.api.TimeSeriesProvider;
 
@@ -59,7 +59,7 @@ public class RandomStatisticsProvider implements TimeSeriesProvider {
 
   @Override
   public TimeSeries getValues(String resourceId, Instant from, Instant to, DataResolution resolution, ZoneId zoneId) {
-    final List<String> labels = DateUtil.getBuckets(from, to, resolution, zoneId).stream()
+    final List<String> labels = StatisticsUtil.getBuckets(from, to, resolution, zoneId).stream()
         .map(Instant::toString)
         .collect(Collectors.toList());
     final List<Double> values = labels.stream()
