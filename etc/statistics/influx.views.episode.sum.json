@@ -3,12 +3,17 @@
   "title": "STATISTICS.TITLE.VIEWS_SUM",
   "description": "STATISTICS.DESCRIPTION.VIEWS_SUM",
   "resourceType": "EPISODE",
-  "resolutions": [
-    "DAILY",
-    "WEEKLY",
-    "MONTHLY",
-    "YEARLY"
-  ],
-  "source": "influx:infinite.impressions_daily:SUM:value:episodeId",
+  "sources": [{
+    "measurement": "infinite.impressions_daily",
+    "aggregation": "SUM",
+    "aggregationVariable": "value",
+    "resourceIdName": "episodeId",
+    "resolutions": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "YEARLY"
+    ]
+  }],
   "type": "timeseries"
 }

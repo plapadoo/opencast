@@ -3,12 +3,17 @@
   "title": "STATISTICS.TITLE.VIEWS_AVG",
   "description": "STATISTICS.DESCRIPTION.VIEWS_AVG",
   "resourceType": "EPISODE",
-  "resolutions": [
-    "DAILY",
-    "WEEKLY",
-    "MONTHLY",
-    "YEARLY"
-  ],
-  "source": "influx:infinite.impressions_daily:MEAN:value:episodeId",
+  "sources": [{
+    "measurement": "infinite.impressions_daily",
+    "aggregation": "MEAN",
+    "aggregationVariable": "value",
+    "resourceIdName": "episodeId",
+    "resolutions": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "YEARLY"
+    ]
+  }],
   "type": "timeseries"
 }
