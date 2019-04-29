@@ -32,14 +32,14 @@ https://opencast.domain.com/api/statistics/providers?filter=resourceType:episode
 
 __Response__
 
-`200 (OK)`: A (potentially empty) list of providers is returned as JSON array contained JSON objects describing the series:
+`200 (OK)`: A (potentially empty) list of providers is returned as a JSON array containing JSON objects describing the series:
 
 Field          | Type                                      | Description
 :--------------|:------------------------------------------|:-----------
 `identifier`   | [`string`](types.md#basic)                | The unique identifier of the provider
 `title`        | [`string`](types.md#basic)                | The title of the provider
 `description`  | [`string`](types.md#basic)                | The description of the provider
-`type`\*       | [`string`](types.md#basic)                | Type of the provider
+`type`\*       | [`string`](types.md#basic)                | The type of the provider
 `resourceType` | [`string`](types.md#basic)                | The resource type of the provider
 `parameters`   | [`array[parameter]`](types.md#statistics) | Supported query parameters (optional)
 
@@ -55,14 +55,14 @@ __Example__
     "description": "Episode Views, Lorem Ipsum",
     "type": "timeSeries",
     "resourceType": "episode",
-    "para": ["monthly", "yearly"]
+    "parameters": ["monthly", "yearly"]
   }
 ]
 ```
 
 ### GET /api/statistics/providers/{providerId}
 
-Returns a statistics providers.
+Returns a statistics provider.
 
 This request additionally supports the following query string parameters to include additional information directly in
 the response:
@@ -78,14 +78,14 @@ https://opencast.domain.com/api/statistics/providers/a-timeseries-provider?withp
 
 __Response__
 
-`200 (OK)`: A (potentially empty) list of providers is returned as JSON array contained JSON objects describing the series:
+`200 (OK)`: A (potentially empty) list of providers is returned as a JSON array containing JSON objects describing the series:
 
 Field          | Type                                      | Description
 :--------------|:------------------------------------------|:-----------
 `identifier`   | [`string`](types.md#basic)                | The unique identifier of the provider
 `title`        | [`string`](types.md#basic)                | The title of the provider
 `description`  | [`string`](types.md#basic)                | The description of the provider
-`type`\*       | [`string`](types.md#basic)                | Type of the provider
+`type`\*       | [`string`](types.md#basic)                | The type of the provider
 `resourceType` | [`string`](types.md#basic)                | The resource type of the provider
 `parameters`   | [`array[parameter]`](types.md#statistics) | Supported query parameters (optional)
 
@@ -140,9 +140,7 @@ Form Parameters | Required |Type                                  | Description
 :---------------|:---------|:-------------------------------------|:-----------
 `data`          | yes      | [`array[object]`](types.md#extended) | A JSON array describing the statistics queries to request (see below)
 
-The JSON array consists of JSON objects containing the following fields:
-
-A query JSON object contains information about a statistics query to be executed.
+The JSON array consists of query JSON objects. A query JSON object contains information about a statistics query to be executed:
 
 Field        | Required | Type                     | Description
 :------------|:---------|:-------------------------|:-----------
@@ -182,7 +180,7 @@ __Example__
 
 __Response__
 
-`200 (OK)`: A (potentially empty) list of query results is returned as JSON array contained JSON objects
+`200 (OK)`: A (potentially empty) list of query results is returned as a JSON array containing JSON objects
 `400 (BAD REQUEST)`: The request was not valid
 
 Field name       |Type                                  | Description
@@ -190,6 +188,15 @@ Field name       |Type                                  | Description
 `provider`       | [`property`](#extended)              | A JSON object describing the statistics provider as described below
 `parameters`     | [`property`](#extended)              | A JSON object describing the query parameters
 `data`           | [`property`](#extended)              | A JSON object containing the query result
+
+
+Here, a statistics provider JSON object has the following fields:
+
+Field          | Type                                      | Description
+:--------------|:------------------------------------------|:-----------
+`identifier`   | [`string`](types.md#basic)                | The unique identifier of the provider
+`type`\*       | [`string`](types.md#basic)                | The type of the provider
+`resourceType` | [`string`](types.md#basic)                | The resource type of the provider
 
 Note that the format of data is implied by the type of the statistics provider.
 
@@ -230,7 +237,7 @@ __Example__
 #### Time Series Statistics Provider
 
 Time Series Statistics Providers (type = timeseries) support some well-defined parameters and deliver a well-defined
-dataformat.
+data format.
 
 Parameters:
 

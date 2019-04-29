@@ -37,7 +37,7 @@ The Opencast `StatisticsService` implements the two interfaces `StatisticsProvid
 
 **StatisticsProviderRegistry**
 
-This interface is used by `StatisticsProvider` implementation to register and unregister themselves at the
+This interface is used by `StatisticsProvider` implementations to register and unregister themselves at the
 statistics service.
 
 Method         | Description
