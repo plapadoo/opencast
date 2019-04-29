@@ -3,12 +3,5 @@
   "title": "STATISTICS.TITLE.RANDOM",
   "description": "STATISTICS.DESCRIPTION.RANDOM",
   "resourceType": "EPISODE",
-  "resolutions": [
-    "DAILY",
-    "WEEKLY",
-    "MONTHLY",
-    "YEARLY"
-  ],
-  "source": "random:",
   "type": "timeseries"
 }
