@@ -22,6 +22,7 @@
 package org.opencastproject.statistics.provider.influx.provider;
 
 import org.opencastproject.statistics.api.DataResolution;
+import org.opencastproject.statistics.api.ResourceType;
 import org.opencastproject.statistics.api.TimeSeries;
 import org.opencastproject.statistics.api.TimeSeriesProvider;
 import org.opencastproject.statistics.provider.influx.StatisticsProviderInfluxService;
@@ -35,13 +36,34 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-public abstract class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider implements TimeSeriesProvider {
+public class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider implements TimeSeriesProvider {
+
+  private String aggregation;
+  private String aggregationVariable;
+  private String measurement;
+  private String resourceIdName;
 
 
-  public InfluxTimeSeriesStatisticsProvider(StatisticsProviderInfluxService service) {
-    super(service);
+  public InfluxTimeSeriesStatisticsProvider(
+      StatisticsProviderInfluxService service,
+      String id,
+      ResourceType resourceType,
+      Set<DataResolution> dataResolutions,
+      String title,
+      String description,
+      String aggregation,
+      String aggregationVariable,
+      String measurement,
+      String resourceIdName
+  ) {
+    super(service, id, resourceType, dataResolutions, title, description);
+    this.aggregation = aggregation;
+    this.aggregationVariable = aggregationVariable;
+    this.measurement = measurement;
+    this.resourceIdName = resourceIdName;
   }
 
   @Override
@@ -52,7 +74,7 @@ public abstract class InfluxTimeSeriesStatisticsProvider extends InfluxStatistic
     final List<Double> values = new ArrayList<>();
     for (final Tuple<Instant, Instant> period : periods) {
       final Query query = BoundParameterQuery.QueryBuilder
-          .newQuery("SELECT " + getAggregation() + "(" + getAggregationVariable() + ") FROM " + getMeasurement() + " WHERE " + getResourceIdName() + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
+          .newQuery("SELECT " + aggregation + "(" + aggregationVariable + ") FROM " + measurement + " WHERE " + resourceIdName + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
           .bind("resourceId", resourceId)
           .bind("from", period.getA())
           .bind("to", period.getB())
@@ -62,7 +84,7 @@ public abstract class InfluxTimeSeriesStatisticsProvider extends InfluxStatistic
       labels.addAll(currentViews.getLabels());
       values.addAll(currentViews.getValues());
     }
-    final Double total = getAggregation().equalsIgnoreCase("SUM") ? values.stream().mapToDouble(v -> v).sum() : null;
+    final Double total = "SUM".equalsIgnoreCase(aggregation) ? values.stream().mapToDouble(v -> v).sum() : null;
     return new TimeSeries(labels, values, total);
   }
 

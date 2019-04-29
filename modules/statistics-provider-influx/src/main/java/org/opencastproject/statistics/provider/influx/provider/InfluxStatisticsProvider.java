@@ -23,6 +23,7 @@ package org.opencastproject.statistics.provider.influx.provider;
 
 import org.opencastproject.statistics.api.DataResolution;
 import org.opencastproject.statistics.api.DateUtil;
+import org.opencastproject.statistics.api.ResourceType;
 import org.opencastproject.statistics.api.StatisticsProvider;
 import org.opencastproject.statistics.provider.influx.StatisticsProviderInfluxService;
 import org.opencastproject.util.data.Tuple;
@@ -37,20 +38,59 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 
 public abstract class InfluxStatisticsProvider implements StatisticsProvider {
 
-  protected StatisticsProviderInfluxService service;
 
-  public InfluxStatisticsProvider(StatisticsProviderInfluxService service) {
+  protected StatisticsProviderInfluxService service;
+  private String id;
+  private ResourceType resourceType;
+  private Set<DataResolution> dataResolutions;
+  private String title;
+  private String description;
+
+
+  public InfluxStatisticsProvider(
+      StatisticsProviderInfluxService service,
+      String id,
+      ResourceType resourceType,
+      Set<DataResolution> dataResolutions,
+      String title,
+      String description
+  ) {
     this.service = service;
+    this.id = id;
+    this.resourceType = resourceType;
+    this.dataResolutions = dataResolutions;
+    this.title = title;
+    this.description = description;
   }
 
-  protected abstract String getMeasurement();
-  protected abstract String getAggregation();
-  protected abstract String getAggregationVariable();
-  protected abstract String getResourceIdName();
+  @Override
+  public String getId() {
+    return id;
+  }
+
+  @Override
+  public ResourceType getResourceType() {
+    return resourceType;
+  }
+
+  public Set<DataResolution> getDataResolutions() {
+    return dataResolutions;
+  }
+
+  @Override
+  public String getTitle() {
+    return title;
+  }
+
+  @Override
+  public String getDescription() {
+    return description;
+  }
 
   protected static String dataResolutionToInfluxGrouping(DataResolution dataResolution) {
     switch (dataResolution) {
