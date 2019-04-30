@@ -74,7 +74,7 @@ For each provider, the following properties have to be configured:
   colons (:). A valid `source` string would be `influx:infinite.impressions_daily:SUM:value:episodeId` which has the
   following meaning:
 
-    1. `influx` tells Opencast that InfluxDB is is the data source.
+    1. `influx` tells Opencast that InfluxDB is the data source.
     2. `infinite.impressions_daily` tells Opencast that your InfluxDB data retention policy is named `infinite` and your
         InfluxDB measurement name is `impressions_daily`.
     3. `SUM` tells Opencast that InfluxDB's `SUM()` function should be used to calculate the values to display in the
