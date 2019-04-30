@@ -98,7 +98,7 @@ public abstract class InfluxStatisticsProvider implements StatisticsProvider {
       case DAILY:
         return " GROUP BY time(1d)";
       case WEEKLY:
-        return " GROUP BY time(1w, -3d)";  // -3d because otherwise, influx starts weeks on Thursdays (wtf?)
+        return " GROUP BY time(1w, -3d)";  // -3d because otherwise, influx starts weeks on Thursdays
       case MONTHLY:
         return ""; // not available in influx -> we have to do multiple queries with different periods
       case YEARLY:
