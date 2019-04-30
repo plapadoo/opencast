@@ -137,6 +137,7 @@
     <sec:intercept-url pattern="/admin-ng/series/deleteSeries" method="POST" access="ROLE_ADMIN, ROLE_UI_SERIES_DELETE" />
     <sec:intercept-url pattern="/admin-ng/series/new" method="POST" access="ROLE_ADMIN, ROLE_UI_SERIES_CREATE" />
     <sec:intercept-url pattern="/admin-ng/series/*/access" method="POST" access="ROLE_ADMIN, ROLE_UI_SERIES_DETAILS_ACL_EDIT" />
+    <sec:intercept-url pattern="/admin-ng/statistics/data.json" method="POST" access="ROLE_ADMIN, ROLE_ADMIN_UI" />
     <sec:intercept-url pattern="/admin-ng/tasks/new" method="POST" access="ROLE_ADMIN, ROLE_UI_TASKS_CREATE" />
     <sec:intercept-url pattern="/admin-ng/themes" method="POST" access="ROLE_ADMIN, ROLE_UI_THEMES_CREATE" />
     <sec:intercept-url pattern="/admin-ng/tools/*/editor.json" method="POST" access="ROLE_ADMIN, ROLE_UI_EVENTS_EDITOR_EDIT" />
