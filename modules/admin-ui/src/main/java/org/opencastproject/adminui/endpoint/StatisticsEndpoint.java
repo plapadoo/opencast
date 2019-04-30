@@ -285,7 +285,6 @@ public class StatisticsEndpoint {
     })
   public Response getProviderData(@FormParam("data") String data) {
     if (StringUtils.isBlank(data)) {
-      logger.warn("No data set");
       return RestUtil.R.badRequest("No data set");
     }
     Gson gson = new Gson();
