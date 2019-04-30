@@ -54,8 +54,7 @@ __Example__
     "title": "Episode Views",
     "description": "Episode Views, Lorem Ipsum",
     "type": "timeSeries",
-    "resourceType": "episode",
-    "parameters": ["monthly", "yearly"]
+    "resourceType": "episode"
   }
 ]
 ```
