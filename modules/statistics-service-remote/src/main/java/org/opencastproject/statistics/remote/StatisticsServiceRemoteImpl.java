@@ -72,7 +72,6 @@ import javax.ws.rs.Path;
         + "error occurred: <a href=\"https://opencast.jira.com\">Opencast Issue Tracker</a>"})
 public class StatisticsServiceRemoteImpl extends RemoteBase implements StatisticsService {
 
-  private static final Logger logger = LoggerFactory.getLogger(StatisticsServiceRemoteImpl.class);
   private static final JSONParser jsonParser = new JSONParser();
 
   public StatisticsServiceRemoteImpl() {
