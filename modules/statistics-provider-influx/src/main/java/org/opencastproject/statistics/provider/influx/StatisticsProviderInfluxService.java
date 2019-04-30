@@ -79,7 +79,7 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
 
   public void deactivate(ComponentContext cc) {
     logger.info("Deactivating Statistics Provider Influx Service");
-    disconnectInfux();
+    disconnectInflux();
   }
 
   @Override
@@ -136,7 +136,7 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   public void updated(Dictionary<String, ?> dictionary) {
     if (dictionary == null) {
       logger.info("No configuration available. Not connecting to influx.");
-      disconnectInfux();
+      disconnectInflux();
     } else {
       final Object influxUriValue = dictionary.get(KEY_INFLUX_URI);
       if (influxUriValue != null) {
@@ -163,13 +163,13 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   }
 
   private void connectInflux() {
-    disconnectInfux();
+    disconnectInflux();
     influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
     influxDB.setDatabase(influxDbName);
     fileNameToProvider.values().forEach(provider -> statisticsProviderRegistry.addProvider(provider));
   }
 
-  private void disconnectInfux() {
+  private void disconnectInflux() {
     if (influxDB != null) {
       fileNameToProvider.values().forEach(provider -> statisticsProviderRegistry.removeProvider(provider));
       influxDB.close();
