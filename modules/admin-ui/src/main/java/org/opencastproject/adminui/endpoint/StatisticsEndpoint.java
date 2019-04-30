@@ -108,6 +108,12 @@ public class StatisticsEndpoint {
     this.statisticsService = statisticsService;
   }
 
+  /**
+   * The provider query as it appears in the JSON document, to be parsed by GSON.
+   *
+   * Things like dates and enums are not validated in this class. This is done by converting it into a
+   * {@link ProviderQuery}.
+   */
   private static final class RawProviderQuery {
     private String providerId;
     private String from;
