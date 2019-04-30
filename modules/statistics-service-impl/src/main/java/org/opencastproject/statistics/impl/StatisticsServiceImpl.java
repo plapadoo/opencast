@@ -71,7 +71,11 @@ public class StatisticsServiceImpl implements StatisticsService, StatisticsProvi
 
   @Override
   public Set<StatisticsProvider> getProviders(ResourceType resourceType) {
-    return providers.values().stream().filter(p -> p.getResourceType().equals(resourceType)).collect(Collectors.toSet());
+    return providers
+            .values()
+            .stream()
+            .filter(p -> p.getResourceType().equals(resourceType))
+            .collect(Collectors.toSet());
   }
 
   @Override
@@ -80,7 +84,13 @@ public class StatisticsServiceImpl implements StatisticsService, StatisticsProvi
   }
 
   @Override
-  public TimeSeries getTimeSeriesData(StatisticsProvider provider, String resourceId, Instant from, Instant to, DataResolution resolution, ZoneId zoneId) {
+  public TimeSeries getTimeSeriesData(
+          StatisticsProvider provider,
+          String resourceId,
+          Instant from,
+          Instant to,
+          DataResolution resolution,
+          ZoneId zoneId) {
     if (!(provider instanceof TimeSeriesProvider)) {
       throw new IllegalArgumentException("The given provider '" + provider.getTitle()
           + "' (" + provider.getId() + ") does not provide time series data");

@@ -74,11 +74,12 @@ public class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider
     final List<Double> values = new ArrayList<>();
     for (final Tuple<Instant, Instant> period : periods) {
       final Query query = BoundParameterQuery.QueryBuilder
-          .newQuery("SELECT " + aggregation + "(" + aggregationVariable + ") FROM " + measurement + " WHERE " + resourceIdName + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
-          .bind("resourceId", resourceId)
-          .bind("from", period.getA())
-          .bind("to", period.getB())
-          .create();
+              .newQuery("SELECT " + aggregation + "(" + aggregationVariable + ") FROM " + measurement + " WHERE "
+                                + resourceIdName + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
+              .bind("resourceId", resourceId)
+              .bind("from", period.getA())
+              .bind("to", period.getB())
+              .create();
       final QueryResult results = service.getInfluxDB().query(query);
       final TimeSeries currentViews = queryResultToTimeSeries(results);
       labels.addAll(currentViews.getLabels());
