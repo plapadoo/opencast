@@ -152,8 +152,8 @@ Field        | Required | Type                | Description
 :------------|:---------|:--------------------|:-----------
 `identifier` | yes      | [`string`](#basic)  | A JSON object with information about the statistics provider to be queried
 
-The JSON object `parameters` has the following fields:
-
+The format of the JSON object `parameters` depends on the provider type that is queried, and is described separately for
+each provider in the next section.
 
 __Example__
 
@@ -172,6 +172,9 @@ __Example__
         },
         "parameters": {
           "resourceId": "23413432-5a15-328e-aafe-562a2bae6800",
+          "from": "2019-04-10T13:45:32Z",
+          "to": "2019-04-12T00:00:00Z",
+          "dataResolution": "daily"
         }
       }
     ]
