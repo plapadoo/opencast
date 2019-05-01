@@ -28,10 +28,14 @@ import org.opencastproject.statistics.api.TimeSeriesProvider;
 import org.opencastproject.statistics.provider.influx.StatisticsProviderInfluxService;
 import org.opencastproject.util.data.Tuple;
 
+import org.influxdb.InfluxDBIOException;
 import org.influxdb.dto.BoundParameterQuery;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.net.ConnectException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -41,10 +45,13 @@ import java.util.stream.Collectors;
 
 public class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider implements TimeSeriesProvider {
 
+  private static final Logger logger = LoggerFactory.getLogger(InfluxTimeSeriesStatisticsProvider.class);
+
   private String aggregation;
   private String aggregationVariable;
   private String measurement;
   private String resourceIdName;
+
 
 
   public InfluxTimeSeriesStatisticsProvider(
@@ -80,10 +87,18 @@ public class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider
               .bind("from", period.getA())
               .bind("to", period.getB())
               .create();
-      final QueryResult results = service.getInfluxDB().query(query);
-      final TimeSeries currentViews = queryResultToTimeSeries(results);
-      labels.addAll(currentViews.getLabels());
-      values.addAll(currentViews.getValues());
+      try {
+        final QueryResult results = service.getInfluxDB().query(query);
+        final TimeSeries currentViews = queryResultToTimeSeries(results);
+        labels.addAll(currentViews.getLabels());
+        values.addAll(currentViews.getValues());
+      } catch (InfluxDBIOException e) {
+        if (e.getCause() instanceof ConnectException) {
+          logger.error("Influx connect exception: {}", e.getMessage());
+        } else {
+          throw e;
+        }
+      }
     }
     final Double total = "SUM".equalsIgnoreCase(aggregation) ? values.stream().mapToDouble(v -> v).sum() : null;
     return new TimeSeries(labels, values, total);
