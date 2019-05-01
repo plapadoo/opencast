@@ -22,6 +22,7 @@
 package org.opencastproject.statistics.api;
 
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -78,4 +79,5 @@ public interface StatisticsService {
    */
   TimeSeries getTimeSeriesData(StatisticsProvider provider, String resourceId, Instant from, Instant to, DataResolution resolution, ZoneId zoneId);
 
+  void addPublishedHours(String organizationId, Duration duration);
 }

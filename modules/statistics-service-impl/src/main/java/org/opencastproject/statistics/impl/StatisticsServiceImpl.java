@@ -34,6 +34,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -98,6 +99,11 @@ public class StatisticsServiceImpl implements StatisticsService, StatisticsProvi
     }
     final List<Instant> buckets = StatisticsUtil.getBuckets(from, to, resolution, zoneId);
     return fill(((TimeSeriesProvider) provider).getValues(resourceId, from, to, resolution, zoneId), buckets);
+  }
+
+  @Override
+  public void addPublishedHours(String organizationId, Duration duration) {
+
   }
 
   @Override

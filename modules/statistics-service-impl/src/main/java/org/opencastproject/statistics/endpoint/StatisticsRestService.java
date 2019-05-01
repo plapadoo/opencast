@@ -41,8 +41,10 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.Set;
 
 import javax.ws.rs.GET;
@@ -90,6 +92,26 @@ public class StatisticsRestService {
    *          ComponentContext
    */
   public void activate(ComponentContext cc) {
+  }
+
+  @GET
+  @Produces(MediaType.APPLICATION_JSON)
+  @Path("publishedHours")
+  @RestQuery(name = "updatePublishedHours", description = "Updates published hours", returnDescription = "", reponses = {
+          @RestResponse(responseCode = SC_OK, description = "Update worked") })
+  public Response updatePublishedHours(
+    @QueryParam("organizationId") final String organizationId,
+    @QueryParam("duration") final String duration) {
+    try {
+      statisticsService.addPublishedHours(organizationId, Duration.parse(duration));
+      return Response.ok().build();
+    } catch (DateTimeParseException e) {
+      logger.error("Invalid duration given", e);
+      throw new WebApplicationException(Response.Status.BAD_REQUEST);
+    } catch (Exception e) {
+      logger.error("Could not update hours", e);
+      throw new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR);
+    }
   }
 
   @GET

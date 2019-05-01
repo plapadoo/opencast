@@ -45,6 +45,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -121,6 +122,15 @@ public class StatisticsServiceRemoteImpl extends RemoteBase implements Statistic
       closeConnection(response);
     }
     throw new RuntimeException("Unable to get time series data from remote service");
+  }
+
+  @Override
+  public void addPublishedHours(String organizationId, Duration duration) {
+    final List<NameValuePair> queryStringParams = new ArrayList<>();
+    queryStringParams.add(new BasicNameValuePair("organizationId", organizationId));
+    queryStringParams.add(new BasicNameValuePair("duration", duration.toString()));
+    closeConnection(getResponse(new HttpGet("publishedHours?" + URLEncodedUtils.format(queryStringParams, UTF_8)),
+                                SC_OK));
   }
 
   @SuppressWarnings("unchecked")

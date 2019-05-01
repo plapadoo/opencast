@@ -117,6 +117,16 @@
       </configurations>
     </operation>
 
+    <operation
+      id="publishedhours"
+      fail-on-error="true"
+      exception-handler-workflow="partial-error"
+      description="foobar">
+      <configurations>
+        <configuration key="flavor">presenter/video</configuration>
+      </configurations>
+    </operation>
+
     <!-- encode video -->
 
     <operation

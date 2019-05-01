@@ -24,12 +24,20 @@ package org.opencastproject.statistics.provider.influx;
 import org.opencastproject.statistics.api.StatisticsProvider;
 import org.opencastproject.statistics.api.StatisticsProviderRegistry;
 import org.opencastproject.statistics.provider.influx.provider.InfluxProviderConfiguration;
+import org.opencastproject.statistics.api.ConfiguredProvider;
+import org.opencastproject.statistics.api.DataResolution;
+import org.opencastproject.statistics.api.ResourceType;
+import org.opencastproject.statistics.api.StatisticsProvider;
+import org.opencastproject.statistics.api.StatisticsProviderRegistry;
+import org.opencastproject.statistics.api.StatisticsWriter;
+import org.opencastproject.statistics.provider.influx.provider.InfluxSummingTimeSeriesStatisticsProvider;
 import org.opencastproject.statistics.provider.influx.provider.InfluxTimeSeriesStatisticsProvider;
 import org.opencastproject.util.ConfigurationException;
 
 import org.apache.felix.fileinstall.ArtifactInstaller;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
+import org.influxdb.dto.Point;
 import org.json.simple.parser.ParseException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.ComponentContext;
@@ -40,14 +48,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Dictionary;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implements statistics providers using influxdb for permanent storage.
  */
-public class StatisticsProviderInfluxService implements ManagedService, ArtifactInstaller {
+public class StatisticsProviderInfluxService implements ManagedService, ArtifactInstaller, StatisticsWriter {
 
   /** Logging utility */
   private static final Logger logger = LoggerFactory.getLogger(StatisticsProviderInfluxService.class);
@@ -56,6 +67,9 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   private static final String KEY_INFLUX_USER = "influx.username";
   private static final String KEY_INFLUX_PW = "influx.password";
   private static final String KEY_INFLUX_DB = "influx.db";
+  private static final String PUBLISHED_HOURS_FIELD_NAME = "seconds";
+  private static final String PUBLISHED_HOURS_MEASUREMENT_NAME = "publishedHours";
+  private static final String PUBLISHED_HOURS_RESOURCE_ID = "organizationId";
 
   private String influxUri = "http://127.0.0.1:8086";
   private String influxUser = "root";
@@ -160,6 +174,17 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
     influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
     influxDB.setDatabase(influxDbName);
     fileNameToProvider.values().forEach(provider -> statisticsProviderRegistry.addProvider(provider));
+    statisticsProviderRegistry.addProvider(new InfluxSummingTimeSeriesStatisticsProvider(
+            this,
+            "published-hours",
+            ResourceType.ORGANIZATION,
+            new HashSet<>(Arrays.asList(DataResolution.MONTHLY, DataResolution.WEEKLY, DataResolution.YEARLY)),
+            "publishedhoursblabla",
+            "descriptionblabla",
+            "SUM",
+            PUBLISHED_HOURS_FIELD_NAME,
+            PUBLISHED_HOURS_MEASUREMENT_NAME,
+            PUBLISHED_HOURS_RESOURCE_ID));
   }
 
   private void disconnectInflux() {
@@ -170,4 +195,13 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
     }
   }
 
+  @Override
+  public void updatePublishedTime(String organizationId, Duration hours) {
+    final Point point = Point
+            .measurement(PUBLISHED_HOURS_MEASUREMENT_NAME)
+            .tag(PUBLISHED_HOURS_RESOURCE_ID, organizationId)
+            .addField(PUBLISHED_HOURS_FIELD_NAME, hours.getSeconds())
+            .build();
+    influxDB.write(point);
+  }
 }

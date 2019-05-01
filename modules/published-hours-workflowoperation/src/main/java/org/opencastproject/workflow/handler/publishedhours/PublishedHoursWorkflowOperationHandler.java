@@ -25,6 +25,8 @@ import org.opencastproject.job.api.JobContext;
 import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.Track;
+import org.opencastproject.security.api.SecurityService;
+import org.opencastproject.statistics.api.StatisticsWriter;
 import org.opencastproject.workflow.api.AbstractWorkflowOperationHandler;
 import org.opencastproject.workflow.api.WorkflowInstance;
 import org.opencastproject.workflow.api.WorkflowOperationException;
@@ -32,15 +34,34 @@ import org.opencastproject.workflow.api.WorkflowOperationInstance;
 import org.opencastproject.workflow.api.WorkflowOperationResult;
 import org.opencastproject.workflow.api.WorkflowOperationResult.Action;
 
+import org.apache.commons.lang3.BooleanUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
 
 public class PublishedHoursWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(PublishedHoursWorkflowOperationHandler.class);
 
-  /** Flavorfilter */
   private static final String OPT_FLAVOR = "flavor";
+  private static final String OPT_RETRACT = "retract";
+
+  private StatisticsWriter statisticsWriter;
+
+  public void setStatisticsWriter(StatisticsWriter statisticsWriter) {
+    this.statisticsWriter = statisticsWriter;
+  }
+
+  private SecurityService securityService;
+
+  public void setSecurityService(SecurityService securityService) {
+    this.securityService = securityService;
+  }
+
+  protected void activate(org.osgi.service.component.ComponentContext cc) {
+
+  }
 
   /**
    * {@inheritDoc}
@@ -55,12 +76,18 @@ public class PublishedHoursWorkflowOperationHandler extends AbstractWorkflowOper
 
     final WorkflowOperationInstance operation = workflowInstance.getCurrentOperation();
     final String flavor = operation.getConfiguration(OPT_FLAVOR);
+    final boolean retract = BooleanUtils.toBoolean(operation.getConfiguration(OPT_RETRACT));
 
     for (Track track : mediaPackage.getTracks(MediaPackageElementFlavor.parseFlavor(flavor))) {
-
+      if (track.getDuration() != null) {
+        Duration duration = Duration.ofMillis(track.getDuration());
+        if (retract) {
+          duration = duration.negated();
+        }
+        statisticsWriter.updatePublishedTime(securityService.getOrganization().getId(), duration);
+      }
     }
 
     return createResult(mediaPackage, Action.CONTINUE);
-    //return createResult(mediaPackage, Action.CONTINUE, totalTimeInQueue);
   }
 }
