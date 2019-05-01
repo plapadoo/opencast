@@ -73,7 +73,7 @@ public class InfluxTimeSeriesStatisticsProvider extends InfluxStatisticsProvider
     for (final Tuple<Instant, Instant> period : periods) {
       final Query query = BoundParameterQuery.QueryBuilder
           .newQuery("SELECT " + source.getAggregation() + "(" + source.getAggregationVariable() + ") FROM "
-                            + source.getMeasurement() + " WHERE " + source.getResourceIdName() 
+                            + source.getMeasurement() + " WHERE " + source.getResourceIdName()
                             + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
           .bind("resourceId", resourceId)
           .bind("from", period.getA())

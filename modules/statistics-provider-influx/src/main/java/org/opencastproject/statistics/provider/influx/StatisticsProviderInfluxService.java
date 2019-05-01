@@ -21,15 +21,11 @@
 
 package org.opencastproject.statistics.provider.influx;
 
-import org.opencastproject.statistics.api.StatisticsProvider;
-import org.opencastproject.statistics.api.StatisticsProviderRegistry;
-import org.opencastproject.statistics.provider.influx.provider.InfluxProviderConfiguration;
-import org.opencastproject.statistics.api.ConfiguredProvider;
-import org.opencastproject.statistics.api.DataResolution;
 import org.opencastproject.statistics.api.ResourceType;
 import org.opencastproject.statistics.api.StatisticsProvider;
 import org.opencastproject.statistics.api.StatisticsProviderRegistry;
 import org.opencastproject.statistics.api.StatisticsWriter;
+import org.opencastproject.statistics.provider.influx.provider.InfluxProviderConfiguration;
 import org.opencastproject.statistics.provider.influx.provider.InfluxSummingTimeSeriesStatisticsProvider;
 import org.opencastproject.statistics.provider.influx.provider.InfluxTimeSeriesStatisticsProvider;
 import org.opencastproject.util.ConfigurationException;
@@ -49,9 +45,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Dictionary;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -77,11 +71,8 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   private String influxDbName = "opencast";
 
   private volatile InfluxDB influxDB;
-
-
   private StatisticsProviderRegistry statisticsProviderRegistry;
   private Map<String, StatisticsProvider> fileNameToProvider = new ConcurrentHashMap<>();
-
 
   public void setStatisticsProviderRegistry(StatisticsProviderRegistry service) {
     this.statisticsProviderRegistry = service;
@@ -177,9 +168,7 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
     statisticsProviderRegistry.addProvider(new InfluxSummingTimeSeriesStatisticsProvider(
             this,
             "published-hours",
-            ResourceType.ORGANIZATION,
-            new HashSet<>(Arrays.asList(DataResolution.MONTHLY, DataResolution.WEEKLY, DataResolution.YEARLY)),
-            "publishedhoursblabla",
+            ResourceType.ORGANIZATION, "publishedhoursblabla",
             "descriptionblabla",
             "SUM",
             PUBLISHED_HOURS_FIELD_NAME,

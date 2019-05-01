@@ -35,6 +35,8 @@ import org.influxdb.dto.QueryResult;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,15 +50,13 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
   public InfluxSummingTimeSeriesStatisticsProvider(
           StatisticsProviderInfluxService service,
           String id,
-          ResourceType resourceType,
-          Set<DataResolution> dataResolutions,
-          String title,
+          ResourceType resourceType, String title,
           String description,
           String aggregation,
           String aggregationVariable,
           String measurement,
           String resourceIdName) {
-    super(service, id, resourceType, dataResolutions, title, description);
+    super(service, id, resourceType, title, description);
     this.aggregation = aggregation;
     this.aggregationVariable = aggregationVariable;
     this.measurement = measurement;
@@ -134,6 +134,11 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
     }
     final Double total = "SUM".equalsIgnoreCase(aggregation) ? values.stream().mapToDouble(v -> v).sum() : null;
     return new TimeSeries(labels, values, total);
+  }
+
+  @Override
+  public Set<DataResolution> getDataResolutions() {
+    return new HashSet<>(Arrays.asList(DataResolution.YEARLY, DataResolution.MONTHLY, DataResolution.DAILY));
   }
 
   private Tuple<TimeSeries, Double> queryResultToTimeSeries(final QueryResult results, final double previousSeconds, final Instant periodStart) {
