@@ -24,5 +24,10 @@ package org.opencastproject.statistics.api;
 import java.time.Duration;
 
 public interface StatisticsWriter {
-  void updatePublishedTime(String organizationId, Duration hours);
+  void writeDuration(
+          String organizationId,
+          String measurementName,
+          String resourceIdName,
+          String fieldName,
+          Duration hours);
 }

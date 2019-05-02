@@ -26,7 +26,7 @@ import org.opencastproject.statistics.api.StatisticsProvider;
 import org.opencastproject.statistics.api.StatisticsProviderRegistry;
 import org.opencastproject.statistics.api.StatisticsWriter;
 import org.opencastproject.statistics.provider.influx.provider.InfluxProviderConfiguration;
-import org.opencastproject.statistics.provider.influx.provider.InfluxSummingTimeSeriesStatisticsProvider;
+import org.opencastproject.statistics.provider.influx.provider.InfluxRunningTotalStatisticsProvider;
 import org.opencastproject.statistics.provider.influx.provider.InfluxTimeSeriesStatisticsProvider;
 import org.opencastproject.util.ConfigurationException;
 
@@ -91,21 +91,36 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   public void install(File file) throws Exception {
     final String json = new String(Files.readAllBytes(file.toPath()), Charset.forName("utf-8"));
     final InfluxProviderConfiguration providerCfg = InfluxProviderConfiguration.fromJson(json);
-    if ("timeseries".equalsIgnoreCase(providerCfg.getType())) {
-      final StatisticsProvider provider = new InfluxTimeSeriesStatisticsProvider(
-          this,
-          providerCfg.getId(),
-          providerCfg.getResourceType(),
-          providerCfg.getTitle(),
-          providerCfg.getDescription(),
-          providerCfg.getSources()
-      );
-      fileNameToProvider.put(file.getName(), provider);
-      if (influxDB != null) {
-        statisticsProviderRegistry.addProvider(provider);
+    StatisticsProvider provider = null;
+    switch (providerCfg.getType().toLowerCase()) {
+      case "timeseries": {
+        provider = new InfluxTimeSeriesStatisticsProvider(
+                this,
+                providerCfg.getId(),
+                providerCfg.getResourceType(),
+                providerCfg.getTitle(),
+                providerCfg.getDescription(),
+                providerCfg.getSources());
       }
-    } else {
+      break;
+      case "runningtotal":
+        provider = new InfluxRunningTotalStatisticsProvider(
+                this,
+                providerCfg.getId(),
+                ResourceType.ORGANIZATION,
+                providerCfg.getTitle(),
+                providerCfg.getDescription(),
+                providerCfg.getSources());
+        break;
+      default:
+        break;
+    }
+    if (provider == null) {
       throw new ConfigurationException("Unknown influx statistics type: " + providerCfg.getType());
+    }
+    fileNameToProvider.put(file.getName(), provider);
+    if (influxDB != null) {
+      statisticsProviderRegistry.addProvider(provider);
     }
   }
 
@@ -165,15 +180,6 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
     influxDB = InfluxDBFactory.connect(influxUri, influxUser, influxPw);
     influxDB.setDatabase(influxDbName);
     fileNameToProvider.values().forEach(provider -> statisticsProviderRegistry.addProvider(provider));
-    statisticsProviderRegistry.addProvider(new InfluxSummingTimeSeriesStatisticsProvider(
-            this,
-            "published-hours",
-            ResourceType.ORGANIZATION, "publishedhoursblabla",
-            "descriptionblabla",
-            "SUM",
-            PUBLISHED_HOURS_FIELD_NAME,
-            PUBLISHED_HOURS_MEASUREMENT_NAME,
-            PUBLISHED_HOURS_RESOURCE_ID));
   }
 
   private void disconnectInflux() {
@@ -185,11 +191,16 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   }
 
   @Override
-  public void updatePublishedTime(String organizationId, Duration hours) {
+  public void writeDuration(
+          String organizationId,
+          String measurementName,
+          String resourceIdName,
+          String fieldName,
+          Duration hours) {
     final Point point = Point
-            .measurement(PUBLISHED_HOURS_MEASUREMENT_NAME)
-            .tag(PUBLISHED_HOURS_RESOURCE_ID, organizationId)
-            .addField(PUBLISHED_HOURS_FIELD_NAME, hours.getSeconds())
+            .measurement(measurementName)
+            .tag(resourceIdName, organizationId)
+            .addField(fieldName, hours.getSeconds())
             .build();
     influxDB.write(point);
   }

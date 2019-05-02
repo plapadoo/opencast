@@ -1,0 +1,19 @@
+{
+  "id": "organization.publishedhours.influx",
+  "title": "STATISTICS.TITLE.PUBLISHEDHOURS",
+  "description": "STATISTICS.DESCRIPTION.PUBLISHEDHOURS",
+  "resourceType": "ORGANIZATION",
+  "sources": [{
+    "measurement": "infinite.published_hours",
+    "aggregation": "SUM",
+    "aggregationVariable": "seconds",
+    "resourceIdName": "organizationId",
+    "resolutions": [
+      "DAILY",
+      "WEEKLY",
+      "MONTHLY",
+      "YEARLY"
+    ]
+  }],
+  "type": "runningtotal"
+}

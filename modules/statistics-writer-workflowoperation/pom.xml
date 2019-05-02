@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>opencast-published-hours-workflowoperation</artifactId>
+  <artifactId>opencast-statistics-writer-workflowoperation</artifactId>
   <packaging>bundle</packaging>
-  <name>Opencast :: published-hours-workflowoperation</name>
+  <name>Opencast :: statistics-writer-workflowoperation</name>
   <parent>
     <groupId>org.opencastproject</groupId>
     <artifactId>base</artifactId>
@@ -45,10 +45,10 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Build-Number>${buildNumber}</Build-Number>
             <Export-Package>
-              org.opencastproject.workflow.handler.publishedhours;version=${project.version}
+              org.opencastproject.workflow.handler.statisticswriter;version=${project.version}
             </Export-Package>
             <Service-Component>
-              OSGI-INF/operations/publishedhours.xml
+              OSGI-INF/operations/statisticswriter.xml
             </Service-Component>
           </instructions>
         </configuration>

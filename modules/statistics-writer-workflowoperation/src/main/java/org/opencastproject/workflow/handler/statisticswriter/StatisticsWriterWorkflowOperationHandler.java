@@ -19,7 +19,7 @@
  *
  */
 
-package org.opencastproject.workflow.handler.publishedhours;
+package org.opencastproject.workflow.handler.statisticswriter;
 
 import org.opencastproject.job.api.JobContext;
 import org.opencastproject.mediapackage.MediaPackage;
@@ -35,17 +35,16 @@ import org.opencastproject.workflow.api.WorkflowOperationResult;
 import org.opencastproject.workflow.api.WorkflowOperationResult.Action;
 
 import org.apache.commons.lang3.BooleanUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
-public class PublishedHoursWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
-
-  private static final Logger logger = LoggerFactory.getLogger(PublishedHoursWorkflowOperationHandler.class);
+public class StatisticsWriterWorkflowOperationHandler extends AbstractWorkflowOperationHandler {
 
   private static final String OPT_FLAVOR = "flavor";
   private static final String OPT_RETRACT = "retract";
+  private static final String OPT_MEASUREMENT_NAME = "measurement-name";
+  private static final String OPT_RESOURCE_ID_NAME = "organization-resource-id-name";
+  private static final String OPT_LENGTH_FIELD_NAME = "length-field-name";
 
   private StatisticsWriter statisticsWriter;
 
@@ -76,6 +75,9 @@ public class PublishedHoursWorkflowOperationHandler extends AbstractWorkflowOper
 
     final WorkflowOperationInstance operation = workflowInstance.getCurrentOperation();
     final String flavor = operation.getConfiguration(OPT_FLAVOR);
+    final String measurementName = operation.getConfiguration(OPT_MEASUREMENT_NAME);
+    final String resourceIdName = operation.getConfiguration(OPT_RESOURCE_ID_NAME);
+    final String lengthFieldName = operation.getConfiguration(OPT_LENGTH_FIELD_NAME);
     final boolean retract = BooleanUtils.toBoolean(operation.getConfiguration(OPT_RETRACT));
 
     for (Track track : mediaPackage.getTracks(MediaPackageElementFlavor.parseFlavor(flavor))) {
@@ -84,7 +86,12 @@ public class PublishedHoursWorkflowOperationHandler extends AbstractWorkflowOper
         if (retract) {
           duration = duration.negated();
         }
-        statisticsWriter.updatePublishedTime(securityService.getOrganization().getId(), duration);
+        statisticsWriter.writeDuration(
+                securityService.getOrganization().getId(),
+                measurementName,
+                resourceIdName,
+                lengthFieldName,
+                duration);
       }
     }
 

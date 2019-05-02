@@ -41,41 +41,33 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsProvider implements TimeSeriesProvider {
-  private String aggregation;
-  private String aggregationVariable;
-  private String measurement;
-  private String resourceIdName;
+public class InfluxRunningTotalStatisticsProvider extends InfluxStatisticsProvider implements TimeSeriesProvider {
+  private final Set<InfluxProviderConfiguration.InfluxProviderSource> sources;
 
-  public InfluxSummingTimeSeriesStatisticsProvider(
+  public InfluxRunningTotalStatisticsProvider(
           StatisticsProviderInfluxService service,
           String id,
-          ResourceType resourceType, String title,
+          ResourceType resourceType,
+          String title,
           String description,
-          String aggregation,
-          String aggregationVariable,
-          String measurement,
-          String resourceIdName) {
+          Set<InfluxProviderConfiguration.InfluxProviderSource> sources) {
     super(service, id, resourceType, title, description);
-    this.aggregation = aggregation;
-    this.aggregationVariable = aggregationVariable;
-    this.measurement = measurement;
-    this.resourceIdName = resourceIdName;
+    this.sources = sources;
   }
 
-  private static double reduceResult(double previousSeconds, QueryResult.Result newResult) {
+  private static double reduceResult(double previousTotal, QueryResult.Result newResult) {
     if (newResult.getSeries() == null) {
-      return previousSeconds;
+      return previousTotal;
     }
-    return previousSeconds + newResult
+    return previousTotal + newResult
             .getSeries()
             .stream()
-            .reduce(0.0, InfluxSummingTimeSeriesStatisticsProvider::reduceSeries, Double::sum);
+            .reduce(0.0, InfluxRunningTotalStatisticsProvider::reduceSeries, Double::sum);
   }
 
-  private static double reduceSeries(double previousSeriesSeconds, QueryResult.Series newSeries) {
+  private static double reduceSeries(double previousSeriesTotal, QueryResult.Series newSeries) {
     if (newSeries.getValues().isEmpty()) {
-      return previousSeriesSeconds;
+      return previousSeriesTotal;
     }
     if (newSeries.getValues().size() > 1) {
       throw new RuntimeException("invalid results returned for aggregation");
@@ -86,18 +78,19 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
     }
     final Object o = objects.get(1);
     if (o == null) {
-      return previousSeriesSeconds;
+      return previousSeriesTotal;
     }
     if (!(o instanceof Double)) {
       throw new RuntimeException("invalid results returned for aggregation");
     }
-    return previousSeriesSeconds + (Double) o;
+    return previousSeriesTotal + (Double) o;
   }
 
-  private double getPreviousSeconds(final String resourceId, final Instant from) {
+  private double getPreviousTotal(
+          final InfluxProviderConfiguration.InfluxProviderSource source, final String resourceId, final Instant from) {
     final Query beforeQuery = BoundParameterQuery.QueryBuilder
-            .newQuery("SELECT SUM(" + aggregationVariable + ") FROM " + measurement + " WHERE " + resourceIdName
-                              + "=$resourceId AND time<$from")
+            .newQuery("SELECT SUM(" + source.getAggregationVariable() + ") FROM " + source.getMeasurement() + " WHERE "
+                              + source.getResourceIdName() + "=$resourceId AND time<$from")
             .bind("resourceId", resourceId)
             .bind("from", from)
             .create();
@@ -108,7 +101,7 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
     return beforeResults
             .getResults()
             .stream()
-            .reduce(0.0, InfluxSummingTimeSeriesStatisticsProvider::reduceResult, Double::sum);
+            .reduce(0.0, InfluxRunningTotalStatisticsProvider::reduceResult, Double::sum);
   }
 
   @Override
@@ -117,23 +110,36 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
     final List<Tuple<Instant, Instant>> periods = getPeriods(from, to, resolution, zoneId);
     final List<String> labels = new ArrayList<>();
     final List<Double> values = new ArrayList<>();
-    double previousSeconds = getPreviousSeconds(resourceId, from);
+    final InfluxProviderConfiguration.InfluxProviderSource source = getSource(resolution);
+    double previousTotal = getPreviousTotal(source, resourceId, from);
     for (final Tuple<Instant, Instant> period : periods) {
       final Query query = BoundParameterQuery.QueryBuilder
-              .newQuery("SELECT " + aggregation + "(" + aggregationVariable + ") FROM " + measurement + " WHERE "
-                                + resourceIdName + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
+              .newQuery("SELECT " + source.getAggregation() + "(" + source.getAggregationVariable() + ") FROM " + source
+                      .getMeasurement() + " WHERE " + source.getResourceIdName()
+                                + "=$resourceId AND time>=$from AND time<=$to" + influxGrouping)
               .bind("resourceId", resourceId)
               .bind("from", period.getA())
               .bind("to", period.getB())
               .create();
       final QueryResult results = service.getInfluxDB().query(query);
-      final Tuple<TimeSeries, Double> currentViews = queryResultToTimeSeries(results, previousSeconds, period.getA());
-      previousSeconds = currentViews.getB();
+      final Tuple<TimeSeries, Double> currentViews = queryResultToTimeSeries(results, previousTotal, period.getA());
+      previousTotal = currentViews.getB();
       labels.addAll(currentViews.getA().getLabels());
       values.addAll(currentViews.getA().getValues());
     }
-    final Double total = "SUM".equalsIgnoreCase(aggregation) ? values.stream().mapToDouble(v -> v).sum() : null;
+    final Double total = "SUM".equalsIgnoreCase(source.getAggregation())
+            ? values.stream().mapToDouble(v -> v).sum()
+            : null;
     return new TimeSeries(labels, values, total);
+  }
+
+  private InfluxProviderConfiguration.InfluxProviderSource getSource(DataResolution resolution) {
+    return sources
+            .stream()
+            .filter(s -> s.getResolutions().contains(resolution))
+            .findAny()
+            .orElseThrow(() -> new IllegalStateException(
+                    "No source available for data resolution " + resolution.name()));
   }
 
   @Override
@@ -141,13 +147,16 @@ public class InfluxSummingTimeSeriesStatisticsProvider extends InfluxStatisticsP
     return new HashSet<>(Arrays.asList(DataResolution.YEARLY, DataResolution.MONTHLY, DataResolution.DAILY));
   }
 
-  private Tuple<TimeSeries, Double> queryResultToTimeSeries(final QueryResult results, final double previousSeconds, final Instant periodStart) {
+  private Tuple<TimeSeries, Double> queryResultToTimeSeries(
+          final QueryResult results,
+          final double previousTotal,
+          final Instant periodStart) {
     if (results.hasError()) {
       throw new RuntimeException("Error while retrieving result from influx: " + results.getError());
     }
     final List<String> labels = new ArrayList<>();
     final List<Double> values = new ArrayList<>();
-    double previousSum = previousSeconds;
+    double previousSum = previousTotal;
     for (final QueryResult.Result result : results.getResults()) {
       if (result.getSeries() == null || result.getSeries().isEmpty()) {
         labels.add(periodStart.toString());
