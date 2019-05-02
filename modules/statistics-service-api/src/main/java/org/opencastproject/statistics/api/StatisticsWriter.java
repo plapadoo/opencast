@@ -23,12 +23,25 @@ package org.opencastproject.statistics.api;
 
 import java.time.Duration;
 
+/**
+ * Interface for a class that can write statistical data of various data types
+ */
 public interface StatisticsWriter {
+  /**
+   * Write a duration to a statistics data base
+   *
+   * @param organizationId Organization ID of the data point
+   * @param measurementName Measurement name of the data point
+   * @param retentionPolicy Retention policy of the data point
+   * @param organizationIdResourceName Resource name for the organization
+   * @param fieldName Field name to write
+   * @param duration The actual duration to write
+   */
   void writeDuration(
           String organizationId,
           String measurementName,
           String retentionPolicy,
-          String resourceIdName,
+          String organizationIdResourceName,
           String fieldName,
-          Duration hours);
+          Duration duration);
 }

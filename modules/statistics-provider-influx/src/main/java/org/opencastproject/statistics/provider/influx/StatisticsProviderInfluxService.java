@@ -196,13 +196,13 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
           String organizationId,
           String measurementName,
           String retentionPolicy,
-          String resourceIdName,
+          String organizationIdResourceName,
           String fieldName,
-          Duration hours) {
+          Duration duration) {
     final Point point = Point
             .measurement(measurementName)
-            .tag(resourceIdName, organizationId)
-            .addField(fieldName, hours.getSeconds())
+            .tag(organizationIdResourceName, organizationId)
+            .addField(fieldName, duration.getSeconds())
             .build();
     if (retentionPolicy == null) {
       influxDB.write(point);
