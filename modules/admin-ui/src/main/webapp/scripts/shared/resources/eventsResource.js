@@ -90,6 +90,9 @@ angular.module('adminNg.resources')
         return row;
       });
 
-    }}
+    }},
+  delete: {method: 'DELETE', isArray: false, cancellable: false, transformResponse: function(_, __, status) {
+    return {status: status};
+  }}
   });
 }]);
