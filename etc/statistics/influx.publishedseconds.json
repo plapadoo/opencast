@@ -1,10 +1,10 @@
 {
-  "id": "organization.publishedhours.influx",
-  "title": "STATISTICS.TITLE.PUBLISHEDHOURS",
-  "description": "STATISTICS.DESCRIPTION.PUBLISHEDHOURS",
+  "id": "organization.publishedseconds.influx",
+  "title": "STATISTICS.TITLE.PUBLISHEDSECONDS",
+  "description": "STATISTICS.DESCRIPTION.PUBLISHEDSECONDS",
   "resourceType": "ORGANIZATION",
   "sources": [{
-    "measurement": "infinite.published_hours",
+    "measurement": "publishedseconds",
     "aggregation": "SUM",
     "aggregationVariable": "seconds",
     "resourceIdName": "organizationId",

@@ -1972,12 +1972,14 @@
     "TITLE": {
       "RANDOM": "Random Data",
       "VIEWS_SUM": "Total Number of Views",
-      "VIEWS_AVG": "Average Number of Views"
+      "VIEWS_AVG": "Average Number of Views",
+      "PUBLISHEDSECONDS": "Published Seconds of Video"
     },
     "DESCRIPTION": {
       "RANDOM": "This displays random data as a showcase. You can disable this chart by deleting the corresponding statistics provider's json definition from etc/providers",
       "VIEWS_SUM": "This displays the total number of views per time uinit.",
-      "VIEWS_AVG": "This displays the mean number of daily views per time uinit."
+      "VIEWS_AVG": "This displays the mean number of daily views per time uinit.",
+      "PUBLISHEDSECONDS": "This displays the running total published seconds of video"
     }
   }
 }
