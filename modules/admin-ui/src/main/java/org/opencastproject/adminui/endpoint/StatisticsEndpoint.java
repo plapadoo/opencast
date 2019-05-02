@@ -86,6 +86,7 @@ public class StatisticsEndpoint {
   /** The logging facility */
   private static final Logger logger = LoggerFactory.getLogger(StatisticsEndpoint.class);
   private static final String TIME_SERIES_PROVIDER_TYPE = "timeSeries";
+  private static final String STATISTICS_ORGANIZATION_UI_ROLE = "ROLE_UI_STATISTICS_ORGANIZATION_VIEW";
 
   private SecurityService securityService;
   private IndexService indexService;
@@ -372,10 +373,14 @@ public class StatisticsEndpoint {
     final String currentOrgAdminRole = currentOrg.getAdminRole();
     final String currentOrgId = currentOrg.getId();
 
-    boolean authorized = currentUser.hasRole(GLOBAL_ADMIN_ROLE)
-      || (currentUser.hasRole(currentOrgAdminRole) && currentOrgId.equals(orgId));
+    final boolean userIsInOrg = currentOrgId.equals(orgId);
 
-    if (!authorized) {
+    boolean userIsAdmin = currentUser.hasRole(GLOBAL_ADMIN_ROLE)
+      || (currentUser.hasRole(currentOrgAdminRole) && userIsInOrg);
+
+    boolean userIsAuthorized = currentUser.hasRole(STATISTICS_ORGANIZATION_UI_ROLE) && userIsInOrg;
+
+    if (!userIsAdmin && !userIsAuthorized) {
       throw new UnauthorizedException(currentUser, "read");
     }
   }
