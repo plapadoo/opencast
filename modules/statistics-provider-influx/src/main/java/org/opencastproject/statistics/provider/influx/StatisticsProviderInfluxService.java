@@ -135,7 +135,7 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   @Override
   public void updated(Dictionary<String, ?> dictionary) {
     if (dictionary == null) {
-      logger.info("No configuration available. Not connecting to influx.");
+      logger.info("No configuration available. Not connecting to influx DB.");
       disconnectInflux();
     } else {
       final Object influxUriValue = dictionary.get(KEY_INFLUX_URI);
