@@ -18,6 +18,7 @@ Parameter Table
 |measurement-name              |yes     |Measurement name of the statistics DB                              |
 |organization-resource-id-name |yes     |Resource ID name for the organization                              |
 |length-field-name             |yes     |Field name for the length of the video in seconds                  |
+|retention-policy              |no      |Retention policy to use for the statistics DB                      |
 |retract                       |no      |Whether to publish positive or negative numbers (default: `false`) |
 
 Operation Examples
@@ -32,7 +33,8 @@ Operation Examples
   <configurations>
     <configuration key="flavor">presenter/video</configuration>
     <configuration key="retract">false</configuration>
-    <configuration key="measurement-name">published-seconds</configuration>
+    <configuration key="retention-policy">infinite</configuration>
+    <configuration key="measurement-name">publishedseconds</configuration>
     <configuration key="organization-resource-id-name">organizationId</configuration>
     <configuration key="length-field-name">seconds</configuration>
   </configurations>

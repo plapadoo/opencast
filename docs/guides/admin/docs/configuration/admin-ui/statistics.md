@@ -118,7 +118,7 @@ The `runningtotal` statistics provider is a special type of time series statisti
   "description": "STATISTICS.DESCRIPTION.PUBLISHEDHOURS",
   "resourceType": "ORGANIZATION",
   "sources": [{
-    "measurement": "infinite.published_hours",
+    "measurement": "infinite.publishedseconds",
     "aggregation": "SUM",
     "aggregationVariable": "seconds",
     "resourceIdName": "organizationId",
@@ -148,7 +148,7 @@ To actually _write_ these seconds to the statistics data base, you have to add t
   <configurations>
     <configuration key="flavor">presenter/video</configuration>
     <configuration key="retract">false</configuration>
-    <configuration key="measurement-name">published-seconds</configuration>
+    <configuration key="measurement-name">publishedseconds</configuration>
     <configuration key="organization-resource-id-name">organizationId</configuration>
     <configuration key="length-field-name">seconds</configuration>
   </configurations>

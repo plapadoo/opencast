@@ -71,7 +71,6 @@ The following table contains the workflow operations that are available in an ou
 |publish-engage      |Distribute and publish media to the engage player              |[Documentation](publish-engage-woh.md)|
 |publish-oaipmh      |Distribute and publish media to a OAI-PMH repository           |[Documentation](publish-oaipmh-woh.md)|
 |publish-youtube     |Distribute and publish media to YouTube                        |[Documentation](publish-youtube-woh.md)|
-|statistics-writer   |Log statistical data about the video                           |[Documentation](statistics-writer.md)|
 |republish-oaipmh    |Update media in a OAI-PMH repository                           |[Documentation](republish-oaipmh-woh.md)|
 |retract-aws         |Retracts media from AWS S3 and Cloudfront publication          |[Documentation](retract-aws-woh.md)|
 |retract-configure   |Retracts media from configured publication                     |[Documentation](retract-configure-woh.md)|
@@ -87,6 +86,7 @@ The following table contains the workflow operations that are available in an ou
 |snapshot            |Archive the current state of the mediapackage                  |[Documentation](snapshot-woh.md)|
 |start-watson-transcription|Starts automated transcription provided by IBM Watson    |[Documentation](start-watson-transcription-woh.md)|
 |start-workflow      |Start a new workflow for given media package ID                |[Documentation](start-workflow-woh.md)|
+|statistics-writer   |Log statistical data about the video                           |[Documentation](statistics-writer.md)|
 |tag                 |Modify the tag sets of media package elements                  |[Documentation](tag-woh.md)|
 |tag-by-dcterm       |Modify the tags if dublincore term matches value               |[Documentation](tag-by-dcterm-woh.md)|
 |theme               |Make settings of themes available to processing                |[Documentation](theme-woh.md)|

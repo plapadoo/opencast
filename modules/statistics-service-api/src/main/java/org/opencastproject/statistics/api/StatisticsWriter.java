@@ -27,6 +27,7 @@ public interface StatisticsWriter {
   void writeDuration(
           String organizationId,
           String measurementName,
+          String retentionPolicy,
           String resourceIdName,
           String fieldName,
           Duration hours);

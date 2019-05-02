@@ -44,6 +44,7 @@ public class StatisticsWriterWorkflowOperationHandler extends AbstractWorkflowOp
   private static final String OPT_RETRACT = "retract";
   private static final String OPT_MEASUREMENT_NAME = "measurement-name";
   private static final String OPT_RESOURCE_ID_NAME = "organization-resource-id-name";
+  private static final String OPT_RETENTION_POLICY = "retention-policy";
   private static final String OPT_LENGTH_FIELD_NAME = "length-field-name";
 
   private StatisticsWriter statisticsWriter;
@@ -78,6 +79,7 @@ public class StatisticsWriterWorkflowOperationHandler extends AbstractWorkflowOp
     final String measurementName = operation.getConfiguration(OPT_MEASUREMENT_NAME);
     final String resourceIdName = operation.getConfiguration(OPT_RESOURCE_ID_NAME);
     final String lengthFieldName = operation.getConfiguration(OPT_LENGTH_FIELD_NAME);
+    final String retentionPolicy = operation.getConfiguration(OPT_RETENTION_POLICY);
     final boolean retract = BooleanUtils.toBoolean(operation.getConfiguration(OPT_RETRACT));
 
     for (Track track : mediaPackage.getTracks(MediaPackageElementFlavor.parseFlavor(flavor))) {
@@ -89,6 +91,7 @@ public class StatisticsWriterWorkflowOperationHandler extends AbstractWorkflowOp
         statisticsWriter.writeDuration(
                 securityService.getOrganization().getId(),
                 measurementName,
+                retentionPolicy,
                 resourceIdName,
                 lengthFieldName,
                 duration);

@@ -33,6 +33,7 @@ import org.opencastproject.util.ConfigurationException;
 import org.apache.felix.fileinstall.ArtifactInstaller;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
+import org.influxdb.dto.BatchPoints;
 import org.influxdb.dto.Point;
 import org.json.simple.parser.ParseException;
 import org.osgi.service.cm.ManagedService;
@@ -194,6 +195,7 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
   public void writeDuration(
           String organizationId,
           String measurementName,
+          String retentionPolicy,
           String resourceIdName,
           String fieldName,
           Duration hours) {
@@ -202,6 +204,10 @@ public class StatisticsProviderInfluxService implements ManagedService, Artifact
             .tag(resourceIdName, organizationId)
             .addField(fieldName, hours.getSeconds())
             .build();
-    influxDB.write(point);
+    if (retentionPolicy == null) {
+      influxDB.write(point);
+    } else {
+      influxDB.write(BatchPoints.builder().point(point).retentionPolicy(retentionPolicy).build());
+    }
   }
 }
