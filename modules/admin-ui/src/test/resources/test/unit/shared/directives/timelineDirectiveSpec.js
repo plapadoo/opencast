@@ -11,11 +11,12 @@ describe('adminNg.directives.timelineDirective', function () {
         });
     }));
 
-  beforeEach(inject(function (_$httpBackend_, _$rootScope_, _$compile_, _$document_, _PlayerAdapter_) {
+  beforeEach(inject(function (_$httpBackend_, _$rootScope_, _$compile_, _$document_, _$interval_, _PlayerAdapter_) {
         $compile = _$compile_;
         $httpBackend = _$httpBackend_;
         $rootScope = _$rootScope_;
         $document = _$document_;
+        $interval = _$interval_;
         PlayerAdapter = _PlayerAdapter_;
 
         jasmine.getJSONFixtures().fixturesPath = 'base/app/GET';
@@ -112,8 +113,8 @@ describe('adminNg.directives.timelineDirective', function () {
 
         it('sets the position on the time scale', function () {
             expect(element.isolateScope().positionStyle).toBe(0);
-            spy[PlayerAdapter.EVENTS.TIMEUPDATE]();
-            expect(element.isolateScope().positionStyle).toContain('0%');
+            $interval.flush(3000);
+            expect(element.isolateScope().positionStyle).toContain('15.');
         });
     });
 
@@ -290,7 +291,6 @@ describe('adminNg.directives.timelineDirective', function () {
             });
 
             it('updates the player when the mouse button is released', function () {
-                expect($rootScope.player.adapter.setCurrentTime).not.toHaveBeenCalled();
                 $document.mouseup();
                 expect($rootScope.player.adapter.setCurrentTime).toHaveBeenCalledWith(20.85);
             });

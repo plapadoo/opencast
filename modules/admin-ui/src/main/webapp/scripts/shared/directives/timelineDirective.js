@@ -24,8 +24,20 @@
 /* eslint-disable no-redeclare */
 
 angular.module('adminNg.directives')
-.directive('adminNgTimeline', ['AuthService', 'PlayerAdapter', '$document', 'VideoService', '$timeout',
-  function (AuthService, PlayerAdapter, $document, VideoService, $timeout) {
+.directive('adminNgTimeline', [
+  'AuthService',
+  'PlayerAdapter',
+  '$document',
+  'VideoService',
+  '$timeout',
+  '$interval',
+  function (
+    AuthService,
+    PlayerAdapter,
+    $document,
+    VideoService,
+    $timeout,
+    $interval) {
 
     return {
       templateUrl: 'shared/partials/timeline.html',
@@ -37,9 +49,15 @@ angular.module('adminNg.directives')
       link: function (scope, element) {
         var replaySegment = {};
 
+        scope.previousPosition = -1;
         scope.position = 0;
         scope.positionStyle = 0;
+        scope.hoverPositionStyle = 0;
+        scope.timelineCursorPositionStyle = 0;
         scope.widthPerSegment = 0;
+        scope.cursorDisplay = 'inline';
+        scope.hoverCursorDisplay = 'none';
+        scope.cursorTouchedZoomWindow = false;
 
         scope.ZoomSelectOptions = [
           { name: 'All', time: 0 }
@@ -69,8 +87,28 @@ angular.module('adminNg.directives')
 
         scope.wrapperClass = ''; // list of border classes for the segment wrapper.
 
-        scope.player.adapter.addListener(PlayerAdapter.EVENTS.DURATION_CHANGE, function () {
+        scope.mouseEnterPlayTrack = function(event) {
+          scope.hoverCursorDisplay = 'inline';
+        };
 
+        scope.mouseLeavePlayTrack = function(event) {
+          scope.hoverCursorDisplay = 'none';
+        };
+
+        scope.moveMouseOnPlayTrack = function(event) {
+          var mx = $document.mx;
+
+          var el = $(event.target);
+          if (el.attr('id') === 'cursor-track') {
+            var position = (mx - el.offset().left) / el.width() * scope.zoomValue + scope.from;
+            scope.hoverCursorDisplay = 'inline';
+            scope.hoverPositionStyle = ((position - scope.from) / scope.zoomValue * 100) + '%';
+          } else {
+            scope.hoverCursorDisplay = 'none';
+          }
+        };
+
+        scope.player.adapter.addListener(PlayerAdapter.EVENTS.DURATION_CHANGE, function () {
           // reset then remove the items that are longer than the video duration
           scope.ZoomSelectOptions = [
             { name: 'All', time: 0 }
@@ -91,17 +129,65 @@ angular.module('adminNg.directives')
           scope.from = scope.getZoomFieldOffset();
           scope.to = scope.from + scope.zoomValue;
           scope.setWrapperClasses();
+          scope.updateShuttle();
         });
 
         scope.updatePlayHead = function() {
+          if (scope.position < scope.from || scope.position > scope.to) {
+            scope.cursorDisplay = 'none';
+          } else {
+            scope.cursorDisplay = 'inline';
+          }
+          scope.timelineCursorPositionStyle = (scope.position / scope.video.duration * 100) + '%';
           scope.positionStyle = ((scope.position - scope.from) / scope.zoomValue * 100) + '%';
         };
 
-        scope.player.adapter.addListener(PlayerAdapter.EVENTS.TIMEUPDATE, function () {
+        scope.player.adapter.addListener(PlayerAdapter.EVENTS.PLAY, function () {
+          scope.cursorTouchedZoomWindow = scope.position >= scope.from && scope.position <= scope.to;
+        });
+        scope.player.adapter.addListener(PlayerAdapter.EVENTS.PAUSE, function () {
+          scope.cursorTouchedZoomWindow = false;
+        });
+
+        scope.inZoomWindow = function(pos) {
+          return pos >= scope.from && pos <= scope.to;
+        };
+
+        scope.overflowsRight = function(pos) {
+          return pos > scope.to && pos < scope.video.duration;
+        };
+
+        scope.overflowsLeft = function(pos) {
+          // Using the keyboard, we can also decrease our play position and have to adapt the zoom boundaries
+          // accordingly. Note that there can be minute differences between position and from due to
+          // numerical inaccuracies when dragging the timeline, thus the 0.5.
+          return pos - scope.from < -0.5;
+        };
+
+        $interval(function () {
           scope.position = scope.player.adapter.getCurrentTime() * 1000;
-          // Are we past the current zoom boundaries?
-          if (scope.position > scope.to && scope.position < scope.video.duration) {
-            if (scope.player.adapter.getStatus() === PlayerAdapter.STATUS.PLAYING) {
+          if (scope.position === scope.previousPosition) {
+            return;
+          }
+          if (scope.player.adapter.getStatus() === PlayerAdapter.STATUS.PLAYING) {
+            if (scope.inZoomWindow(scope.position)) {
+              scope.cursorTouchedZoomWindow = true;
+            }
+            if (scope.cursorTouchedZoomWindow) {
+              if (scope.overflowsRight(scope.position)) {
+                // Are we out of space for a full piece of zoomed-in video?
+                if (scope.video.duration - scope.to < scope.zoomValue) {
+                  scope.from = scope.video.duration - scope.zoomValue;
+                } else {
+                  scope.from = scope.to;
+                }
+                scope.to = scope.from + scope.zoomValue;
+              }
+            }
+          } else {
+            var previouslyInBoundary = scope.previousPosition >= scope.from && scope.previousPosition <= scope.to;
+            // Not currently playing, past the right boundary: probably because of a seek to the right
+            if (scope.overflowsRight(scope.position) && previouslyInBoundary) {
               // Are we out of space for a full piece of zoomed-in video?
               if (scope.video.duration - scope.to < scope.zoomValue) {
                 scope.from = scope.video.duration - scope.zoomValue;
@@ -109,17 +195,13 @@ angular.module('adminNg.directives')
                 scope.from = scope.to;
               }
               scope.to = scope.from + scope.zoomValue;
-            } else {
-              scope.position = scope.to;
-              scope.player.adapter.setCurrentTime(scope.position / 1000);
+            } else if (scope.overflowsLeft(scope.position) && previouslyInBoundary) {
+              // Same thing for the left overflow
+              scope.from = Math.max(0, scope.from - scope.zoomValue);
+              scope.to = scope.from + scope.zoomValue;
             }
-          } else if (scope.position - scope.from < -0.5) {
-            // Using the keyboard, we can also decrease our play position and have to adapt the zoom boundaries
-            // accordingly. Note that there can be minute differences between position and from due to
-            // numerical inaccuracies when dragging the timeline, thus the 0.5.
-            scope.position = scope.from;
-            scope.player.adapter.setCurrentTime(scope.position / 1000);
           }
+          scope.previousPosition = scope.position;
           scope.updatePlayHead();
           scope.updateShuttle();
 
@@ -147,7 +229,7 @@ angular.module('adminNg.directives')
           {
             scope.player.adapter.setCurrentTime(segment.end / 1000);
           }
-        });
+        }, 40);
 
         /**
          * Formats time stamps to HH:MM:SS.sss
@@ -255,26 +337,34 @@ angular.module('adminNg.directives')
 
         scope.changeZoomInternal = function() {
           var addition = scope.zoomValue / 2;
+          //if (scope.position >= scope.from && scope.position <= scope.to) {
+          if (scope.from === 0) {
+            var relativePosition = 0;
+          } else if (scope.to == scope.video.duration) {
+            var relativePosition = scope.video.duration;
+          } else {
+            var relativePosition = (scope.from + scope.to) / 2;
+          }
           // Were we to move the zoom boundaries to the right/left, by
           // how far do we run out of the video?
-          var overheadRight = scope.position + addition - scope.video.duration;
-          var overheadLeft = addition - scope.position;
+          var overheadRight = relativePosition + addition - scope.video.duration;
+          var overheadLeft = addition - relativePosition;
           // Check for overheads and distribute the overhead space to
           // the other side of the zoom boundary, if possible.
           if (overheadRight > 0) {
             // Overhead on the right, so move the boundary more to the left
             scope.to = scope.video.duration;
-            scope.from = Math.max(0, scope.position - addition - overheadRight);
+            scope.from = Math.max(0, relativePosition - addition - overheadRight);
           } else if (overheadLeft > 0) {
             // Overhead on the left, so move the right boundary a bit
             // farther away.
             scope.from = 0;
-            scope.to = Math.min(scope.video.duration, scope.position + addition + overheadLeft);
+            scope.to = Math.min(scope.video.duration, relativePosition + addition + overheadLeft);
           } else {
             // No overhead, simply center the zoom boundaries around
             // the current playing position.
-            scope.from = scope.position - addition;
-            scope.to = scope.position + addition;
+            scope.from = relativePosition - addition;
+            scope.to = relativePosition + addition;
           }
           scope.updatePlayHead();
           scope.updateShuttle();
@@ -784,7 +874,7 @@ angular.module('adminNg.directives')
 
             if (el.attr('id') === 'cursor-track') {
 
-              var position = (event.clientX - el.offset().left) / el.width() * scope.zoomValue + scope.from;
+              var position = (event.pageX - el.offset().left) / el.width() * scope.zoomValue + scope.from;
 
               // Limit position to the length of the video
               if (position > scope.video.duration) {
@@ -831,16 +921,22 @@ angular.module('adminNg.directives')
               position = scope.from + position_absolute / track.width() * scope.zoomValue;
 
           // Limit position to the length of the video
+          var zoomScrollPercentage = 0.001;
           if (position > scope.to) {
+            scope.to = Math.min(scope.to + scope.zoomValue * zoomScrollPercentage, scope.video.duration);
+            scope.from = scope.to - scope.zoomValue;
             position = scope.to;
-          }
-          if (position < scope.from) {
+          } else if (position < scope.from) {
+            scope.from = Math.max(scope.from - scope.zoomValue * zoomScrollPercentage, 0);
+            scope.to = scope.from + scope.zoomValue;
             position = scope.from;
           }
 
           scope.position = position;
+          scope.player.adapter.setCurrentTime(scope.position / 1000);
           scope.$apply(function () {
             scope.updatePlayHead();
+            scope.updateShuttle();
           });
 
           scope.setWrapperClasses();
@@ -947,10 +1043,10 @@ angular.module('adminNg.directives')
           shuttle.css('left', percentage + '%');
           scope.from = (scope.video.duration * percentage) / 100;
           scope.to = scope.from + scope.zoomValue;
-          if (scope.position < scope.from || scope.position > scope.to) {
-            scope.position = scope.from;
-            scope.player.adapter.setCurrentTime(scope.position / 1000);
-          }
+          // if (scope.position < scope.from || scope.position > scope.to) {
+          //   scope.position = scope.from;
+          //   scope.player.adapter.setCurrentTime(scope.position / 1000);
+          // }
           scope.updatePlayHead();
 
           if (isNaN(scope.position) || (scope.position < 0)) scope.position = 0;
