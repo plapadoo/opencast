@@ -1,5 +1,6 @@
 describe('adminNg.directives.timelineDirective', function () {
-    var $compile, $httpBackend, $rootScope, $document, element, spy;
+    var $compile, $httpBackend, $rootScope, $document, element;
+    var spy = {};
 
     beforeEach(module('adminNg'));
     beforeEach(module('shared/partials/timeline.html'));
@@ -10,11 +11,12 @@ describe('adminNg.directives.timelineDirective', function () {
         });
     }));
 
-    beforeEach(inject(function (_$httpBackend_, _$rootScope_, _$compile_, _$document_) {
+  beforeEach(inject(function (_$httpBackend_, _$rootScope_, _$compile_, _$document_, _PlayerAdapter_) {
         $compile = _$compile_;
         $httpBackend = _$httpBackend_;
         $rootScope = _$rootScope_;
         $document = _$document_;
+        PlayerAdapter = _PlayerAdapter_;
 
         jasmine.getJSONFixtures().fixturesPath = 'base/app/GET';
         $httpBackend.whenGET('/info/me.json').respond(JSON.stringify(getJSONFixture('info/me.json')));
@@ -25,12 +27,15 @@ describe('adminNg.directives.timelineDirective', function () {
         $rootScope.player = {
             adapter: {
                 addListener: function (event, callback) {
-                    spy = callback;
+                    spy[event] = callback;
                 },
                 getCurrentTime: function () {
                     return 52;
                 },
-                setCurrentTime: jasmine.createSpy()
+              setCurrentTime: jasmine.createSpy(),
+              getStatus: function() {
+                return PlayerAdapter.STATUS.PAUSED;
+              }
             }
         };
         jasmine.getJSONFixtures().fixturesPath = 'base/app/GET';
@@ -107,8 +112,8 @@ describe('adminNg.directives.timelineDirective', function () {
 
         it('sets the position on the time scale', function () {
             expect(element.isolateScope().positionStyle).toBe(0);
-            spy();
-            expect(element.isolateScope().positionStyle).toContain('15.');
+            spy[PlayerAdapter.EVENTS.TIMEUPDATE]();
+            expect(element.isolateScope().positionStyle).toContain('0%');
         });
     });
 
@@ -144,8 +149,6 @@ describe('adminNg.directives.timelineDirective', function () {
             $rootScope.$digest();
 
             expect(element.isolateScope().zoomValue).toBe(52125);
-            expect(element.isolateScope().zoomOffset).toBe(0);
-            expect(element.isolateScope().zoomFieldOffset).toBe(0);
             expect(element.find('.field-of-vision .field').width()).toBe(100);
 
             element.isolateScope().zoomSelected = { name: '1 Sec', time: 1000 };
@@ -153,8 +156,6 @@ describe('adminNg.directives.timelineDirective', function () {
             $rootScope.$digest();
 
             expect(element.isolateScope().zoomValue).toBe(1000);
-            expect(element.isolateScope().zoomOffset).toBe(0);
-            expect(element.isolateScope().zoomFieldOffset).toBe(0);
             var fovWidth = element.find('.field-of-vision .field').width();
             expect(fovWidth).toBeGreaterThan(1.9);
             expect(fovWidth).toBeLessThan(2.0);
@@ -250,6 +251,7 @@ describe('adminNg.directives.timelineDirective', function () {
         beforeEach(function () {
             $rootScope.video = angular.
                 copy(getJSONFixture('admin-ng/tools/c3a4f68d-14d4-47e2-8981-8eb2fb300d3a/editor.json'));
+            spy[PlayerAdapter.EVENTS.DURATION_CHANGE]();
             $rootScope.$digest();
             element.find('.timeline-track').css({ width: '1000px' });
         });
@@ -284,7 +286,7 @@ describe('adminNg.directives.timelineDirective', function () {
             });
 
             it('sets the video cursor', function () {
-                expect(element.isolateScope().positionStyle).toEqual('40%');
+              expect(element.isolateScope().positionStyle).toEqual('40%');
             });
 
             it('updates the player when the mouse button is released', function () {
