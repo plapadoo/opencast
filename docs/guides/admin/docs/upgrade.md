@@ -158,4 +158,11 @@ You can also just open the REST documentation, which can be found under the “H
 “?” symbol at the top right corner). Then go to the “External API - Base Endpoint” section and use the testing form on
 `/recreateIndex`.
 
-In both cases you should again get a 200 HTTP status.
+You can find the database upgrade script in `docs/upgrade/7_to_8/`.
+
+Configuration Changes
+---------------------
+
+The admin UI configuration (`etc/org.opencastproject.adminui.cfg`) now has a new option `retract.workflow.id` which
+holds the id of the workflow used to retracted events when deleting. This is used by the new single step event deletion
+fearure [MH-13516](https://opencast.jira.com/browse/MH-13516).
