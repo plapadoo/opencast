@@ -366,7 +366,7 @@
 
         <!-- 2-legged OAuth is used by trusted 3rd party applications, including LTI. -->
         <!-- Uncomment the line below to support LTI or other OAuth clients.          -->
-        <!-- <ref bean="oauthProtectedResourceFilter" /> -->
+        <ref bean="oauthProtectedResourceFilter" />
       </list>
     </property>
   </bean>
