@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0"
+               name="org.opencastproject.lti.endpoint.EventsEndpoint"
+               immediate="true" activate="activate">
+  <implementation class="org.opencastproject.lti.endpoint.EventsEndpoint"/>
+  <property name="service.description" value="LTI Service"/>
+  <property name="opencast.service.type" value="org.opencastproject.lti"/>
+  <property name="opencast.service.path" value="/lti/events"/>
+  <service>
+    <!-- expose interface for MH REST publisher! -->
+    <provide interface="org.opencastproject.lti.endpoint.EventsEndpoint"/>
+    <provide interface="org.osgi.service.cm.ManagedService"/>
+  </service>
+  <reference name="EventCatalogUIAdapter"
+             interface="org.opencastproject.metadata.dublincore.EventCatalogUIAdapter"
+             cardinality="0..n"
+             policy="dynamic"
+             bind="addCatalogUIAdapter"
+             unbind="removeCatalogUIAdapter"/>
+  <reference name="IndexService"
+             interface="org.opencastproject.index.service.api.IndexService"
+             bind="setIndexService"/>
+  <reference name="IngestService"
+             interface="org.opencastproject.ingest.api.IngestService"
+             bind="setIngestService"/>
+  <reference name="SecurityService"
+             interface="org.opencastproject.security.api.SecurityService"
+             bind="setSecurityService"/>
+  <reference name="search-index"
+             interface="org.opencastproject.adminui.index.AdminUISearchIndex"
+             bind="setSearchIndex"/>
+  <reference name="series-service"
+             interface="org.opencastproject.series.api.SeriesService"
+             bind="setSeriesService"/>
+  <reference name="abstract-search-index"
+             interface="org.opencastproject.external.index.ExternalIndex"
+             bind="setAbstractSearchIndex"/>
+</scr:component>
