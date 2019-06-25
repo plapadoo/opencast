@@ -20,6 +20,7 @@
  */
 
 /* global $, Mustache, i18ndata */
+/* eslint no-console: "warn" */
 
 'use strict';
 
@@ -73,6 +74,9 @@ function loadPage(page) {
   var limit = 15,
       offset = (page - 1) * limit,
       series = getSeries(),
+      isInstructor = false,
+      roles = [],
+      episodes,
       url = '/search/episode.json?limit=' + limit + '&offset=' + offset;
 
   currentpage = page;
@@ -85,22 +89,30 @@ function loadPage(page) {
   // load spinner
   $('main').html($('#template-loading').html());
 
-  $.getJSON(url, function( data ) {
-    data = data['search-results'];
+  $.when(
+    $.getJSON('/lti', function( data ) {
+      roles = data['roles'].split(',');
+      isInstructor = roles.includes('Instructor');
+    }),
+    $.getJSON(url, function( data ) {
+      episodes = data['search-results'];
+    })
+  ).then(function() {
     var rendered = '',
         results = [],
-        total = parseInt(data.total);
+        total = parseInt(episodes.total);
 
     if (total > 0) {
-      results = Array.isArray(data.result) ? data.result : [data.result];
+      results = Array.isArray(episodes.result) ? episodes.result : [episodes.result];
     }
 
     for (var i = 0; i < results.length; i++) {
       var episode = results[i],
           i18ncreator = Mustache.render(i18n('CREATOR'), {creator: episode.dcCreator}),
-          template = $('#template-episode').html(),
+          template = isInstructor ? $('#template-episode-admin').html() : $('#template-episode-user').html(),
           tpldata = {
             player: player + episode.id,
+            uid: episode.id,
             title: episode.dcTitle,
             i18ncreator: i18ncreator,
             created: tryLocalDate(episode.dcCreated)};
@@ -128,7 +140,7 @@ function loadPage(page) {
           total: total,
           range: {
             begin: Math.min(offset + 1, total),
-            end: offset + parseInt(data.limit)
+            end: offset + parseInt(episodes.limit)
           }
         };
     $('header').text(Mustache.render(resultTemplate, resultTplData));
@@ -138,7 +150,7 @@ function loadPage(page) {
       dataSource: Array(total),
       pageSize: limit,
       pageNumber: currentpage,
-      callback: function(data, pagination) {
+      callback: function(episodes, pagination) {
         if (pagination.pageNumber != currentpage) {
           loadPage(pagination.pageNumber);
         }
@@ -147,6 +159,21 @@ function loadPage(page) {
 
   });
 
+}
+
+/* function only called from index html */
+/* eslint-disable-next-line no-unused-vars */
+function deleteEpisode(uid) {
+  $.ajax({
+    url: '/api/events/' + uid,
+    type: 'DELETE'
+  })
+    .fail(function() {
+      console.log('delete failed');
+    })
+    .done(function() {
+      console.log('delete succeeded');
+    });
 }
 
 $(document).ready(function() {
