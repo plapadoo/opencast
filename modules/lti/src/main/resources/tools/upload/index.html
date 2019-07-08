@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv=content-type content="text/html; charset=utf-8" />
+<meta name=author content="Opencast" />
+<meta name=viewport content="width=device-width, initial-scale=1">
+<link rel=stylesheet type=text/css href=upload.css />
+<link rel=stylesheet href=/ltitools/lib/font-awesome/css/font-awesome.min.css />
+<link rel=stylesheet href=/ltitools/lib/paginationjs/dist/pagination.css />
+<script type=text/javascript src=/ltitools/lib/jquery/dist/jquery.min.js></script>
+<script type=text/javascript src=/ltitools/lib/mustache/mustache.min.js></script>
+<script type=text/javascript src=/ltitools/lib/paginationjs/dist/pagination.min.js></script>
+<script type=text/javascript src=upload.js></script>
+
+<title>Opencast: Upload</title>
+</head>
+<body>
+
+<header></header>
+<main></main>
+<footer></footer>
+
+<!-- Template for upload dialog -->
+<script id=template-upload-dialog type=x-tmpl-mustache>
+<form action="/lti/events/" method="post" enctype="multipart/form-data">
+<table class="testing" cellpadding="0" cellspacing="0">
+<tbody><tr class="form_field form_optional">
+<td class="form_label">
+<label for="createevent-2_acl">acl</label>:
+</td>
+<td>
+<input id="createevent-2_acl" class="form_field form_param_submit" name="acl" type="text" value="{{acl}}" size="30">
+</td>
+<td class="form_field_description">A collection of roles with their possible action</td>
+</tr>
+<tr class="form_field form_optional">
+<td class="form_label">
+<label for="createevent-2_metadata">metadata</label>:
+</td>
+<td>
+<input id="createevent-2_metadata" class="form_field form_param_submit" name="metadata" type="text" value="{{metadata}}" size="30">
+</td>
+<td class="form_field_description">Event metadata as Form param</td>
+</tr>
+<tr class="form_field form_optional">
+<td class="form_label">
+<label for="createevent-2_presenter">presenter</label>:
+</td>
+<td>
+<input id="createevent-2_presenter" name="presenter" class="form_field_file" type="file">
+</td>
+<td class="form_field_description">Presenter movie track</td>
+</tr>
+<tr class="form_field form_optional">
+<td class="form_label">
+<label for="createevent-2_processing">processing</label>:
+</td>
+<td>
+<input id="createevent-2_processing" class="form_field form_param_submit" name="processing" type="text" value="{{processing}}" size="30">
+</td>
+<td class="form_field_description">Processing instructions task configuration</td>
+</tr>
+<tr>
+<td colspan="3">
+<div class="form_submit">
+<input type="submit" value="SUBMIT">
+<input type="button" value="CANCEL">
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</form>
+</script>
+
+<!-- Template for spinner -->
+<script id=template-loading type=x-tmpl-mustache>
+  <div class=loading>
+    <i class="fa fa-circle-o-notch fa-spin fa-3x fa-fw"></i>
+    <span class="sr-only">Loading...</span>
+  </div>
+</script>
+
+</body>
+</html>

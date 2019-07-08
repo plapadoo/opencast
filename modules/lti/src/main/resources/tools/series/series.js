@@ -165,7 +165,7 @@ function loadPage(page) {
 /* eslint-disable-next-line no-unused-vars */
 function deleteEpisode(uid) {
   $.ajax({
-    url: '/api/events/' + uid,
+    url: '/lti/events/' + uid,
     type: 'DELETE'
   })
     .fail(function() {
