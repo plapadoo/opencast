@@ -61,10 +61,10 @@ function i18n(key) {
   return lang[key];
 }
 
-function getSeries() {
+function getParam(name) {
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.has('series')) {
-    return urlParams.get('series');
+  if (urlParams.has(name)) {
+    return urlParams.get(name);
   }
   return '';
 }
@@ -73,7 +73,8 @@ function loadPage(page) {
 
   var limit = 15,
       offset = (page - 1) * limit,
-      series = getSeries(),
+      series = getParam('series'),
+      seriesName = getParam('series_name'),
       isInstructor = false,
       roles = [],
       episodes,
@@ -84,6 +85,8 @@ function loadPage(page) {
   // attach series query if a series is requested
   if (series) {
     url += '&sid=' + series;
+  } else if (seriesName) {
+    url += '&sname=' + seriesName;
   }
 
   // load spinner
