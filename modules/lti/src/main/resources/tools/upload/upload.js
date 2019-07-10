@@ -29,7 +29,10 @@ function refreshTable() {
     var listTemplate = $('#template-upload-list').html();
 
     // render episode view
-    $('#processed-table').html(Mustache.render(listTemplate, { events: eventList, hasProcessing: eventList.length > 0 }));
+    $('#processed-table').html(
+      Mustache.render(
+        listTemplate,
+        { events: eventList, hasProcessing: eventList.length > 0 }));
 
     window.setTimeout(refreshTable, 5000);
   });
@@ -48,7 +51,7 @@ function loadPage() {
   $('upload-form').html($('#template-loading').html());
 
   var uploadTemplate = $('#template-upload-dialog').html(),
-      tpldata = { seriesName: getParam("series_name"), series: getParam("series") };
+      tpldata = { seriesName: getParam('series_name'), series: getParam('series') };
 
   // render template
   $('#upload-form').html(Mustache.render(uploadTemplate, tpldata));
