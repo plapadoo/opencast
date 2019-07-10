@@ -23,6 +23,7 @@
 </main>
 <footer></footer>
 
+
 <!-- Template for episodes user view -->
 <script id=template-upload-list type=x-tmpl-mustache>
   {{#hasProcessing}}
@@ -47,21 +48,12 @@
 <table class="testing" cellpadding="0" cellspacing="0">
 <tbody><tr class="form_field form_optional">
 <td class="form_label">
-<label for="createevent-2_acl">acl</label>:
+<label for="createevent-2_acl">title</label>:
 </td>
 <td>
-<input id="createevent-2_acl" class="form_field form_param_submit" name="acl" type="text" value="{{acl}}" size="30">
+<input id="createevent-2_acl" class="form_field form_param_submit" name="title" type="text" size="30">
 </td>
-<td class="form_field_description">A collection of roles with their possible action</td>
-</tr>
-<tr class="form_field form_optional">
-<td class="form_label">
-<label for="createevent-2_metadata">metadata</label>:
-</td>
-<td>
-<input id="createevent-2_metadata" class="form_field form_param_submit" name="metadata" type="text" value="{{metadata}}" size="30">
-</td>
-<td class="form_field_description">Event metadata as Form param</td>
+<td class="form_field_description">Title for the video</td>
 </tr>
 <tr class="form_field form_optional">
 <td class="form_label">
@@ -72,20 +64,10 @@
 </td>
 <td class="form_field_description">Presenter movie track</td>
 </tr>
-<tr class="form_field form_optional">
-<td class="form_label">
-<label for="createevent-2_processing">processing</label>:
-</td>
-<td>
-<input id="createevent-2_processing" class="form_field form_param_submit" name="processing" type="text" value="{{processing}}" size="30">
-</td>
-<td class="form_field_description">Processing instructions task configuration</td>
-</tr>
 <tr>
 <td colspan="3">
 <div class="form_submit">
-<input type="submit" value="SUBMIT">
-<input type="button" value="CANCEL">
+<input type="submit" value="Upload">
 </div>
 </td>
 </tr>
