@@ -48,7 +48,7 @@ function loadPage() {
   $('upload-form').html($('#template-loading').html());
 
   var uploadTemplate = $('#template-upload-dialog').html(),
-      tpldata = { seriesName: getParam("series_name") };
+      tpldata = { seriesName: getParam("series_name"), series: getParam("series") };
 
   // render template
   $('#upload-form').html(Mustache.render(uploadTemplate, tpldata));
