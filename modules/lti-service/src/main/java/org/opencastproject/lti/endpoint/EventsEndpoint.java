@@ -20,16 +20,11 @@
  */
 package org.opencastproject.lti.endpoint;
 
-import static com.entwinemedia.fn.data.json.Jsons.f;
-import static com.entwinemedia.fn.data.json.Jsons.obj;
-import static com.entwinemedia.fn.data.json.Jsons.v;
 import static org.opencastproject.util.RestUtil.getEndpointUrl;
 import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
 import org.opencastproject.index.service.api.IndexService;
-import org.opencastproject.index.service.catalog.adapter.DublinCoreMetadataUtil;
 import org.opencastproject.index.service.catalog.adapter.MetadataList;
-import org.opencastproject.index.service.exception.IndexServiceException;
 import org.opencastproject.index.service.impl.index.AbstractSearchIndex;
 import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.index.service.impl.index.event.EventHttpServletRequest;
@@ -69,8 +64,6 @@ import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
 import org.opencastproject.util.doc.rest.RestService;
 
-import com.entwinemedia.fn.data.Opt;
-import com.entwinemedia.fn.data.json.SimpleSerializer;
 import com.google.gson.Gson;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -79,13 +72,13 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
 import java.text.SimpleDateFormat;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -93,11 +86,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -124,8 +114,6 @@ public class EventsEndpoint implements ManagedService {
   /** Base URL of this endpoint */
   protected String endpointBaseUrl;
 
-  private Map<String, MetadataField<?>> configuredMetadataFields = new TreeMap<>();
-
   /* OSGi service references */
   private IndexService indexService;
   private IngestService ingestService;
@@ -133,6 +121,8 @@ public class EventsEndpoint implements ManagedService {
   private SeriesService seriesService;
 
   private AbstractSearchIndex searchIndex;
+  private String workflow;
+  private String workflowConfiguration;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
 
   /** OSGi DI */
@@ -199,11 +189,23 @@ public class EventsEndpoint implements ManagedService {
   public void updated(Dictionary<String, ?> properties) throws ConfigurationException {
     // Ensure properties is not null
     if (properties == null) {
-      properties = new Hashtable();
-      logger.debug("No configuration set");
+      throw new IllegalArgumentException("No configuration specified for events endpoint");
     }
-
-    configuredMetadataFields = DublinCoreMetadataUtil.getDublinCoreProperties(properties);
+    String workflowStr = (String) properties.get("workflow");
+    if (workflowStr == null) {
+      throw new IllegalArgumentException("Configuration is missing 'workflow' parameter");
+    }
+    String workflowConfigurationStr = (String) properties.get("workflow-configuration");
+    if (workflowConfigurationStr == null) {
+      throw new IllegalArgumentException("Configuration is missing 'workflow-configuration' parameter");
+    }
+    try {
+      new JSONParser().parse(workflowConfigurationStr);
+      workflowConfiguration = workflowConfigurationStr;
+      workflow = workflowStr;
+    } catch (ParseException e) {
+      throw new IllegalArgumentException("Invalid JSON specified for workflow configuration");
+    }
   }
 
   private String getEventUrl(String eventId) {
@@ -299,7 +301,8 @@ public class EventsEndpoint implements ManagedService {
               new AccessControlEntry("ROLE_OAUTH_USER", "write", true),
               new AccessControlEntry("ROLE_OAUTH_USER", "read", true)));
       r.setProcessing(
-              (JSONObject) new JSONParser().parse("{\"workflow\":\"fast\",\"configuration\":{\"flagForCutting\":\"false\",\"flagForReview\":\"false\",\"publishToEngage\":\"true\",\"publishToHarvesting\":\"true\",\"straightToPublishing\":\"true\"}}"));
+              (JSONObject) new JSONParser().parse(
+                      String.format("{\"workflow\":\"%s\",\"configuration\":%s}", workflow, workflowConfiguration)));
       r.setMetadataList(metadataList);
       metadataList.add(adapter, collection);
 
