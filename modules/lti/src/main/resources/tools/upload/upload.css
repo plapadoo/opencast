@@ -64,3 +64,7 @@ footer  {
 .paginationjs {
   display: inline-block;
 }
+
+.form_field_description {
+  font-style: italic;
+}

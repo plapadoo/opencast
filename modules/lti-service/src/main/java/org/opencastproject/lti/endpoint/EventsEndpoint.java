@@ -28,6 +28,7 @@ import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.catalog.adapter.DublinCoreMetadataUtil;
+import org.opencastproject.index.service.catalog.adapter.MetadataList;
 import org.opencastproject.index.service.exception.IndexServiceException;
 import org.opencastproject.index.service.impl.index.AbstractSearchIndex;
 import org.opencastproject.index.service.impl.index.event.Event;
@@ -37,10 +38,17 @@ import org.opencastproject.ingest.api.IngestService;
 import org.opencastproject.matterhorn.search.SearchIndexException;
 import org.opencastproject.matterhorn.search.SearchResult;
 import org.opencastproject.matterhorn.search.SearchResultItem;
+import org.opencastproject.mediapackage.MediaPackage;
+import org.opencastproject.mediapackage.MediaPackageElementFlavor;
+import org.opencastproject.mediapackage.MediaPackageElements;
+import org.opencastproject.metadata.dublincore.DublinCore;
 import org.opencastproject.metadata.dublincore.EventCatalogUIAdapter;
+import org.opencastproject.metadata.dublincore.MetadataCollection;
 import org.opencastproject.metadata.dublincore.MetadataField;
 import org.opencastproject.rest.RestConstants;
 import org.opencastproject.scheduler.api.SchedulerException;
+import org.opencastproject.security.api.AccessControlEntry;
+import org.opencastproject.security.api.AccessControlList;
 import org.opencastproject.security.api.SecurityService;
 import org.opencastproject.security.api.UnauthorizedException;
 import org.opencastproject.security.api.User;
@@ -59,7 +67,12 @@ import com.entwinemedia.fn.data.Opt;
 import com.entwinemedia.fn.data.json.SimpleSerializer;
 import com.google.gson.Gson;
 
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.fileupload.util.Streams;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.osgi.service.cm.ConfigurationException;
 import org.osgi.service.cm.ManagedService;
 import org.osgi.service.component.ComponentContext;
@@ -67,14 +80,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -223,23 +239,63 @@ public class EventsEndpoint implements ManagedService {
                   @RestResponse(description = "The request is invalid or inconsistent..", responseCode = HttpServletResponse.SC_BAD_REQUEST) })
   public Response createNewEvent(@HeaderParam("Accept") String acceptHeader, @Context HttpServletRequest request) {
     try {
-      Opt<String> startDatePattern = configuredMetadataFields.containsKey("startDate") ? configuredMetadataFields.get("startDate").getPattern() : Opt.none();
-      Opt<String> startTimePattern = configuredMetadataFields.containsKey("startTime") ? configuredMetadataFields.get("startTime").getPattern() : Opt.none();
-      EventHttpServletRequest eventHttpServletRequest = EventHttpServletRequest.createFromHttpServletRequest(request,
-          ingestService, getEventCatalogUIAdapters(), startDatePattern, startTimePattern);
+      final EventHttpServletRequest r = new EventHttpServletRequest();
+      final MediaPackage mp = ingestService.createMediaPackage();
+      if (mp == null) {
+        logger.debug("Unable to create media package for event");
+        return RestUtil.R.badRequest("Unable to create media package for event");
+      }
+      r.setMediaPackage(mp);
+      final MetadataList metadataList = new MetadataList();
+      final MediaPackageElementFlavor flavor = new MediaPackageElementFlavor("dublincore", "episode");
+      final EventCatalogUIAdapter adapter = catalogUIAdapters.stream().filter(e -> e.getFlavor().equals(flavor)).findAny()
+              .orElse(null);
+      if (adapter == null) {
+        return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+      }
+      final MetadataCollection collection = adapter.getRawFields();
+      for (FileItemIterator iter = new ServletFileUpload().getItemIterator(request); iter.hasNext();) {
+        FileItemStream item = iter.next();
+        if (item.isFormField()) {
+          final MetadataField<?> field = collection.getOutputFields().get(item.getFieldName());
+          collection.removeField(field);
+          collection.addField(MetadataField.copyMetadataFieldWithValue(field, Streams.asString(item.openStream())));
+        } else {
+          r.setMediaPackage(
+                  ingestService.addTrack(item.openStream(), item.getName(), MediaPackageElements.PRESENTER_SOURCE, mp));
+        }
+      }
+      final Date startDate = new Date();
+      final MetadataField<?> startDateField = collection.getOutputFields().get("startDate");
+      final SimpleDateFormat sdf = MetadataField.getSimpleDateFormatter(startDateField.getPattern().get());
+      collection.removeField(startDateField);
+      collection.addField(MetadataField.copyMetadataFieldWithValue(startDateField, sdf.format(startDate)));
 
-     SimpleSerializer serializer = new SimpleSerializer();
+      final MetadataField<?> field = collection.getOutputFields().get("duration");
+      collection.removeField(field);
+      collection.addField(MetadataField.copyMetadataFieldWithValue(field, "6000"));
+
+      r.setAcl(new AccessControlList(new AccessControlEntry("ROLE_ADMIN", "write", true),
+              new AccessControlEntry("ROLE_ADMIN", "read", true),
+              new AccessControlEntry("ROLE_OAUTH_USER", "write", true),
+              new AccessControlEntry("ROLE_OAUTH_USER", "read", true)));
+      r.setProcessing(
+              (JSONObject) new JSONParser().parse("{\"workflow\":\"fast\",\"configuration\":{\"flagForCutting\":\"false\",\"flagForReview\":\"false\",\"publishToEngage\":\"true\",\"publishToHarvesting\":\"true\",\"straightToPublishing\":\"true\"}}"));
+      r.setMetadataList(metadataList);
+      metadataList.add(adapter, collection);
+
+      SimpleSerializer serializer = new SimpleSerializer();
 
       JSONObject source = new JSONObject();
       source.put("type", "UPLOAD");
-      eventHttpServletRequest.setSource(source);
-      String eventId = indexService.createEvent(eventHttpServletRequest);
+      r.setSource(source);
+      String eventId = indexService.createEvent(r);
 
       return Response.created(URI.create(getEventUrl(eventId))).entity(serializer.toJson(obj(f("identifier", v(eventId))))).type("application/json").build();
     } catch (IllegalArgumentException | DateTimeParseException e) {
       logger.debug("Unable to create event", e);
       return RestUtil.R.badRequest(e.getMessage());
-    } catch (SchedulerException | IndexServiceException e) {
+    } catch (SchedulerException e) {
       if (e.getCause() != null && e.getCause() instanceof NotFoundException
               || e.getCause() instanceof IllegalArgumentException) {
         logger.debug("Unable to create event", e);
