@@ -28,16 +28,22 @@ import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
 
 import org.opencastproject.index.service.api.IndexService;
 import org.opencastproject.index.service.catalog.adapter.DublinCoreMetadataUtil;
-import org.opencastproject.index.service.catalog.adapter.events.CommonEventCatalogUIAdapter;
 import org.opencastproject.index.service.exception.IndexServiceException;
+import org.opencastproject.index.service.impl.index.AbstractSearchIndex;
+import org.opencastproject.index.service.impl.index.event.Event;
 import org.opencastproject.index.service.impl.index.event.EventHttpServletRequest;
+import org.opencastproject.index.service.impl.index.event.EventSearchQuery;
 import org.opencastproject.ingest.api.IngestService;
+import org.opencastproject.matterhorn.search.SearchIndexException;
+import org.opencastproject.matterhorn.search.SearchResult;
+import org.opencastproject.matterhorn.search.SearchResultItem;
 import org.opencastproject.metadata.dublincore.EventCatalogUIAdapter;
 import org.opencastproject.metadata.dublincore.MetadataField;
 import org.opencastproject.rest.RestConstants;
 import org.opencastproject.scheduler.api.SchedulerException;
 import org.opencastproject.security.api.SecurityService;
 import org.opencastproject.security.api.UnauthorizedException;
+import org.opencastproject.security.api.User;
 import org.opencastproject.systems.OpencastConstants;
 import org.opencastproject.util.NotFoundException;
 import org.opencastproject.util.RestUtil;
@@ -51,6 +57,7 @@ import org.opencastproject.util.doc.rest.RestService;
 
 import com.entwinemedia.fn.data.Opt;
 import com.entwinemedia.fn.data.json.SimpleSerializer;
+import com.google.gson.Gson;
 
 import org.json.simple.JSONObject;
 import org.osgi.service.cm.ConfigurationException;
@@ -62,16 +69,20 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Dictionary;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -85,7 +96,6 @@ import javax.ws.rs.core.Response.Status;
 @Path("/")
 @RestService(name = "ltiservice", title = "LTI Service", notes = {}, abstractText = "Provides operations to LTI clients")
 public class EventsEndpoint implements ManagedService {
-
   /** The logging facility */
   private static final Logger logger = LoggerFactory.getLogger(EventsEndpoint.class);
 
@@ -98,7 +108,14 @@ public class EventsEndpoint implements ManagedService {
   private IndexService indexService;
   private IngestService ingestService;
   private SecurityService securityService;
+
+  private AbstractSearchIndex searchIndex;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
+
+  /** OSGi DI */
+  public void setSearchIndex(AbstractSearchIndex searchIndex) {
+    this.searchIndex = searchIndex;
+  }
 
   /** OSGi DI */
   public void setIndexService(IndexService indexService) {
@@ -115,10 +132,6 @@ public class EventsEndpoint implements ManagedService {
     this.securityService = securityService;
   }
 
-  public SecurityService getSecurityService() {
-    return securityService;
-  }
-
   /** OSGi DI. */
   public void addCatalogUIAdapter(EventCatalogUIAdapter catalogUIAdapter) {
     catalogUIAdapters.add(catalogUIAdapter);
@@ -130,7 +143,7 @@ public class EventsEndpoint implements ManagedService {
   }
 
   private List<EventCatalogUIAdapter> getEventCatalogUIAdapters() {
-    return new ArrayList<>(getEventCatalogUIAdapters(getSecurityService().getOrganization().getId()));
+    return new ArrayList<>(getEventCatalogUIAdapters(securityService.getOrganization().getId()));
   }
 
   public List<EventCatalogUIAdapter> getEventCatalogUIAdapters(String organization) {
@@ -167,6 +180,31 @@ public class EventsEndpoint implements ManagedService {
 
   private String getEventUrl(String eventId) {
     return UrlSupport.concat(endpointBaseUrl, eventId);
+  }
+
+  @GET
+  @Path("/jobs")
+  public Response listJobs() {
+    final User user = securityService.getUser();
+    final EventSearchQuery query = new EventSearchQuery(securityService.getOrganization().getId(), user)
+            .withCreator(user.getName());
+    try {
+      SearchResult<Event> results = searchIndex.getByQuery(query);
+      List<Map<String, String>> jsonResult = Arrays.stream(results.getItems())
+              .map(SearchResultItem::getSource)
+              .filter(e -> !e.getEventStatus().equals("EVENTS.EVENTS.STATUS.PROCESSED"))
+              .map(e -> {
+                Map<String, String> eventMap = new HashMap<>();
+                eventMap.put("title", e.getTitle());
+                eventMap.put("status", e.getEventStatus());
+                return eventMap;
+              })
+              .collect(Collectors.toList());
+      return Response.status(Status.OK).entity(new Gson().toJson(jsonResult, List.class)).build();
+    } catch (SearchIndexException e) {
+      logger.error("error searching",e);
+      return Response.status(Status.INTERNAL_SERVER_ERROR).entity("error while searching").build();
+    }
   }
 
   @POST
