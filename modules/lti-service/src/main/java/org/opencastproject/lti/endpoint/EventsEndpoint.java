@@ -98,7 +98,6 @@ public class EventsEndpoint implements ManagedService {
   private IndexService indexService;
   private IngestService ingestService;
   private SecurityService securityService;
-  private CommonEventCatalogUIAdapter eventCatalogUIAdapter;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
 
   /** OSGi DI */
@@ -118,11 +117,6 @@ public class EventsEndpoint implements ManagedService {
 
   public SecurityService getSecurityService() {
     return securityService;
-  }
-
-  /** OSGi DI. */
-  public void setCommonEventCatalogUIAdapter(CommonEventCatalogUIAdapter eventCatalogUIAdapter) {
-    this.eventCatalogUIAdapter = eventCatalogUIAdapter;
   }
 
   /** OSGi DI. */
