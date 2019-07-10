@@ -17,15 +17,28 @@
 <body>
 
 <header></header>
-<main></main>
+<main>
+  <div id="upload-form"></div>
+  <div id="processed-table"></div>
+</main>
 <footer></footer>
 
 <!-- Template for episodes user view -->
 <script id=template-upload-list type=x-tmpl-mustache>
-  <div class=desc>
-    <h2>{{title}}</h2>
-    {{status}}
-  </div>
+  {{#hasProcessing}}
+  <h2>Currently processing</h2>
+  <table>
+  <tr>
+  <th>Title</th>
+  <th>Status</th>
+  </tr>
+  {{#events}}
+  <tr>
+  <td>{{title}}</td>
+  <td>{{status}}</td>
+  </tr>
+  {{/events}}
+  {{/hasProcessing}}
 </script>
 
 <!-- Template for upload dialog -->

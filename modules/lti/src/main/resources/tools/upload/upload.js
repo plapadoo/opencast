@@ -24,90 +24,89 @@
 
 'use strict';
 
-function loadPage() {
-
-  // load spinner
-  $('main').html($('#template-loading').html());
-
+function refreshTable() {
   $.getJSON('/lti/events/jobs', function( eventList ) {
-    var uploadTemplate = $('#template-upload-dialog').html(),
-        rendered = "",
-        tpldata = {
-        acl: JSON.stringify([
-               {
-                 "action": "write",
-                 "role": "ROLE_ADMIN"
-               },
-               {
-                 "action": "read",
-                 "role": "ROLE_ADMIN"
-               },
-               {
-                 "action": "write",
-                 "role": "ROLE_OAUTH_USER"
-               },
-               {
-                 "action": "read",
-                 "role": "ROLE_OAUTH_USER"
-               }
-             ]),
-        metadata: JSON.stringify([
-                    {
-                      "flavor": "dublincore/episode",
-                      "fields": [
-                        {
-                          "id": "title",
-                          "value": "Captivating title"
-                        },
-                        {
-                          "id": "subjects",
-                          "value": ["John Clark", "Thiago Melo Costa"]
-                        },
-                        {
-                          "id": "description",
-                          "value": "A great description"
-                        },
-                        {
-                          "id": "startDate",
-                          "value": "2016-06-22"
-                        },
-                        {
-                          "id": "startTime",
-                          "value": "13:30:00Z"
-                        },
-                        {
-                          "id": "duration",
-                          "value": "6000"
-                        }
-                      ]
-                    }
-                  ]),
-        schedule: JSON.stringify({}),
-        processing: JSON.stringify({
-                      "workflow": "fast",
-                      "configuration": {
-                        "flagForCutting": "false",
-                        "flagForReview": "false",
-                        "publishToEngage": "true",
-                        "publishToHarvesting": "true",
-                        "straightToPublishing": "true"
-                      }
-                    })
-        };
-
-    // render template
-    rendered += Mustache.render(uploadTemplate, tpldata);
-
-    for (var i = 0; i < eventList.length; i++) {
-      var listTemplate = $('#template-upload-list').html(),
-          listtpldata = { title: eventList[i].title, status: eventList[i].status };
-
-      rendered += Mustache.render(listTemplate, listtpldata)
-    }
+    var listTemplate = $('#template-upload-list').html();
 
     // render episode view
-    $('main').html(rendered);
+    $('#processed-table').html(Mustache.render(listTemplate, { events: eventList, hasProcessing: eventList.length > 0 }));
+
+    window.setTimeout(refreshTable, 5000);
   });
+}
+
+function loadPage() {
+  // load spinner
+  $('upload-form').html($('#template-loading').html());
+
+  var uploadTemplate = $('#template-upload-dialog').html(),
+      tpldata = {
+      acl: JSON.stringify([
+             {
+               "action": "write",
+               "role": "ROLE_ADMIN"
+             },
+             {
+               "action": "read",
+               "role": "ROLE_ADMIN"
+             },
+             {
+               "action": "write",
+               "role": "ROLE_OAUTH_USER"
+             },
+             {
+               "action": "read",
+               "role": "ROLE_OAUTH_USER"
+             }
+           ]),
+      metadata: JSON.stringify([
+                  {
+                    "flavor": "dublincore/episode",
+                    "fields": [
+                      {
+                        "id": "title",
+                        "value": "Captivating title"
+                      },
+                      {
+                        "id": "subjects",
+                        "value": ["John Clark", "Thiago Melo Costa"]
+                      },
+                      {
+                        "id": "description",
+                        "value": "A great description"
+                      },
+                      {
+                        "id": "startDate",
+                        "value": "2016-06-22"
+                      },
+                      {
+                        "id": "startTime",
+                        "value": "13:30:00Z"
+                      },
+                      {
+                        "id": "duration",
+                        "value": "6000"
+                      }
+                    ]
+                  }
+                ]),
+      schedule: JSON.stringify({}),
+      processing: JSON.stringify({
+                    "workflow": "fast",
+                    "configuration": {
+                      "flagForCutting": "false",
+                      "flagForReview": "false",
+                      "publishToEngage": "true",
+                      "publishToHarvesting": "true",
+                      "straightToPublishing": "true"
+                    }
+                  })
+      };
+
+  // render template
+  $('#upload-form').html(Mustache.render(uploadTemplate, tpldata));
+
+  refreshTable();
 }
 
 
