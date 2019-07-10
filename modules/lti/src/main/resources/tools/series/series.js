@@ -172,10 +172,10 @@ function deleteEpisode(uid) {
     type: 'DELETE'
   })
     .fail(function() {
-      console.log('delete failed');
+      //console.log('delete failed');
     })
     .done(function() {
-      console.log('delete succeeded');
+      //console.log('delete succeeded');
     });
 }
 

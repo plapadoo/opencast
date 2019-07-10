@@ -19,7 +19,7 @@
  *
  */
 
-/* global $, Mustache, i18ndata */
+/* global $, Mustache */
 /* eslint no-console: "warn" */
 
 'use strict';
