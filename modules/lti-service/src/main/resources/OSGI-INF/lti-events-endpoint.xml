@@ -29,4 +29,7 @@
   <reference name="search-index"
              interface="org.opencastproject.adminui.index.AdminUISearchIndex"
              bind="setSearchIndex"/>
+  <reference name="series-service"
+             interface="org.opencastproject.series.api.SeriesService"
+             bind="setSeriesService"/>
 </scr:component>
