@@ -20,6 +20,14 @@
 <main></main>
 <footer></footer>
 
+<!-- Template for episodes user view -->
+<script id=template-upload-list type=x-tmpl-mustache>
+  <div class=desc>
+    <h2>{{title}}</h2>
+    {{status}}
+  </div>
+</script>
+
 <!-- Template for upload dialog -->
 <script id=template-upload-dialog type=x-tmpl-mustache>
 <form action="/lti/events/" method="post" enctype="multipart/form-data">
