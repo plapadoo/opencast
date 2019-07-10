@@ -11,11 +11,6 @@
     <provide interface="org.opencastproject.lti.endpoint.EventsEndpoint"/>
     <provide interface="org.osgi.service.cm.ManagedService"/>
   </service>
-  <reference name="CommonEventCatalogUIAdapter"
-             interface="org.opencastproject.index.service.catalog.adapter.events.CommonEventCatalogUIAdapter"
-             cardinality="1..1"
-             policy="static"
-             bind="setCommonEventCatalogUIAdapter"/>
   <reference name="EventCatalogUIAdapter"
              interface="org.opencastproject.metadata.dublincore.EventCatalogUIAdapter"
              cardinality="0..n"
