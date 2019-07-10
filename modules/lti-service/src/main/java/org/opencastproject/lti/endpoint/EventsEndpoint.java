@@ -268,33 +268,27 @@ public class EventsEndpoint implements ManagedService {
         return Response.status(Status.INTERNAL_SERVER_ERROR).build();
       }
       final MetadataCollection collection = adapter.getRawFields();
-      String seriesName = "";
+      String seriesId = "";
       for (FileItemIterator iter = new ServletFileUpload().getItemIterator(request); iter.hasNext();) {
         FileItemStream item = iter.next();
         if (item.getFieldName().equals("hidden_series_name")) {
-          final MetadataField<?> field = collection.getOutputFields().get(DublinCore.PROPERTY_IS_PART_OF.getLocalName());
-          collection.removeField(field);
-          seriesName = Streams.asString(item.openStream());
-          collection.addField(MetadataField
-                  .copyMetadataFieldWithValue(field, resolveSeriesName(seriesName)));
+          seriesId = resolveSeriesName(Streams.asString(item.openStream()));
+          replaceField(collection, DublinCore.PROPERTY_IS_PART_OF.getLocalName(), seriesId);
         } else if (item.isFormField()) {
-          final MetadataField<?> field = collection.getOutputFields().get(item.getFieldName());
-          collection.removeField(field);
-          collection.addField(MetadataField.copyMetadataFieldWithValue(field, Streams.asString(item.openStream())));
+          final String fieldValue = Streams.asString(item.openStream());
+          if (item.getFieldName().equals("isPartOf")) {
+            seriesId = fieldValue;
+          }
+          replaceField(collection, item.getFieldName(), fieldValue);
         } else {
           r.setMediaPackage(
                   ingestService.addTrack(item.openStream(), item.getName(), MediaPackageElements.PRESENTER_SOURCE, mp));
         }
       }
-      final Date startDate = new Date();
-      final MetadataField<?> startDateField = collection.getOutputFields().get("startDate");
-      final SimpleDateFormat sdf = MetadataField.getSimpleDateFormatter(startDateField.getPattern().get());
-      collection.removeField(startDateField);
-      collection.addField(MetadataField.copyMetadataFieldWithValue(startDateField, sdf.format(startDate)));
-
-      final MetadataField<?> field = collection.getOutputFields().get("duration");
-      collection.removeField(field);
-      collection.addField(MetadataField.copyMetadataFieldWithValue(field, "6000"));
+      final SimpleDateFormat sdf = MetadataField
+              .getSimpleDateFormatter(collection.getOutputFields().get("startDate").getPattern().get());
+      replaceField(collection, "startDate", sdf.format(new Date()));
+      replaceField(collection, "duration", "6000");
 
       r.setAcl(new AccessControlList(new AccessControlEntry("ROLE_ADMIN", "write", true),
               new AccessControlEntry("ROLE_ADMIN", "read", true),
@@ -312,7 +306,7 @@ public class EventsEndpoint implements ManagedService {
       indexService.createEvent(r);
 
 
-      final String location = "/ltitools/upload/index.html?series_name=" + seriesName;
+      final String location = "/ltitools/upload/index.html?series=" + seriesId;
       return Response.ok().entity("Upload complete, <a href=\"" + location + "\">go back</a>").build();
     } catch (IllegalArgumentException | DateTimeParseException e) {
       logger.debug("Unable to create event", e);
@@ -330,6 +324,12 @@ public class EventsEndpoint implements ManagedService {
       logger.error("Unable to create event", e);
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private void replaceField(MetadataCollection collection, String fieldName, String fieldValue) {
+    final MetadataField<?> field = collection.getOutputFields().get(fieldName);
+    collection.removeField(field);
+    collection.addField(MetadataField.copyMetadataFieldWithValue(field, fieldValue));
   }
 
   private String resolveSeriesName(String seriesName) throws SeriesException, UnauthorizedException {
