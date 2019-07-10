@@ -35,73 +35,20 @@ function refreshTable() {
   });
 }
 
+function getParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has(name)) {
+    return urlParams.get(name);
+  }
+  return '';
+}
+
 function loadPage() {
   // load spinner
   $('upload-form').html($('#template-loading').html());
 
   var uploadTemplate = $('#template-upload-dialog').html(),
-      tpldata = {
-      acl: JSON.stringify([
-             {
-               "action": "write",
-               "role": "ROLE_ADMIN"
-             },
-             {
-               "action": "read",
-               "role": "ROLE_ADMIN"
-             },
-             {
-               "action": "write",
-               "role": "ROLE_OAUTH_USER"
-             },
-             {
-               "action": "read",
-               "role": "ROLE_OAUTH_USER"
-             }
-           ]),
-      metadata: JSON.stringify([
-                  {
-                    "flavor": "dublincore/episode",
-                    "fields": [
-                      {
-                        "id": "title",
-                        "value": "Captivating title"
-                      },
-                      {
-                        "id": "subjects",
-                        "value": ["John Clark", "Thiago Melo Costa"]
-                      },
-                      {
-                        "id": "description",
-                        "value": "A great description"
-                      },
-                      {
-                        "id": "startDate",
-                        "value": "2016-06-22"
-                      },
-                      {
-                        "id": "startTime",
-                        "value": "13:30:00Z"
-                      },
-                      {
-                        "id": "duration",
-                        "value": "6000"
-                      }
-                    ]
-                  }
-                ]),
-      schedule: JSON.stringify({}),
-      processing: JSON.stringify({
-                    "workflow": "fast",
-                    "configuration": {
-                      "flagForCutting": "false",
-                      "flagForReview": "false",
-                      "publishToEngage": "true",
-                      "publishToHarvesting": "true",
-                      "straightToPublishing": "true"
-                    }
-                  })
-      };
+      tpldata = { seriesName: getParam("series_name") };
 
   // render template
   $('#upload-form').html(Mustache.render(uploadTemplate, tpldata));

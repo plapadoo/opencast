@@ -42,6 +42,9 @@ import org.opencastproject.mediapackage.MediaPackage;
 import org.opencastproject.mediapackage.MediaPackageElementFlavor;
 import org.opencastproject.mediapackage.MediaPackageElements;
 import org.opencastproject.metadata.dublincore.DublinCore;
+import org.opencastproject.metadata.dublincore.DublinCoreCatalog;
+import org.opencastproject.metadata.dublincore.DublinCoreCatalogList;
+import org.opencastproject.metadata.dublincore.DublinCoreValue;
 import org.opencastproject.metadata.dublincore.EventCatalogUIAdapter;
 import org.opencastproject.metadata.dublincore.MetadataCollection;
 import org.opencastproject.metadata.dublincore.MetadataField;
@@ -52,6 +55,9 @@ import org.opencastproject.security.api.AccessControlList;
 import org.opencastproject.security.api.SecurityService;
 import org.opencastproject.security.api.UnauthorizedException;
 import org.opencastproject.security.api.User;
+import org.opencastproject.series.api.SeriesException;
+import org.opencastproject.series.api.SeriesQuery;
+import org.opencastproject.series.api.SeriesService;
 import org.opencastproject.systems.OpencastConstants;
 import org.opencastproject.util.NotFoundException;
 import org.opencastproject.util.RestUtil;
@@ -124,6 +130,7 @@ public class EventsEndpoint implements ManagedService {
   private IndexService indexService;
   private IngestService ingestService;
   private SecurityService securityService;
+  private SeriesService seriesService;
 
   private AbstractSearchIndex searchIndex;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
@@ -131,6 +138,11 @@ public class EventsEndpoint implements ManagedService {
   /** OSGi DI */
   public void setSearchIndex(AbstractSearchIndex searchIndex) {
     this.searchIndex = searchIndex;
+  }
+
+  /** OSGi DI */
+  public void setSeriesService(SeriesService seriesService) {
+    this.seriesService = seriesService;
   }
 
   /** OSGi DI */
@@ -254,9 +266,16 @@ public class EventsEndpoint implements ManagedService {
         return Response.status(Status.INTERNAL_SERVER_ERROR).build();
       }
       final MetadataCollection collection = adapter.getRawFields();
+      String seriesName = "";
       for (FileItemIterator iter = new ServletFileUpload().getItemIterator(request); iter.hasNext();) {
         FileItemStream item = iter.next();
-        if (item.isFormField()) {
+        if (item.getFieldName().equals("hidden_series_name")) {
+          final MetadataField<?> field = collection.getOutputFields().get(DublinCore.PROPERTY_IS_PART_OF.getLocalName());
+          collection.removeField(field);
+          seriesName = Streams.asString(item.openStream());
+          collection.addField(MetadataField
+                  .copyMetadataFieldWithValue(field, resolveSeriesName(seriesName)));
+        } else if (item.isFormField()) {
           final MetadataField<?> field = collection.getOutputFields().get(item.getFieldName());
           collection.removeField(field);
           collection.addField(MetadataField.copyMetadataFieldWithValue(field, Streams.asString(item.openStream())));
@@ -284,14 +303,14 @@ public class EventsEndpoint implements ManagedService {
       r.setMetadataList(metadataList);
       metadataList.add(adapter, collection);
 
-      SimpleSerializer serializer = new SimpleSerializer();
-
       JSONObject source = new JSONObject();
       source.put("type", "UPLOAD");
       r.setSource(source);
-      String eventId = indexService.createEvent(r);
+      indexService.createEvent(r);
 
-      return Response.created(URI.create(getEventUrl(eventId))).entity(serializer.toJson(obj(f("identifier", v(eventId))))).type("application/json").build();
+
+      final String location = "/ltitools/upload/index.html?series_name=" + seriesName;
+      return Response.ok().entity("Upload complete, <a href=\"" + location + "\">go back</a>").build();
     } catch (IllegalArgumentException | DateTimeParseException e) {
       logger.debug("Unable to create event", e);
       return RestUtil.R.badRequest(e.getMessage());
@@ -308,6 +327,23 @@ public class EventsEndpoint implements ManagedService {
       logger.error("Unable to create event", e);
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  private String resolveSeriesName(String seriesName) throws SeriesException, UnauthorizedException {
+    DublinCoreCatalogList result;
+    result = seriesService.getSeries(new SeriesQuery().setSeriesTitle(seriesName));
+    if (result.getTotalCount() == 0) {
+      throw new IllegalArgumentException("series with given name doesn't exist");
+    }
+    if (result.getTotalCount() > 1) {
+      throw new IllegalArgumentException("more than one series matches given series name");
+    }
+    DublinCoreCatalog seriesResult = result.getCatalogList().get(0);
+    final List<DublinCoreValue> identifiers = seriesResult.get(DublinCore.PROPERTY_IDENTIFIER);
+    if (identifiers.size() != 1) {
+      throw new IllegalArgumentException("more than one identifier in dublin core catalog for series");
+    }
+    return identifiers.get(0).getValue();
   }
 
   @DELETE
