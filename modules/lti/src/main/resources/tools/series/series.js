@@ -27,6 +27,7 @@
 const player = '/play/';
 
 var currentpage,
+    deletionSuccess = false,
     defaultLang = i18ndata['en-US'],
     lang = defaultLang;
 
@@ -70,7 +71,6 @@ function getParam(name) {
 }
 
 function loadPage(page) {
-
   var limit = 15,
       offset = (page - 1) * limit,
       series = getParam('series'),
@@ -145,8 +145,12 @@ function loadPage(page) {
             begin: Math.min(offset + 1, total),
             end: offset + parseInt(episodes.limit)
           }
-        };
-    $('header').text(Mustache.render(resultTemplate, resultTplData));
+        },
+        headerStr = '';
+    if (deletionSuccess) {
+      headerStr = "<h2>Deletion successful</h2>";
+    }
+    $('header').html(headerStr+Mustache.render(resultTemplate, resultTplData));
 
     // render pagination
     $('footer').pagination({
@@ -155,6 +159,7 @@ function loadPage(page) {
       pageNumber: currentpage,
       callback: function(episodes, pagination) {
         if (pagination.pageNumber != currentpage) {
+          deletionSuccess = false;
           loadPage(pagination.pageNumber);
         }
       }
@@ -167,6 +172,7 @@ function loadPage(page) {
 /* function only called from index html */
 /* eslint-disable-next-line no-unused-vars */
 function deleteEpisode(uid) {
+  deletionSuccess = false;
   $.ajax({
     url: '/lti/events/' + uid,
     type: 'DELETE'
@@ -175,7 +181,8 @@ function deleteEpisode(uid) {
       //console.log('delete failed');
     })
     .done(function() {
-      //console.log('delete succeeded');
+      deletionSuccess = true;
+      loadPage(currentpage);
     });
 }
 
