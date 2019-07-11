@@ -47,7 +47,10 @@ function matchLanguage(lang) {
 }
 
 function i18n(key) {
-  return lang[key];
+  if (key in lang) {
+    return lang[key];
+  }
+  return "NO TRANSLATION FOUND FOR '"+key+"'";
 }
 
 function refreshTable() {
@@ -65,8 +68,9 @@ function refreshTable() {
         {
           events: translatedEvents,
           hasProcessing: eventList.length > 0,
-          i18ntitle: i18n("TITLE"),
-          i18nstatus: i18n("STATUS")
+          i18ncurrentJobs: i18n('CURRENT_JOBS'),
+          i18ntitle: i18n('TITLE'),
+          i18nstatus: i18n('STATUS')
         }));
 
     window.setTimeout(refreshTable, 5000);
@@ -89,7 +93,6 @@ function loadPage() {
       tpldata = {
         seriesName: getParam('series_name'),
         series: getParam('series'),
-        i18ncurrentlyProcessing: i18n('CURRENTLY_PROCESSING'),
         i18ntitle: i18n('TITLE'),
         i18nstatus: i18n('STATUS'),
         i18ntitleDescription: i18n('TITLE_DESCRIPTION'),

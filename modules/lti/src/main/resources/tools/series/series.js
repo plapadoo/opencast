@@ -148,12 +148,12 @@ function loadPage(page) {
         },
         headerStr = '';
     if (deletionSuccess) {
-      headerStr = Mustache.render("template-deletion-success", {
-        i18ndeletionSuccess: i18n("DELETION_SUCCESS"),
-        i18ndeletionSuccessDescription: i18n("DELETION_SUCCESS_DESCRIPTION")
+      headerStr = Mustache.render('template-deletion-success', {
+        i18ndeletionSuccess: i18n('DELETION_SUCCESS'),
+        i18ndeletionSuccessDescription: i18n('DELETION_SUCCESS_DESCRIPTION')
       });
     }
-    $('header').html(headerStr+Mustache.render(resultTemplate, resultTplData));
+    $('header').html(headerStr + Mustache.render(resultTemplate, resultTplData));
 
     // render pagination
     $('footer').pagination({

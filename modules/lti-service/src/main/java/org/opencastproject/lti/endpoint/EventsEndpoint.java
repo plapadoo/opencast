@@ -82,7 +82,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -230,9 +235,10 @@ public class EventsEndpoint implements ManagedService {
             .withCreator(user.getName());
     try {
       SearchResult<Event> results = searchIndex.getByQuery(query);
+      ZonedDateTime startOfDay = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
       List<Map<String, String>> jsonResult = Arrays.stream(results.getItems())
               .map(SearchResultItem::getSource)
-              .filter(e -> !e.getEventStatus().equals("EVENTS.EVENTS.STATUS.PROCESSED"))
+              .filter(e -> ZonedDateTime.parse(e.getCreated()).compareTo(startOfDay) > 0)
               .map(e -> {
                 Map<String, String> eventMap = new HashMap<>();
                 eventMap.put("title", e.getTitle());
