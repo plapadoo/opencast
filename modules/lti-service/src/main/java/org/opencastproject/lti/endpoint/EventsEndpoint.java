@@ -63,7 +63,9 @@ import org.opencastproject.util.doc.rest.RestParameter.Type;
 import org.opencastproject.util.doc.rest.RestQuery;
 import org.opencastproject.util.doc.rest.RestResponse;
 import org.opencastproject.util.doc.rest.RestService;
+import org.opencastproject.workflow.api.WorkflowDatabaseException;
 
+import com.entwinemedia.fn.data.Opt;
 import com.google.gson.Gson;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -119,11 +121,18 @@ public class EventsEndpoint implements ManagedService {
   private IngestService ingestService;
   private SecurityService securityService;
   private SeriesService seriesService;
+  private AbstractSearchIndex abstractSearchIndex;
 
   private AbstractSearchIndex searchIndex;
   private String workflow;
   private String workflowConfiguration;
+  private String retractWorkflowId;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
+
+  /** OSGi DI */
+  public void setAbstractSearchIndex(AbstractSearchIndex abstractSearchIndex) {
+    this.abstractSearchIndex = abstractSearchIndex;
+  }
 
   /** OSGi DI */
   public void setSearchIndex(AbstractSearchIndex searchIndex) {
@@ -203,6 +212,7 @@ public class EventsEndpoint implements ManagedService {
       new JSONParser().parse(workflowConfigurationStr);
       workflowConfiguration = workflowConfigurationStr;
       workflow = workflowStr;
+      retractWorkflowId = (String) properties.get("retract-workflow-id");
     } catch (ParseException e) {
       throw new IllegalArgumentException("Invalid JSON specified for workflow configuration");
     }
@@ -361,8 +371,19 @@ public class EventsEndpoint implements ManagedService {
           @RestResponse(description = "The specified event does not exist.", responseCode = HttpServletResponse.SC_NOT_FOUND) })
   public Response deleteEvent(@HeaderParam("Accept") String acceptHeader, @PathParam("eventId") String id)
           throws NotFoundException, UnauthorizedException {
-    if (!indexService.removeEvent(id))
-      return Response.serverError().build();
+    try {
+      final Opt<Event> event = indexService.getEvent(id, abstractSearchIndex);
+      if (event.isNone()) {
+        return Response.serverError().entity("Event '" + id + "' not found").build();
+      }
+      final IndexService.EventRemovalResult eventRemovalResult = indexService.removeEvent(event.get(), () -> {
+      }, retractWorkflowId);
+      if (eventRemovalResult == IndexService.EventRemovalResult.GENERAL_FAILURE) {
+        return Response.serverError().entity("Error removing event: " + eventRemovalResult).build();
+      }
+    } catch (WorkflowDatabaseException | SearchIndexException e) {
+      return Response.serverError().entity("Error retrieving event").build();
+    }
 
     return Response.noContent().build();
   }

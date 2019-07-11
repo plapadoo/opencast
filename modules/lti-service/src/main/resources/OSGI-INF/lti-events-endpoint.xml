@@ -32,4 +32,7 @@
   <reference name="series-service"
              interface="org.opencastproject.series.api.SeriesService"
              bind="setSeriesService"/>
+  <reference name="abstract-search-index"
+             interface="org.opencastproject.external.index.ExternalIndex"
+             bind="setAbstractSearchIndex"/>
 </scr:component>
