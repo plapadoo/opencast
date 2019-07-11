@@ -13,6 +13,7 @@
   "EVENTS.EVENTS.STATUS.PAUSED": "Pausiert",
   "EVENTS.EVENTS.STATUS.PROCESSED": "Verarbeitet",
   "EVENTS.EVENTS.STATUS.PROCESSING_FAILURE": "Verarbeitungs-Fehler",
-  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Verarbeitung abgebrochen"
-
+  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Verarbeitung abgebrochen",
+  "DELETION_SUCCESS": "Löschen erfolgreich in Auftrag gegeben",
+  "DELETION_SUCCESS_DESCRIPTION": "Die Vorlesung wird in Kürze aus der Liste verschwinden…"
 }

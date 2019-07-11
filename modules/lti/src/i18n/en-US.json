@@ -13,5 +13,7 @@
   "EVENTS.EVENTS.STATUS.PAUSED": "Paused",
   "EVENTS.EVENTS.STATUS.PROCESSED": "Finished",
   "EVENTS.EVENTS.STATUS.PROCESSING_FAILURE": "Processing failure",
-  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Processing canceled"
+  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Processing canceled",
+  "DELETION_SUCCESS": "Deletion queued successfully",
+  "DELETION_SUCCESS_DESCRIPTION": "The event will disappear from the list in a short while…"
 }

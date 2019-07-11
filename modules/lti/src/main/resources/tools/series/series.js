@@ -148,7 +148,10 @@ function loadPage(page) {
         },
         headerStr = '';
     if (deletionSuccess) {
-      headerStr = "<h2>Deletion successful</h2>";
+      headerStr = Mustache.render("template-deletion-success", {
+        i18ndeletionSuccess: i18n("DELETION_SUCCESS"),
+        i18ndeletionSuccessDescription: i18n("DELETION_SUCCESS_DESCRIPTION")
+      });
     }
     $('header').html(headerStr+Mustache.render(resultTemplate, resultTplData));
 
