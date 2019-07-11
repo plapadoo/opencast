@@ -271,14 +271,18 @@ public class EventsEndpoint implements ManagedService {
       String seriesId = "";
       for (FileItemIterator iter = new ServletFileUpload().getItemIterator(request); iter.hasNext();) {
         FileItemStream item = iter.next();
-        if (item.getFieldName().equals("hidden_series_name")) {
+        final String fieldName = item.getFieldName();
+        if (fieldName.equals("hidden_series_name")) {
           seriesId = resolveSeriesName(Streams.asString(item.openStream()));
           replaceField(collection, DublinCore.PROPERTY_IS_PART_OF.getLocalName(), seriesId);
+        } else if (fieldName.equals("isPartOf")) {
+          final String fieldValue = Streams.asString(item.openStream());
+          if (!fieldValue.isEmpty()) {
+            seriesId = fieldValue;
+            replaceField(collection, item.getFieldName(), fieldValue);
+          }
         } else if (item.isFormField()) {
           final String fieldValue = Streams.asString(item.openStream());
-          if (item.getFieldName().equals("isPartOf")) {
-            seriesId = fieldValue;
-          }
           replaceField(collection, item.getFieldName(), fieldValue);
         } else {
           r.setMediaPackage(
