@@ -43,7 +43,9 @@
       {{created}}
     </div>
   </a>
+  {{#hasDeletion}}
   <button class=delete onclick=deleteEpisode("{{uid}}")>X</button>
+  {{/hasDeletion}}
 </script>
 
 <!-- Template for spinner -->

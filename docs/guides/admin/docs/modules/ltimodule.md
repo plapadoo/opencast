@@ -61,6 +61,8 @@ lti.blacklist.user.1=myAdminUser
 > that user access to Opencast. In the default configuration, that includes the `admin` and `opencast_system_account`
 > users.
 
+To configure the “delete” key in the series overview tool, you have to specify the retraction workflow in `etc/org.opencastproject.lti.endpoint.EventsEndpoint.cfg`. The property is called `retract-workflow-id`, and it defaults to `retract`.
+
 Configure and test an LTI tool in the LMS
 -----------------------------------------
 
@@ -100,7 +102,11 @@ custom parameters to be defined separately in each place where an LTI tool is us
 custom parameters to be defined globally.
 
 * To show the Opencast Media Module, use `tool=engage/ui/`
-* To show all videos for a single series, use `tool=ltitools/series/index.html?series=SERIESID`
+* To show all videos for a single series, use `tool=ltitools/series/index.html?series=SERIESID`. You can also pass
+  `series_name` to select a series by name (the name has to be unique). If you want the ability to delete events
+  from the series (which will only be available for instructors), add `&deletion=true` to the URL.
+* To show an upload form, use `tool=ltitools/upload/index.html?series=SERIESID`. You can also pass
+  `series_name` to select a series by name (the name has to be unique).
 * To show a single video, use `tool=/play/MEDIAPACKAGEID`
 * To show a short debugging page before proceeding to the tool page, add the parameter `test=true`
 

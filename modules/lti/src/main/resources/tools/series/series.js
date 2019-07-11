@@ -118,6 +118,7 @@ function loadPage(page) {
             uid: episode.id,
             title: episode.dcTitle,
             i18ncreator: i18ncreator,
+            hasDeletion: getParam('deletion') == 'true',
             created: tryLocalDate(episode.dcCreated)};
 
       // get preview image
