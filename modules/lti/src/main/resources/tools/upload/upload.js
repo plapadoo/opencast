@@ -50,7 +50,7 @@ function i18n(key) {
   if (key in lang) {
     return lang[key];
   }
-  return "NO TRANSLATION FOUND FOR '"+key+"'";
+  return 'NO TRANSLATION FOUND FOR "' + key + '"';
 }
 
 function refreshTable() {

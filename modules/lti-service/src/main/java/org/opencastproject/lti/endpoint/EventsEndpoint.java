@@ -82,12 +82,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -293,10 +290,10 @@ public class EventsEndpoint implements ManagedService {
       for (FileItemIterator iter = new ServletFileUpload().getItemIterator(request); iter.hasNext();) {
         FileItemStream item = iter.next();
         final String fieldName = item.getFieldName();
-        if (fieldName.equals("hidden_series_name")) {
+        if ("hidden_series_name".equals(fieldName)) {
           seriesId = resolveSeriesName(Streams.asString(item.openStream()));
           replaceField(collection, DublinCore.PROPERTY_IS_PART_OF.getLocalName(), seriesId);
-        } else if (fieldName.equals("isPartOf")) {
+        } else if ("isPartOf".equals(fieldName)) {
           final String fieldValue = Streams.asString(item.openStream());
           if (!fieldValue.isEmpty()) {
             seriesId = fieldValue;
