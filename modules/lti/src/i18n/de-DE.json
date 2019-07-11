@@ -1,4 +1,18 @@
 {
   "RESULTS": "Ergebnisse {{{range.begin}}}-{{{range.end}}} von {{{total}}}",
-  "CREATOR": "von {{{creator}}}"
+  "CREATOR": "von {{{creator}}}",
+  "CURRENTLY_PROCESSING": "In Verarbeitung",
+  "TITLE": "Titel",
+  "STATUS": "Status",
+  "TITLE_DESCRIPTION": "Titel des Videos",
+  "PRESENTER": "Vortragende(r)",
+  "PRESENTER_DESCRIPTION": "Spur des Vortragender(r)",
+  "UPLOAD": "Upload",
+  "EVENTS.EVENTS.STATUS.PENDING": "Ausstehend",
+  "EVENTS.EVENTS.STATUS.PROCESSING": "In Verarbeitung",
+  "EVENTS.EVENTS.STATUS.PAUSED": "Pausiert",
+  "EVENTS.EVENTS.STATUS.PROCESSED": "Verarbeitet",
+  "EVENTS.EVENTS.STATUS.PROCESSING_FAILURE": "Verarbeitungs-Fehler",
+  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Verarbeitung abgebrochen"
+
 }

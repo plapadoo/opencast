@@ -1,4 +1,17 @@
 {
   "RESULTS": "Results {{{range.begin}}}-{{{range.end}}} of {{{total}}}",
-  "CREATOR": "by {{{creator}}}"
+  "CREATOR": "by {{{creator}}}",
+  "CURRENTLY_PROCESSING": "Currently processing",
+  "TITLE": "Title",
+  "STATUS": "Status",
+  "TITLE_DESCRIPTION": "Title for the video",
+  "PRESENTER": "Presenter",
+  "PRESENTER_DESCRIPTION": "Presenter movie track",
+  "UPLOAD": "Upload",
+  "EVENTS.EVENTS.STATUS.PENDING": "Pending",
+  "EVENTS.EVENTS.STATUS.PROCESSING": "Running",
+  "EVENTS.EVENTS.STATUS.PAUSED": "Paused",
+  "EVENTS.EVENTS.STATUS.PROCESSED": "Finished",
+  "EVENTS.EVENTS.STATUS.PROCESSING_FAILURE": "Processing failure",
+  "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Processing canceled"
 }

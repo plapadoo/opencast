@@ -19,20 +19,55 @@
  *
  */
 
-/* global $, Mustache */
+/* global $, Mustache, i18ndata */
 /* eslint no-console: "warn" */
 
 'use strict';
+
+var defaultLang = i18ndata['en-US'],
+    lang = defaultLang;
+
+function matchLanguage(lang) {
+  // break for too short codes
+  if (lang.length < 2) {
+    return defaultLang;
+  }
+  // Check for exact match
+  if (lang in i18ndata) {
+    return i18ndata[lang];
+  }
+  // Check if there is a more specific language (e.g. 'en-US' if 'en' is requested)
+  for (const key of Object.keys(i18ndata)) {
+    if (key.startsWith(lang)) {
+      return i18ndata[key];
+    }
+  }
+  // check if there is a less specific language
+  return matchLanguage(lang.substring(0, lang.length - 1));
+}
+
+function i18n(key) {
+  return lang[key];
+}
 
 function refreshTable() {
   $.getJSON('/lti/events/jobs', function( eventList ) {
     var listTemplate = $('#template-upload-list').html();
 
+    var translatedEvents = eventList.map(event => ({
+      title: event.title,
+      status: i18n(event.status) }));
+
     // render episode view
     $('#processed-table').html(
       Mustache.render(
         listTemplate,
-        { events: eventList, hasProcessing: eventList.length > 0 }));
+        {
+          events: translatedEvents,
+          hasProcessing: eventList.length > 0,
+          i18ntitle: i18n("TITLE"),
+          i18nstatus: i18n("STATUS")
+        }));
 
     window.setTimeout(refreshTable, 5000);
   });
@@ -51,7 +86,17 @@ function loadPage() {
   $('upload-form').html($('#template-loading').html());
 
   var uploadTemplate = $('#template-upload-dialog').html(),
-      tpldata = { seriesName: getParam('series_name'), series: getParam('series') };
+      tpldata = {
+        seriesName: getParam('series_name'),
+        series: getParam('series'),
+        i18ncurrentlyProcessing: i18n('CURRENTLY_PROCESSING'),
+        i18ntitle: i18n('TITLE'),
+        i18nstatus: i18n('STATUS'),
+        i18ntitleDescription: i18n('TITLE_DESCRIPTION'),
+        i18npresenter: i18n('PRESENTER'),
+        i18npresenterDescription: i18n('PRESENTER_DESCRIPTION'),
+        i18nupload: i18n('UPLOAD')
+      };
 
   // render template
   $('#upload-form').html(Mustache.render(uploadTemplate, tpldata));
@@ -61,5 +106,6 @@ function loadPage() {
 
 
 $(document).ready(function() {
+  lang = matchLanguage(navigator.language);
   loadPage();
 });
