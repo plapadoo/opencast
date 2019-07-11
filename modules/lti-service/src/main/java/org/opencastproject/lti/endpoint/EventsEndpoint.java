@@ -217,7 +217,12 @@ public class EventsEndpoint implements ManagedService {
       new JSONParser().parse(workflowConfigurationStr);
       workflowConfiguration = workflowConfigurationStr;
       workflow = workflowStr;
-      retractWorkflowId = (String) properties.get("retract-workflow-id");
+      final String retractWorkflowId = (String) properties.get("retract-workflow-id");
+      if (retractWorkflowId == null) {
+        this.retractWorkflowId = "retract";
+      } else {
+        this.retractWorkflowId = retractWorkflowId;
+      }
     } catch (ParseException e) {
       throw new IllegalArgumentException("Invalid JSON specified for workflow configuration");
     }
