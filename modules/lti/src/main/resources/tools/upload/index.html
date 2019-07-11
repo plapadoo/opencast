@@ -10,6 +10,7 @@
 <script type=text/javascript src=/ltitools/lib/jquery/dist/jquery.min.js></script>
 <script type=text/javascript src=/ltitools/lib/mustache/mustache.min.js></script>
 <script type=text/javascript src=/ltitools/lib/paginationjs/dist/pagination.min.js></script>
+<script type=text/javascript src=i18n-data.js></script>
 <script type=text/javascript src=upload.js></script>
 
 <title>Opencast: Upload</title>
@@ -27,11 +28,11 @@
 <!-- Template for episodes user view -->
 <script id=template-upload-list type=x-tmpl-mustache>
   {{#hasProcessing}}
-  <h2>Currently processing</h2>
+  <h2>{{i18ncurrentlyProcessing}}</h2>
   <table>
   <tr>
-  <th>Title</th>
-  <th>Status</th>
+  <th>{{i18ntitle}}</th>
+  <th>{{i18nstatus}}</th>
   </tr>
   {{#events}}
   <tr>
@@ -48,26 +49,26 @@
 <table class="testing" cellpadding="0" cellspacing="0">
 <tbody><tr class="form_field form_optional">
 <td class="form_label">
-<label for="createevent-2_acl">title</label>:
+<label for="createevent-2_acl">{{i18ntitle}}</label>:
 </td>
 <td>
 <input id="createevent-2_acl" class="form_field form_param_submit" name="title" type="text" size="30">
 </td>
-<td class="form_field_description">Title for the video</td>
+  <td class="form_field_description">{{i18ntitleDescription}}</td>
 </tr>
 <tr class="form_field form_optional">
 <td class="form_label">
-<label for="createevent-2_presenter">presenter</label>:
+<label for="createevent-2_presenter">{{i18npresenter}}</label>:
 </td>
 <td>
 <input id="createevent-2_presenter" name="presenter" class="form_field_file" type="file">
 </td>
-<td class="form_field_description">Presenter movie track</td>
+<td class="form_field_description">{{i18npresenterDescription}}</td>
 </tr>
 <tr>
 <td colspan="3">
 <div class="form_submit">
-<input type="submit" value="Upload">
+<input type="submit" value="{{i18nupload}}">
 <input type="hidden" name="hidden_series_name" value="{{seriesName}}" />
 <input type="hidden" name="isPartOf" value="{{series}}" />
 </div>
