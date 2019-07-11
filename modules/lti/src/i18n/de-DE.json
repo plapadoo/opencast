@@ -1,7 +1,7 @@
 {
   "RESULTS": "Ergebnisse {{{range.begin}}}-{{{range.end}}} von {{{total}}}",
   "CREATOR": "von {{{creator}}}",
-  "CURRENTLY_PROCESSING": "In Verarbeitung",
+  "CURRENT_JOBS": "Heutige Uploads",
   "TITLE": "Titel",
   "STATUS": "Status",
   "TITLE_DESCRIPTION": "Titel des Videos",
