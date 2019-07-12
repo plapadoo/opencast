@@ -27,7 +27,7 @@
 const player = '/play/';
 
 var currentpage,
-    deletionSuccess = false,
+    deletionStatus = '',
     defaultLang = i18ndata['en-US'],
     lang = defaultLang;
 
@@ -147,11 +147,17 @@ function loadPage(page) {
             end: offset + parseInt(episodes.limit)
           }
         },
-        headerStr = '';
-    if (deletionSuccess) {
-      headerStr = Mustache.render('template-deletion-success', {
-        i18ndeletionSuccess: i18n('DELETION_SUCCESS'),
-        i18ndeletionSuccessDescription: i18n('DELETION_SUCCESS_DESCRIPTION')
+        headerStr = '',
+        deletionTemplate = $('#template-deletion').html();
+    if (deletionStatus === 'success') {
+      headerStr = Mustache.render(deletionTemplate, {
+        i18ndeletionMessage: i18n('DELETION_SUCCESS'),
+        i18ndeletionSubmessage: i18n('DELETION_SUCCESS_DESCRIPTION')
+      });
+    } else if (deletionStatus === 'failure') {
+      headerStr = Mustache.render(deletionTemplate, {
+        i18ndeletionMessage: i18n('DELETION_FAILURE'),
+        i18ndeletionSubmessage: i18n('DELETION_FAILURE_DESCRIPTION')
       });
     }
     $('header').html(headerStr + Mustache.render(resultTemplate, resultTplData));
@@ -163,7 +169,7 @@ function loadPage(page) {
       pageNumber: currentpage,
       callback: function(episodes, pagination) {
         if (pagination.pageNumber != currentpage) {
-          deletionSuccess = false;
+          deletionStatus = '';
           loadPage(pagination.pageNumber);
         }
       }
@@ -176,16 +182,17 @@ function loadPage(page) {
 /* function only called from index html */
 /* eslint-disable-next-line no-unused-vars */
 function deleteEpisode(uid) {
-  deletionSuccess = false;
+  deletionStatus = '';
   $.ajax({
     url: '/lti/events/' + uid,
     type: 'DELETE'
   })
     .fail(function() {
-      //console.log('delete failed');
+      deletionStatus = 'failure';
+      loadPage(currentpage);
     })
     .done(function() {
-      deletionSuccess = true;
+      deletionStatus = 'success';
       loadPage(currentpage);
     });
 }

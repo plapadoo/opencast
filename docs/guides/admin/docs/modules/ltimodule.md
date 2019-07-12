@@ -61,7 +61,9 @@ lti.blacklist.user.1=myAdminUser
 > that user access to Opencast. In the default configuration, that includes the `admin` and `opencast_system_account`
 > users.
 
-To configure the “delete” key in the series overview tool, you have to specify the retraction workflow in `etc/org.opencastproject.lti.endpoint.EventsEndpoint.cfg`. The property is called `retract-workflow-id`, and it defaults to `retract`.
+The “delete” key in the series overview tool can be configured by specifying the retraction workflow in
+`etc/org.opencastproject.lti.endpoint.EventsEndpoint.cfg`. The property is called `retract-workflow-id`, and it defaults
+to `retract`.
 
 Configure and test an LTI tool in the LMS
 -----------------------------------------
