@@ -38,9 +38,6 @@ import java.util.Iterator;
 public class LtiUserProvider implements UserProvider, ManagedService {
   public static final String PROVIDER_NAME = "lti";
 
-  /** The constant indicating that a provider should be consulted for all organizations */
-
-
   @Override
   public String getName() {
     return PROVIDER_NAME;
