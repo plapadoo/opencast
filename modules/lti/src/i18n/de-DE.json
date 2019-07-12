@@ -15,5 +15,7 @@
   "EVENTS.EVENTS.STATUS.PROCESSING_FAILURE": "Verarbeitungs-Fehler",
   "EVENTS.EVENTS.STATUS.PROCESSING_CANCELED": "Verarbeitung abgebrochen",
   "DELETION_SUCCESS": "Löschen erfolgreich in Auftrag gegeben",
-  "DELETION_SUCCESS_DESCRIPTION": "Die Vorlesung wird in Kürze aus der Liste verschwinden…"
+  "DELETION_SUCCESS_DESCRIPTION": "Die Vorlesung wird in Kürze aus der Liste verschwinden…",
+  "DELETION_FAILURE": "Löschen ist fehlgeschlagen",
+  "DELETION_FAILURE_DESCRIPTION": "Bitte versuchen Sie es später erneut…"
 }
