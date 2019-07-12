@@ -6,7 +6,7 @@
   "STATUS": "Status",
   "TITLE_DESCRIPTION": "Titel des Videos",
   "PRESENTER": "Vortragende(r)",
-  "PRESENTER_DESCRIPTION": "Spur des Vortragender(r)",
+  "PRESENTER_DESCRIPTION": "Spur des/der Vortragenden",
   "UPLOAD": "Upload",
   "EVENTS.EVENTS.STATUS.PENDING": "Ausstehend",
   "EVENTS.EVENTS.STATUS.PROCESSING": "In Verarbeitung",

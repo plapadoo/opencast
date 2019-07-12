@@ -20,7 +20,6 @@
  */
 
 /* global $, Mustache, i18ndata */
-/* eslint no-console: "warn" */
 
 'use strict';
 
