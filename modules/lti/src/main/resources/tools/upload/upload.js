@@ -52,36 +52,39 @@ function i18n(key) {
   return 'NO TRANSLATION FOUND FOR "' + key + '"';
 }
 
-function refreshTable() {
-  $.getJSON('/lti/events/jobs', function( eventList ) {
-    var listTemplate = $('#template-upload-list').html();
-
-    var translatedEvents = eventList.map(event => ({
-      title: event.title,
-      status: i18n(event.status) }));
-
-    // render episode view
-    $('#processed-table').html(
-      Mustache.render(
-        listTemplate,
-        {
-          events: translatedEvents,
-          hasProcessing: eventList.length > 0,
-          i18ncurrentJobs: i18n('CURRENT_JOBS'),
-          i18ntitle: i18n('TITLE'),
-          i18nstatus: i18n('STATUS')
-        }));
-
-    window.setTimeout(refreshTable, 5000);
-  });
-}
-
 function getParam(name) {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has(name)) {
     return urlParams.get(name);
   }
   return '';
+}
+
+function refreshTable() {
+  $.getJSON(
+    '/lti/events/jobs?series_name='+getParam('series_name')+'&series='+getParam('series'), function
+    ( eventList ) {
+      var listTemplate = $('#template-upload-list').html();
+
+      var translatedEvents = eventList.map(event => ({
+        title: event.title,
+        status: i18n(event.status) }));
+
+      // render episode view
+      $('#processed-table').html(
+        Mustache.render(
+          listTemplate,
+          {
+            events: translatedEvents,
+            hasProcessing: eventList.length > 0,
+            i18ncurrentJobs: i18n('CURRENT_JOBS'),
+            i18ntitle: i18n('TITLE'),
+            i18nstatus: i18n('STATUS')
+          }));
+
+      window.setTimeout(refreshTable, 5000);
+    }
+  );
 }
 
 function loadPage() {

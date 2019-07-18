@@ -72,6 +72,7 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.lang3.StringUtils;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -103,6 +104,7 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -231,10 +233,11 @@ public class EventsEndpoint implements ManagedService {
 
   @GET
   @Path("/jobs")
-  public Response listJobs() {
+  public Response listJobs(@QueryParam("series_name") final String seriesName, @QueryParam("series") String seriesId) {
     final User user = securityService.getUser();
     final EventSearchQuery query = new EventSearchQuery(securityService.getOrganization().getId(), user)
-            .withCreator(user.getName());
+            .withCreator(user.getName()).withSeriesId(StringUtils.trimToNull(seriesId))
+            .withSeriesName(StringUtils.trimToNull(seriesName));
     try {
       SearchResult<Event> results = searchIndex.getByQuery(query);
       ZonedDateTime startOfDay = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
