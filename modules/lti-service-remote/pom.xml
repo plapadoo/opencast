@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>opencast-lti-service</artifactId>
+  <artifactId>opencast-lti-service-remote</artifactId>
   <packaging>bundle</packaging>
-  <name>Opencast :: lti-service</name>
+  <name>Opencast :: lti-service-remote</name>
   <parent>
     <groupId>org.opencastproject</groupId>
     <artifactId>base</artifactId>
@@ -23,7 +23,7 @@
     <!-- opencast -->
     <dependency>
       <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-capture-admin-service-api</artifactId>
+      <artifactId>opencast-lti-service-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -31,53 +31,6 @@
       <artifactId>opencast-common</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-dublincore</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-index-service</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-ingest-service-api</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-series-service-api</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-userdirectory</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-scheduler-api</artifactId>
-      <version>${project.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <!-- we use this for the transitive dependency to elasticsearch -->
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-search-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-search</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>
@@ -135,10 +88,7 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Build-Number>${buildNumber}</Build-Number>
             <Import-Package>
-              org.opencastproject.matterhorn.search.impl;version=${project.version},
               org.opencastproject.rest;version=${project.version},
-              org.opencastproject.index.service.message,
-              org.opencastproject.metadata.dublincore;version=${project.version},
               org.opencastproject.security.api,
               org.opencastproject.util.doc.rest,
               org.opencastproject.util,
@@ -158,7 +108,8 @@
               org.opencastproject.lti.endpoint
             </Export-Package>
             <Service-Component>
-              OSGI-INF/lti-events-endpoint.xml
+              OSGI-INF/lti-service-remote-impl.xml,
+              OSGI-INF/lti-service-remote-rest-endpoint.xml
             </Service-Component>
           </instructions>
         </configuration>

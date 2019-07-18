@@ -62,8 +62,8 @@ function getParam(name) {
 
 function refreshTable() {
   $.getJSON(
-    '/lti/events/jobs?series_name='+getParam('series_name')+'&series='+getParam('series'), function
-    ( eventList ) {
+    '/lti-service/jobs?series_name=' + getParam('series_name') + '&series=' + getParam('series'),
+    function ( eventList ) {
       var listTemplate = $('#template-upload-list').html();
 
       var translatedEvents = eventList.map(event => ({
