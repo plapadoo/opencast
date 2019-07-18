@@ -125,18 +125,11 @@ public class EventsEndpoint implements ManagedService {
   private IngestService ingestService;
   private SecurityService securityService;
   private SeriesService seriesService;
-  private AbstractSearchIndex abstractSearchIndex;
-
   private AbstractSearchIndex searchIndex;
   private String workflow;
   private String workflowConfiguration;
   private String retractWorkflowId;
   private final List<EventCatalogUIAdapter> catalogUIAdapters = new ArrayList<>();
-
-  /** OSGi DI */
-  public void setAbstractSearchIndex(AbstractSearchIndex abstractSearchIndex) {
-    this.abstractSearchIndex = abstractSearchIndex;
-  }
 
   /** OSGi DI */
   public void setSearchIndex(AbstractSearchIndex searchIndex) {
@@ -239,7 +232,7 @@ public class EventsEndpoint implements ManagedService {
             .withCreator(user.getName()).withSeriesId(StringUtils.trimToNull(seriesId))
             .withSeriesName(StringUtils.trimToNull(seriesName));
     try {
-      SearchResult<Event> results = searchIndex.getByQuery(query);
+      SearchResult<Event> results = this.searchIndex.getByQuery(query);
       ZonedDateTime startOfDay = ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS);
       List<Map<String, String>> jsonResult = Arrays.stream(results.getItems())
               .map(SearchResultItem::getSource)
@@ -383,7 +376,7 @@ public class EventsEndpoint implements ManagedService {
   public Response deleteEvent(@HeaderParam("Accept") String acceptHeader, @PathParam("eventId") String id)
           throws NotFoundException, UnauthorizedException {
     try {
-      final Opt<Event> event = indexService.getEvent(id, abstractSearchIndex);
+      final Opt<Event> event = indexService.getEvent(id, searchIndex);
       if (event.isNone()) {
         return Response.serverError().entity("Event '" + id + "' not found").build();
       }
