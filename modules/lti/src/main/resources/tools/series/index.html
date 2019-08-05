@@ -35,17 +35,23 @@
 
 <!-- Template for episodes admin view -->
 <script id=template-episode-admin type=x-tmpl-mustache>
-  <a class=episode href={{player}}>
-    <div class=preview><img alt=Preview src={{image}} /></div>
-    <div class=desc>
-      <h2>{{title}}</h2>
-      {{i18ncreator}}<br />
-      {{created}}
+  <div class=episode>
+    <a href={{player}}>
+      <div class=preview><img alt=Preview src={{image}} /></div>
+      <div class=desc>
+        <h2>{{title}}</h2>
+        {{i18ncreator}}<br />
+        {{created}}
+      </div>
+    </a>
+    {{#hasDeletion}}
+    <div class=buttoncontainer>
+      <button class=delete onclick=deleteEpisode("{{uid}}")>
+        <img src="bin.svg" height="15px" width="15px" />
+      </button>
     </div>
-  </a>
-  {{#hasDeletion}}
-  <button class=delete onclick=deleteEpisode("{{uid}}")>X</button>
-  {{/hasDeletion}}
+    {{/hasDeletion}}
+  </div>
 </script>
 
 <!-- Template for spinner -->
