@@ -17,31 +17,41 @@ div.loading {
   color: #666;
 }
 
-a.episode {
+div.content-element h2 {
+  margin: 0px;
+  padding: 5px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+div.content-element {
   display: inline-block;
-  text-decoration: none;
-  color: black;
   background-color: #eee;
   padding: 5px;
   margin: 15px;
+  width: 100%;
 }
 
-a.episode:hover {
-  background-color: #fafafa;
+div.content-element td {
+  padding: 5px;
 }
 
-a.episode div {
-  display: inline-block;
-  padding: 20px;
+div.content-element th {
+  text-align: left;
+  padding: 5px;
 }
 
-a.episode div.preview {
-  width: 200px;
+div.content-element table {
+  width: 100%;
 }
 
-a.episode div.desc h2 {
-  margin: 0;
-  margin-bottom: 5px;
+div#upload-form input[type=text] {
+  width: 100%;
+}
+
+div#upload-form input[type=submit] {
+  width: 150px;
+  height: 35px;
 }
 
 button.delete {

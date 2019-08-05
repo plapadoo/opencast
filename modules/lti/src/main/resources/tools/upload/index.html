@@ -19,8 +19,8 @@
 
 <header></header>
 <main>
-  <div id="upload-form"></div>
-  <div id="processed-table"></div>
+  <div id="upload-form" class="content-element"></div>
+  <div id="processed-table" class="content-element"></div>
 </main>
 <footer></footer>
 
@@ -30,53 +30,60 @@
   {{#hasProcessing}}
   <h2>{{i18ncurrentJobs}}</h2>
   <table>
-  <tr>
-  <th>{{i18ntitle}}</th>
-  <th>{{i18nstatus}}</th>
-  </tr>
-  {{#events}}
-  <tr>
-  <td>{{title}}</td>
-  <td>{{status}}</td>
-  </tr>
-  {{/events}}
+    <tr>
+      <th>{{i18ntitle}}</th>
+      <th>{{i18nstatus}}</th>
+    </tr>
+    {{#events}}
+    <tr>
+      <td>{{title}}</td>
+      <td>{{status}}</td>
+    </tr>
+    {{/events}}
+  </table>
   {{/hasProcessing}}
 </script>
 
 <!-- Template for upload dialog -->
 <script id=template-upload-dialog type=x-tmpl-mustache>
-<form action="/lti-service" method="post" enctype="multipart/form-data">
-<table class="testing" cellpadding="0" cellspacing="0">
-<tbody><tr class="form_field form_optional">
-<td class="form_label">
-<label for="createevent-2_acl">{{i18ntitle}}</label>:
-</td>
-<td>
-<input id="createevent-2_acl" class="form_field form_param_submit" name="title" type="text" size="30">
-</td>
-  <td class="form_field_description">{{i18ntitleDescription}}</td>
-</tr>
-<tr class="form_field form_optional">
-<td class="form_label">
-<label for="createevent-2_presenter">{{i18npresenter}}</label>:
-</td>
-<td>
-<input id="createevent-2_presenter" name="presenter" class="form_field_file" type="file">
-</td>
-<td class="form_field_description">{{i18npresenterDescription}}</td>
-</tr>
-<tr>
-<td colspan="3">
-<div class="form_submit">
-<input type="submit" value="{{i18nupload}}">
-<input type="hidden" name="hidden_series_name" value="{{seriesName}}" />
-<input type="hidden" name="isPartOf" value="{{series}}" />
-</div>
-</td>
-</tr>
-</tbody>
-</table>
-</form>
+  <form action="/lti-service" method="post" enctype="multipart/form-data">
+    <h2>{{i18nnewUpload}}</h2>
+    <table>
+      <tbody>
+        <tr class="form_field form_optional">
+          <td class="form_label">
+            <label for="createevent-2_acl">{{i18ntitle}}</label>:
+          </td>
+          <td>
+            <input id="createevent-2_acl" class="form_field form_param_submit" name="title" type="text" size="30">
+          </td>
+          <td class="form_field_description">{{i18ntitleDescription}}</td>
+        </tr>
+        <tr class="form_field form_optional">
+          <td class="form_label">
+            <label for="createevent-2_presenter">{{i18npresenter}}</label>:
+          </td>
+          <td>
+            <input id="createevent-2_presenter" name="presenter" class="form_field_file" type="file">
+          </td>
+          <td class="form_field_description">{{i18npresenterDescription}}</td>
+        </tr>
+        <tr>
+          <td>
+          </td>
+          <td>
+          </td>
+          <td>
+            <div class="form_submit">
+              <input type="submit" value="{{i18nupload}}">
+              <input type="hidden" name="hidden_series_name" value="{{seriesName}}" />
+              <input type="hidden" name="isPartOf" value="{{series}}" />
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
 </script>
 
 <!-- Template for spinner -->

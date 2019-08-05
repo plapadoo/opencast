@@ -95,6 +95,7 @@ function loadPage() {
       tpldata = {
         seriesName: getParam('series_name'),
         series: getParam('series'),
+        i18nnewUpload: i18n('NEW_UPLOAD'),
         i18ntitle: i18n('TITLE'),
         i18nstatus: i18n('STATUS'),
         i18ntitleDescription: i18n('TITLE_DESCRIPTION'),

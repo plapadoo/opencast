@@ -2,6 +2,7 @@
   "RESULTS": "Results {{{range.begin}}}-{{{range.end}}} of {{{total}}}",
   "CREATOR": "by {{{creator}}}",
   "CURRENT_JOBS": "Today's uploads",
+  "NEW_UPLOAD": "New Video",
   "TITLE": "Title",
   "STATUS": "Status",
   "TITLE_DESCRIPTION": "Title for the video",
