@@ -20,7 +20,7 @@
 <header></header>
 <main>
   <div id="upload-form" class="content-element"></div>
-  <div id="processed-table" class="content-element"></div>
+  <div id="processed-table"></div>
 </main>
 <footer></footer>
 
@@ -28,19 +28,21 @@
 <!-- Template for episodes user view -->
 <script id=template-upload-list type=x-tmpl-mustache>
   {{#hasProcessing}}
-  <h2>{{i18ncurrentJobs}}</h2>
-  <table>
-    <tr>
-      <th>{{i18ntitle}}</th>
-      <th>{{i18nstatus}}</th>
-    </tr>
-    {{#events}}
-    <tr>
-      <td>{{title}}</td>
-      <td>{{status}}</td>
-    </tr>
-    {{/events}}
-  </table>
+  <div class="content-element">
+    <h2>{{i18ncurrentJobs}}</h2>
+    <table>
+      <tr>
+        <th>{{i18ntitle}}</th>
+        <th>{{i18nstatus}}</th>
+      </tr>
+      {{#events}}
+      <tr>
+        <td>{{title}}</td>
+        <td>{{status}}</td>
+      </tr>
+      {{/events}}
+    </table>
+  </div>
   {{/hasProcessing}}
 </script>
 

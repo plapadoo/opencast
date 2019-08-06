@@ -47,6 +47,7 @@ div.content-element table {
 
 div#upload-form input[type=text] {
   width: 100%;
+  box-sizing: border-box;
 }
 
 div#upload-form input[type=submit] {
