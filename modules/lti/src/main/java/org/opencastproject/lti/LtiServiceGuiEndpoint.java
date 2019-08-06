@@ -18,14 +18,12 @@
  * the License.
  *
  */
-package org.opencastproject.lti.endpoint;
-
-import static org.opencastproject.util.RestUtil.getEndpointUrl;
-import static org.opencastproject.util.doc.rest.RestParameter.Type.STRING;
+package org.opencastproject.lti;
 
 import org.opencastproject.lti.service.api.LtiService;
 import org.opencastproject.rest.RestConstants;
 import org.opencastproject.systems.OpencastConstants;
+import org.opencastproject.util.RestUtil;
 import org.opencastproject.util.UrlSupport;
 import org.opencastproject.util.data.Tuple;
 import org.opencastproject.util.doc.rest.RestParameter;
@@ -70,9 +68,9 @@ import javax.ws.rs.core.Response.Status;
 
 @Path("/")
 @RestService(name = "ltirestserviceendpoint", title = "LTI Service", notes = {}, abstractText = "Provides operations to LTI clients")
-public class LtiServiceRemoteRestEndpoint {
+public class LtiServiceGuiEndpoint {
   /** The logging facility */
-  private static final Logger logger = LoggerFactory.getLogger(LtiServiceRemoteRestEndpoint.class);
+  private static final Logger logger = LoggerFactory.getLogger(LtiServiceGuiEndpoint.class);
 
   /** Base URL of this endpoint */
   private String endpointBaseUrl;
@@ -89,7 +87,7 @@ public class LtiServiceRemoteRestEndpoint {
   void activate(ComponentContext cc) {
     logger.info("Activating LTI service Endpoint");
 
-    final Tuple<String, String> endpointUrl = getEndpointUrl(cc, OpencastConstants.EXTERNAL_API_URL_ORG_PROPERTY,
+    final Tuple<String, String> endpointUrl = RestUtil.getEndpointUrl(cc, OpencastConstants.EXTERNAL_API_URL_ORG_PROPERTY,
             RestConstants.SERVICE_PATH_PROPERTY);
     endpointBaseUrl = UrlSupport.concat(endpointUrl.getA(), endpointUrl.getB());
     logger.debug("Configured service endpoint is {}", endpointBaseUrl);
@@ -111,13 +109,13 @@ public class LtiServiceRemoteRestEndpoint {
   @Path("/")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   @RestQuery(name = "createevent", description = "Creates an event by sending metadata, access control list, processing instructions and files in a multipart request.", returnDescription = "", restParameters = {
-          @RestParameter(name = "acl", isRequired = false, description = "A collection of roles with their possible action", type = STRING),
-          @RestParameter(name = "metadata", description = "Event metadata as Form param", isRequired = false, type = STRING),
-          @RestParameter(name = "scheduling", description = "Scheduling information as Form param", isRequired = false, type = STRING),
+          @RestParameter(name = "acl", isRequired = false, description = "A collection of roles with their possible action", type = Type.STRING),
+          @RestParameter(name = "metadata", description = "Event metadata as Form param", isRequired = false, type = Type.STRING),
+          @RestParameter(name = "scheduling", description = "Scheduling information as Form param", isRequired = false, type = Type.STRING),
           @RestParameter(name = "presenter", description = "Presenter movie track", isRequired = false, type = Type.FILE),
           @RestParameter(name = "presentation", description = "Presentation movie track", isRequired = false, type = Type.FILE),
           @RestParameter(name = "audio", description = "Audio track", isRequired = false, type = Type.FILE),
-          @RestParameter(name = "processing", description = "Processing instructions task configuration", isRequired = false, type = STRING) }, reponses = {
+          @RestParameter(name = "processing", description = "Processing instructions task configuration", isRequired = false, type = Type.STRING) }, reponses = {
                   @RestResponse(description = "A new event is created and its identifier is returned in the Location header.", responseCode = HttpServletResponse.SC_CREATED),
                   @RestResponse(description = "The event could not be created due to a scheduling conflict.", responseCode = HttpServletResponse.SC_CONFLICT),
                   @RestResponse(description = "The request is invalid or inconsistent..", responseCode = HttpServletResponse.SC_BAD_REQUEST) })
@@ -161,7 +159,7 @@ public class LtiServiceRemoteRestEndpoint {
   @DELETE
   @Path("{eventId}")
   @RestQuery(name = "deleteevent", description = "Deletes an event.", returnDescription = "", pathParameters = {
-          @RestParameter(name = "eventId", description = "The event id", isRequired = true, type = STRING) }, reponses = {
+          @RestParameter(name = "eventId", description = "The event id", isRequired = true, type = Type.STRING) }, reponses = {
           @RestResponse(description = "The event has been deleted.", responseCode = HttpServletResponse.SC_NO_CONTENT),
           @RestResponse(description = "The specified event does not exist.", responseCode = HttpServletResponse.SC_NOT_FOUND) })
   public Response deleteEvent(@HeaderParam("Accept") String acceptHeader, @PathParam("eventId") String id) {

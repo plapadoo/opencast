@@ -183,7 +183,7 @@ function loadPage(page) {
 function deleteEpisode(uid) {
   deletionStatus = '';
   $.ajax({
-    url: '/lti-service/' + uid,
+    url: '/lti-service-gui/' + uid,
     type: 'DELETE'
   })
     .fail(function() {

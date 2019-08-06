@@ -62,7 +62,7 @@ function getParam(name) {
 
 function refreshTable() {
   $.getJSON(
-    '/lti-service/jobs?series_name=' + getParam('series_name') + '&series=' + getParam('series'),
+    '/lti-service-gui/jobs?series_name=' + getParam('series_name') + '&series=' + getParam('series'),
     function ( eventList ) {
       var listTemplate = $('#template-upload-list').html();
 
