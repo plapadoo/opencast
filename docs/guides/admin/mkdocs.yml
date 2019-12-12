@@ -103,6 +103,7 @@ nav:
    - Stream Security: 'modules/stream-security.md'
    - Text Extraction: 'modules/textextraction.md'
    - Timeline Previews: 'modules/timelinepreviews.md'
+   - Transcripts (AmberScript): 'modules/amberscripttranscripts.md'
    - Transcripts (IBM Watson): 'modules/watsontranscripts.md'
    - Video Editor:
       - Setup: 'modules/videoeditor.setup.md'
@@ -118,6 +119,8 @@ nav:
    - Analyze Tracks: 'workflowoperationhandlers/analyze-tracks-woh.md'
    - Analyze Audio: 'workflowoperationhandlers/analyzeaudio-woh.md'
    - Animate: 'workflowoperationhandlers/animate-woh.md'
+   - AmberScript Start Transcription: 'workflowoperationhandlers/amberscript-start-transcription-woh.md'
+   - AmberScript Attach Transcription: 'workflowoperationhandlers/amberscript-attach-transcription-woh.md'
    - Asset Snapshot: 'workflowoperationhandlers/snapshot-woh.md'
    - Asset Delete: 'workflowoperationhandlers/asset-delete-woh.md'
    - Attach Watson Transcription: 'workflowoperationhandlers/attach-watson-transcription-woh.md'
