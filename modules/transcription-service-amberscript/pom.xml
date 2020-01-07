@@ -154,6 +154,8 @@
             <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
             <Build-Number>${buildNumber}</Build-Number>
             <Service-Component>
+              OSGI-INF/amberscript-attach-transcription.xml,
+              OSGI-INF/amberscript-start-transcription.xml,
               OSGI-INF/amberscript-transcription-rest.xml,
               OSGI-INF/amberscript-transcription-service.xml
             </Service-Component>

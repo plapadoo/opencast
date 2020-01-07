@@ -68,12 +68,6 @@
       <artifactId>easymock</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-transcription-service-amberscript</artifactId>
-      <version>9-SNAPSHOT</version>
-      <scope>compile</scope>
-    </dependency>
   </dependencies>
   <build>
     <plugins>
