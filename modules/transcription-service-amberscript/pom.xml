@@ -42,7 +42,7 @@
     </dependency>
     <dependency>
       <groupId>org.opencastproject</groupId>
-      <artifactId>opencast-transcription-service-persistence</artifactId>
+      <artifactId>opencast-transcription-service-ibm-watson-impl</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -157,7 +157,8 @@
               OSGI-INF/amberscript-attach-transcription.xml,
               OSGI-INF/amberscript-start-transcription.xml,
               OSGI-INF/amberscript-transcription-rest.xml,
-              OSGI-INF/amberscript-transcription-service.xml
+              OSGI-INF/amberscript-transcription-service.xml,
+              OSGI-INF/amberscript-transcription-database-service.xml
             </Service-Component>
             <Import-Package>
               javax.ws.rs;version=2.0.1,
@@ -165,6 +166,9 @@
               *
             </Import-Package>
             <Export-Package>org.opencastproject.transcription.amberscript;version=${project.version}</Export-Package>
+            <Meta-Persistence>
+              META-INF/persistence.xml
+            </Meta-Persistence>
           </instructions>
         </configuration>
       </plugin>

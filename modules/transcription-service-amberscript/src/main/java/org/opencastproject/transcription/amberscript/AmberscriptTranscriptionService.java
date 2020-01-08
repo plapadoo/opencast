@@ -43,13 +43,11 @@ import org.opencastproject.security.api.UserDirectoryService;
 import org.opencastproject.security.util.SecurityUtil;
 import org.opencastproject.serviceregistry.api.ServiceRegistry;
 import org.opencastproject.serviceregistry.api.ServiceRegistryException;
-import org.opencastproject.systems.OpencastConstants;
+import org.opencastproject.transcription.amberscript.persistence.TranscriptionDatabase;
+import org.opencastproject.transcription.amberscript.persistence.TranscriptionDatabaseException;
+import org.opencastproject.transcription.amberscript.persistence.TranscriptionJobControl;
 import org.opencastproject.transcription.api.TranscriptionService;
 import org.opencastproject.transcription.api.TranscriptionServiceException;
-import org.opencastproject.transcription.persistence.TranscriptionDatabase;
-import org.opencastproject.transcription.persistence.TranscriptionDatabaseException;
-import org.opencastproject.transcription.persistence.TranscriptionJobControl;
-import org.opencastproject.transcription.persistence.TranscriptionProviderControl;
 import org.opencastproject.util.OsgiUtil;
 import org.opencastproject.util.PathSupport;
 import org.opencastproject.util.data.Option;
@@ -88,7 +86,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -103,6 +100,7 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
   private static final Logger logger = LoggerFactory.getLogger(AmberscriptTranscriptionService.class);
 
   private static final String JOB_TYPE = "org.opencastproject.transcription.amberscript";
+  private static final String DIGEST_USER_PROPERTY = "org.opencastproject.security.digest.user";
 
   public static final String SUBMISSION_COLLECTION = "amberscript-submission";
   private static final String TRANSCRIPT_COLLECTION = "amberscript-transcripts";
@@ -238,7 +236,7 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
     }
     logger.info("Cleanup result files after {} days.", cleanupResultDays);
 
-    systemAccount = OsgiUtil.getContextProperty(cc, OpencastConstants.DIGEST_USER_PROPERTY);
+    systemAccount = OsgiUtil.getContextProperty(cc, DIGEST_USER_PROPERTY);
 
     scheduledExecutor = Executors.newScheduledThreadPool(2);
 
@@ -261,7 +259,6 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
     return startTranscription(mpId, track, getLanguage(), getAmberscriptJobType());
   }
 
-  @Override
   public Job startTranscription(String mpId, Track track, String language) throws TranscriptionServiceException {
     return startTranscription(mpId, track, language, getAmberscriptJobType());
   }
@@ -408,8 +405,8 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
       switch (code) {
         case HttpStatus.SC_OK: // 200
           logger.info("mp {} has been submitted to AmberScript service with jobId {}.", mpId, jobId);
-          database.storeJobControl(mpId, track.getIdentifier(), jobId, TranscriptionJobControl.Status.InProgress.name(),
-                  track.getDuration() == null ? 0 : track.getDuration().longValue(), new Date(), PROVIDER);
+          database.storeJobControl(mpId, track.getIdentifier(), jobId, TranscriptionJobControl.Status.Progress.name(),
+                  track.getDuration() == null ? 0 : track.getDuration().longValue());
           EntityUtils.consume(entity);
           return;
         default:
@@ -717,36 +714,22 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
       try {
         // Find jobs that are in progress and jobs that had transcription complete
 
-        long providerId;
-        TranscriptionProviderControl providerInfo = database.findIdByProvider(PROVIDER);
-        if (providerInfo != null) {
-          providerId = providerInfo.getId();
-        } else {
-          logger.debug("No jobs yet for provider {}.", PROVIDER);
-          return;
-        }
-
-        List<TranscriptionJobControl> jobs = database.findByStatus(TranscriptionJobControl.Status.InProgress.name(),
+        List<TranscriptionJobControl> jobs = database.findByStatus(TranscriptionJobControl.Status.Progress.name(),
                 TranscriptionJobControl.Status.TranscriptionComplete.name());
 
         for (TranscriptionJobControl j : jobs) {
-
-          // Don't process jobs for other services
-          if (j.getProviderId() != providerId) {
-            continue;
-          }
 
           String mpId = j.getMediaPackageId();
           String jobId = j.getTranscriptionJobId();
 
           // If the job in progress, check if it should already have finished.
-          if (TranscriptionJobControl.Status.InProgress.name().equals(j.getStatus())) {
+          if (TranscriptionJobControl.Status.Progress.name().equals(j.getStatus())) {
             // If job should already have been completed, try to get the results.
-            if (j.getDateExpected().getTime() < System.currentTimeMillis()) {
+            if (j.getDateCreated().getTime() + j.getTrackDuration() < System.currentTimeMillis()) {
               try {
                 if (!checkJobResults(jobId)) {
                   // Job still running, not finished, so check if it should have finished more than N seconds ago
-                  if (j.getDateExpected().getTime() + maxProcessingSeconds * 1000 < System.currentTimeMillis()) {
+                  if (j.getDateCreated().getTime() + j.getTrackDuration() + maxProcessingSeconds * 1000 < System.currentTimeMillis()) {
                     // Processing for too long, mark job as canceled and don't check anymore
                     database.updateJobControl(jobId, TranscriptionJobControl.Status.Canceled.name());
                   }
@@ -795,7 +778,7 @@ public class AmberscriptTranscriptionService extends AbstractJobProducer impleme
 
             // Apply workflow
             // wfUtil is only used by unit tests
-            Workflows workflows = wfUtil != null ? wfUtil : new Workflows(assetManager, workflowService);
+            Workflows workflows = wfUtil != null ? wfUtil : new Workflows(assetManager, workspace, workflowService);
             Set<String> mpIds = new HashSet<String>();
             mpIds.add(mpId);
             List<WorkflowInstance> wfList = workflows

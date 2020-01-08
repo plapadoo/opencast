@@ -26,7 +26,7 @@
 		interface="org.opencastproject.security.api.OrganizationDirectoryService"
 		cardinality="1..1" policy="static" bind="setOrganizationDirectoryService" />
 	<reference name="database"
-		interface="org.opencastproject.transcription.persistence.TranscriptionDatabase"
+		interface="org.opencastproject.transcription.amberscript.persistence.TranscriptionDatabase"
 		cardinality="1..1" policy="static" bind="setDatabase" />
 	<reference name="workflowService" interface="org.opencastproject.workflow.api.WorkflowService"
 		cardinality="1..1" policy="static" bind="setWorkflowService" />
